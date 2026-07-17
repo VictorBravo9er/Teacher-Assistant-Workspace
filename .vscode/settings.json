@@ -1,3 +1,5 @@
 {
-  "workbench.startupEditor": "readme"
+  "workbench.startupEditor": "readme",
+  "editor.tabSize": 2,
+  "prettier.tabWidth": 2,
 }
