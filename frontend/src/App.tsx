@@ -6,16 +6,15 @@ import WorkspaceDetails from './components/WorkspaceDetails';
 import StudentRegister from './components/StudentRegister';
 import RAGWorkspace from './components/RAGWorkspace';
 import CommandPalette from './components/CommandPalette';
+import AccountModals from './components/AccountModals';
+import { getMockChatResponse } from './mockChat';
 import { 
-  X, 
-  Settings, 
-  HelpCircle, 
   Sparkles, 
-  GraduationCap, 
-  ShieldCheck, 
-  UserCircle2, 
+  X,
+  UserCircle2,
+  ShieldCheck,
   Sliders,
-  Layers,
+  Settings,
   Key
 } from 'lucide-react';
 
@@ -279,7 +278,7 @@ export default function App() {
     triggerToast("Removed custom prompting rubric.");
   };
 
-  // --- RAG Chat API Bridge execution ---
+  // --- Client-side Mock Chat execution ---
   const handleSendChatMessage = async (sessionId: string, text: string) => {
     if (!activeWorkspace) return;
 
@@ -336,18 +335,18 @@ export default function App() {
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP status query crash: ${response.status}`);
+      let resJson;
+      if (response.ok) {
+        resJson = await response.json();
+      } else {
+        throw new Error(`HTTP Error Status: ${response.status}`);
       }
-
-      const rawJson = await response.json();
       
-      // Append assistant message response
       const serverMsg: Message = {
         id: `m-${Date.now()}-ai`,
         role: 'assistant',
-        text: rawJson.text || "I was unable to structure an assessment insight for this context.",
-        visualization: rawJson.visualization || undefined,
+        text: resJson.text || "I was unable to structure an assessment insight.",
+        visualization: resJson.visualization || undefined,
         timestamp: new Date().toISOString()
       };
 
@@ -366,18 +365,53 @@ export default function App() {
       setWorkspaces(processedWorkspaces);
 
     } catch (err: any) {
-      console.warn("RAG server-side call failed. Returning simulated assessment fallback details.", err);
+      console.warn("FastAPI backend call failed. Falling back to client mock simulation...", err);
+      // Fallback
+      const mockCtx = {
+        prompt: text,
+        students: activeWorkspace.students,
+        materials: activeWorkspace.materials,
+        instructions: activeWorkspace.instructions
+      };
+      const mockResponse = await getMockChatResponse(mockCtx);
+      
+      const serverMsg: Message = {
+        id: `m-${Date.now()}-ai`,
+        role: 'assistant',
+        text: mockResponse.text,
+        visualization: mockResponse.visualization,
+        timestamp: new Date().toISOString()
+      };
+
+      const finalSessions = updatedWorkspaces[currentWorkspaceIndex].ragSessions.map(s => {
+        if (s.id === sessionId) {
+          return { ...s, messages: [...s.messages, serverMsg] };
+        }
+        return s;
+      });
+
+      const processedWorkspaces = [...workspaces];
+      processedWorkspaces[currentWorkspaceIndex] = {
+        ...activeWorkspace,
+        ragSessions: finalSessions
+      };
+      setWorkspaces(processedWorkspaces);
       triggerToast("Running diagnostic model analysis...");
     } finally {
       setIsGeneratingAI(false);
     }
   };
 
-  // Triggering specific student roster modals inside CommandPalette switches
   const handleOpenStudentDrawer = (studentId: string) => {
-    // Select the active selector trigger by updating studentId inside state
-    const targetInput = document.querySelector(`[key="${studentId}"]`) as HTMLElement;
-    if (targetInput) targetInput.click();
+    setSelectedStudentIdState(studentId);
+  };
+
+  // State bridge to communicate command palette selections to StudentRegister modal open
+  const setSelectedStudentIdState = (studentId: string) => {
+    const studentCard = document.querySelector(`[key="${studentId}"]`) as HTMLElement;
+    if (studentCard) {
+      studentCard.click();
+    }
   };
 
   return (
@@ -436,7 +470,6 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Shortcut label info */}
               <span className="hidden md:inline-block text-[10px] font-mono text-muted-text bg-elevated border border-border-color px-2.5 py-1 rounded-lg">
                 Ctrl + K to query any Student or Cohort
               </span>
@@ -446,7 +479,7 @@ export default function App() {
           {/* Core double split viewport */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-0 gap-4 md:gap-4">
             
-            {/* Top Row: Hidden entirely when entering immersive active RAG Session conversion (Focus Mode) */}
+            {/* Top Row: Hidden entirely when entering immersive active RAG Focus Mode */}
             {!isFocusMode && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[240px] shrink-0 min-h-0">
                 {/* Details top left section */}
@@ -498,160 +531,12 @@ export default function App() {
         </div>
       )}
 
-      {/* --- ACCOUNT MODALS SYSTEM overlays --- */}
-      {activeAccountModal && (
-        <div className="fixed inset-0 bg-primary-text/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setActiveAccountModal(null)}>
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-elevated border border-border-color rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative"
-          >
-            {/* Close trigger */}
-            <button 
-              onClick={() => setActiveAccountModal(null)}
-              className="absolute right-5 top-5 hover:bg-surface p-1.5 rounded-xl text-muted-text hover:text-primary-text cursor-pointer transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {activeAccountModal === 'profile' && (
-              <div className="p-6 space-y-5">
-                <div className="flex items-center gap-3.5 pb-4 border-b border-border-color">
-                  <UserCircle2 className="w-10 h-10 text-primary" />
-                  <div>
-                    <h3 className="text-md font-bold font-display text-primary-text">Elena Rostova</h3>
-                    <p className="text-[10px] font-mono text-muted-text">AI Studio District Senior Educator</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-4 bg-surface p-4 rounded-2xl border border-border-color shadow-sm">
-                    <div>
-                      <span className="text-[10px] text-muted-text font-mono block">AFFILIATION</span>
-                      <span className="font-semibold text-primary-text block mt-0.5">High School STEM faculty</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted-text font-mono block">REGISTERED EMAIL</span>
-                      <span className="font-semibold text-primary-text block mt-0.5 truncate">Vikramjitborah@gmail.com</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h4 className="font-mono text-[10px] uppercase font-bold text-muted-text">Academic Licenses</h4>
-                    <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex justify-between items-center">
-                      <div>
-                        <span className="font-semibold text-primary block">EduAssistant Partner API</span>
-                        <span className="text-[10px] text-primary/80 font-mono block mt-0.5">Full access key granted</span>
-                      </div>
-                      <ShieldCheck className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeAccountModal === 'preferences' && (
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-border-color">
-                  <Sliders className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary-text">Teaching Preferences</h3>
-                    <span className="text-[10px] font-mono text-muted-text">Configure default AI assessment styles</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4 text-xs font-mono">
-                  <div>
-                    <label className="text-[10px] text-muted-text block mb-1">DEFAULT REMEDIAL CLINIC TRIGGER THRESHOLD</label>
-                    <select className="w-full bg-surface border border-border-color rounded-lg p-2 text-primary-text outline-none focus:border-primary">
-                      <option value="60">Scores falling under 60% (F/D Grade)</option>
-                      <option value="75">Scores falling under 75% (C/B Grade)</option>
-                      <option value="90">High mastery tutoring scope under 90%</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-muted-text block mb-1">SOCRATIC DIALOGUE VERBOSITY LENGTH</label>
-                    <select className="w-full bg-surface border border-border-color rounded-lg p-2 text-primary-text outline-none focus:border-primary">
-                      <option value="brief">Direct questions (1-2 sentences feedback)</option>
-                      <option value="medium">Detailed structural outlines (Recommended)</option>
-                      <option value="long">Complete step worksheets mapping theories</option>
-                    </select>
-                  </div>
-
-                  <button 
-                    onClick={() => { setActiveAccountModal(null); triggerToast("Teaching guidelines successfully cached."); }}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-xl text-xs font-sans cursor-pointer transition-colors"
-                  >
-                    Save Preferences
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeAccountModal === 'settings' && (
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-border-color">
-                  <Settings className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary-text">System Configurations</h3>
-                    <span className="text-[10px] font-mono text-muted-text">Admin settings & diagnostic utilities</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3.5 text-xs">
-                  <div className="bg-surface p-4 border border-border-color rounded-2xl flex items-center justify-between shadow-sm">
-                    <div>
-                      <span className="font-semibold text-primary-text block">Local Save Status</span>
-                      <span className="text-[9px] text-muted-text font-mono block mt-1">Saves state to browser storage</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-success/10 text-success border border-success/25 text-[10px] font-mono rounded">
-                      Autosaved
-                    </span>
-                  </div>
-
-                  <div className="bg-surface p-4 border border-border-color rounded-2xl flex items-center justify-between shadow-sm">
-                    <div>
-                      <span className="font-semibold text-primary-text block">Server-Side Gemini Keys</span>
-                      <span className="text-[9px] text-muted-text font-mono block mt-1">Settings & secrets injected automatically</span>
-                    </div>
-                    <Key className="w-4.5 h-4.5 text-primary/80" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeAccountModal === 'subscription' && (
-              <div className="p-6 space-y-5">
-                <div className="flex items-center gap-3 pb-3 border-b border-border-color">
-                  <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary-text">Workspace Licensing</h3>
-                    <span className="text-[10px] font-mono text-muted-text">Free Tier partner vs. Pro scaling models</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="p-4 bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-between transition-colors">
-                    <div>
-                      <span className="text-xs font-bold text-primary block">PRO LICENSE PASS</span>
-                      <p className="text-[11px] text-secondary-text leading-relaxed block mt-1">
-                        Unlocks unlimited workspace classes, advanced radar visualizers, and direct batch Grading pipelines.
-                      </p>
-                    </div>
-                    <button 
-                      onClick={() => { setActiveAccountModal(null); triggerToast("Mock Upgrade Successful: Welcome to Pro!"); }}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-lg cursor-pointer"
-                    >
-                      $12/mo
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
-      )}
+      {/* Account settings and utility modals */}
+      <AccountModals 
+        activeModal={activeAccountModal}
+        onClose={() => setActiveAccountModal(null)}
+        onTriggerToast={triggerToast}
+      />
 
     </div>
   );

@@ -1,26 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Workspace, Student, Grade, CustomField, StudentUpload } from '../types';
 import { 
-  User, 
   Mail, 
   Phone, 
   MapPin, 
-  Heart, 
   GraduationCap, 
   FileText, 
   Plus, 
   Trash2, 
-  Briefcase, 
-  HeartHandshake, 
-  Settings2, 
-  CheckCircle2, 
   Clock, 
-  ChevronRight, 
   Trash, 
-  ChevronDown,
   Contact2,
-  Tag,
-  ToggleLeft,
   X
 } from 'lucide-react';
 
@@ -36,104 +26,10 @@ export default function StudentRegister({
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const selectedStudent = workspace.students.find(s => s.id === selectedStudentId);
 
-  // Dragging carousel controls via mouse
-  const carouselRef = useRef<HTMLDivElement | null>(null);
-  const dragStartRef = useRef<{ isDown: boolean; startX: number; scrollLeft: number; hasMoved: boolean; initialPageX: number }>({
-    isDown: false,
-    startX: 0,
-    scrollLeft: 0,
-    hasMoved: false,
-    initialPageX: 0
-  });
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const carousel = carouselRef.current;
-    if (!carousel) return;
-    
-    dragStartRef.current = {
-      isDown: true,
-      startX: e.pageX - carousel.offsetLeft,
-      scrollLeft: carousel.scrollLeft,
-      hasMoved: false,
-      initialPageX: e.pageX
-    };
-    
-    carousel.style.cursor = 'grabbing';
-    carousel.style.userSelect = 'none';
-  };
-
-  const handleMouseLeave = () => {
-    if (!dragStartRef.current.isDown) return;
-    dragStartRef.current.isDown = false;
-    const carousel = carouselRef.current;
-    if (carousel) {
-      carousel.style.cursor = 'grab';
-      carousel.style.removeProperty('user-select');
-    }
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    const drag = dragStartRef.current;
-    if (!drag.isDown) return;
-
-    const deltaX = Math.abs(e.pageX - drag.initialPageX);
-    if (deltaX > 5) {
-      drag.hasMoved = true;
-    }
-
-    drag.isDown = false;
-    const carousel = carouselRef.current;
-    if (carousel) {
-      carousel.style.cursor = 'grab';
-      carousel.style.removeProperty('user-select');
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const drag = dragStartRef.current;
-    if (!drag.isDown) return;
-    
-    const carousel = carouselRef.current;
-    if (!carousel) return;
-
-    const x = e.pageX - carousel.offsetLeft;
-    const walk = (x - drag.startX) * 1.5;
-    carousel.scrollLeft = drag.scrollLeft - walk;
-
-    const deltaX = Math.abs(e.pageX - drag.initialPageX);
-    if (deltaX > 5) {
-      drag.hasMoved = true;
-    }
-  };
-
-  const handleCardClick = (studId: string, e: React.MouseEvent) => {
-    if (dragStartRef.current.hasMoved) {
-      e.preventDefault();
-      e.stopPropagation();
-      dragStartRef.current.hasMoved = false;
-      return;
-    }
-    handleSelectStudent(studId);
-  };
-
-  // Edit student profile fields local states
-  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-
-  // Forms states
-  const [newGradeName, setNewGradeName] = useState('');
-  const [newGradeScore, setNewGradeScore] = useState<number>(85);
-  const [newGradeMax, setNewGradeMax] = useState<number>(100);
-  const [newGradeFeedback, setNewGradeFeedback] = useState('');
-  const [showGradeForm, setShowGradeForm] = useState(false);
-
-  const [newCustomLabel, setNewCustomLabel] = useState('');
-  const [newCustomType, setNewCustomType] = useState<CustomField['type']>('text');
-  const [newCustomVal, setNewCustomVal] = useState('');
-  const [showCustomForm, setShowCustomForm] = useState(false);
-
-  const [newUploadName, setNewUploadName] = useState('');
-  const [newUploadType, setNewUploadType] = useState('Homework Submission');
-  const [showUploadForm, setShowUploadForm] = useState(false);
+  // Grouped form state variables
+  const [gradeForm, setGradeForm] = useState({ name: '', score: 85, max: 100, feedback: '', show: false });
+  const [customFieldForm, setCustomFieldForm] = useState({ label: '', type: 'text' as CustomField['type'], value: '', show: false });
+  const [uploadForm, setUploadForm] = useState({ name: '', type: 'Homework Submission', show: false });
 
   // Helper for performance colors
   const getPerformanceStyles = (perf: Student['performanceIndicator']) => {
@@ -167,9 +63,9 @@ export default function StudentRegister({
 
   const handleSelectStudent = (id: string) => {
     setSelectedStudentId(id);
-    setShowGradeForm(false);
-    setShowCustomForm(false);
-    setShowUploadForm(false);
+    setGradeForm(f => ({ ...f, show: false }));
+    setCustomFieldForm(f => ({ ...f, show: false }));
+    setUploadForm(f => ({ ...f, show: false }));
   };
 
   // Student list mutations
@@ -216,18 +112,17 @@ export default function StudentRegister({
   // Grade nested operations
   const handleAddGrade = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !newGradeName.trim()) return;
+    if (!selectedStudent || !gradeForm.name.trim()) return;
 
     const newGrade: Grade = {
       id: `g-${Date.now()}`,
-      assessmentName: newGradeName.trim(),
-      score: newGradeScore,
-      maxScore: newGradeMax,
+      assessmentName: gradeForm.name.trim(),
+      score: gradeForm.score,
+      maxScore: gradeForm.max,
       date: new Date().toISOString().split('T')[0],
-      feedback: newGradeFeedback.trim() || undefined
+      feedback: gradeForm.feedback.trim() || undefined
     };
 
-    // Calculate performance indicator based on average score
     const newGrades = [...selectedStudent.grades, newGrade];
     const avgPercent = newGrades.length > 0 
       ? newGrades.reduce((acc, g) => acc + (g.score / g.maxScore), 0) / newGrades.length * 100
@@ -244,9 +139,7 @@ export default function StudentRegister({
       performanceIndicator: perf
     });
 
-    setNewGradeName('');
-    setNewGradeFeedback('');
-    setShowGradeForm(false);
+    setGradeForm({ name: '', score: 85, max: 100, feedback: '', show: false });
   };
 
   const handleDeleteGrade = (gradeId: string) => {
@@ -258,13 +151,13 @@ export default function StudentRegister({
   // Custom contact-style attributes
   const handleAddCustomField = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !newCustomLabel.trim()) return;
+    if (!selectedStudent || !customFieldForm.label.trim()) return;
 
     const newField: CustomField = {
       id: `cf-${Date.now()}`,
-      label: newCustomLabel.trim(),
-      type: newCustomType,
-      value: newCustomVal.trim() || 'Unspecified',
+      label: customFieldForm.label.trim(),
+      type: customFieldForm.type,
+      value: customFieldForm.value.trim() || 'Unspecified',
       visibility: true
     };
 
@@ -272,9 +165,7 @@ export default function StudentRegister({
       customFields: [...selectedStudent.customFields, newField]
     });
 
-    setNewCustomLabel('');
-    setNewCustomVal('');
-    setShowCustomForm(false);
+    setCustomFieldForm({ label: '', type: 'text', value: '', show: false });
   };
 
   const handleDeleteCustomField = (fieldId: string) => {
@@ -286,12 +177,12 @@ export default function StudentRegister({
   // Uploaded submissions
   const handleAddSubmission = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !newUploadName.trim()) return;
+    if (!selectedStudent || !uploadForm.name.trim()) return;
 
     const newUpload: StudentUpload = {
       id: `up-${Date.now()}`,
-      name: newUploadName.split('.').length > 1 ? newUploadName : `${newUploadName}.pdf`,
-      type: newUploadType,
+      name: uploadForm.name.split('.').length > 1 ? uploadForm.name : `${uploadForm.name}.pdf`,
+      type: uploadForm.type,
       date: new Date().toISOString().split('T')[0],
       status: 'pending'
     };
@@ -300,8 +191,7 @@ export default function StudentRegister({
       uploads: [...selectedStudent.uploads, newUpload]
     });
 
-    setNewUploadName('');
-    setShowUploadForm(false);
+    setUploadForm({ name: '', type: 'Homework Submission', show: false });
   };
 
   const handleDeleteSubmission = (upId: string) => {
@@ -320,7 +210,6 @@ export default function StudentRegister({
 
   return (
     <div className="flex flex-col gap-3 py-1">
-      {/* Scrollable Bar Header layout */}
       <div className="flex items-center justify-between px-1">
         <h3 className="text-xs font-bold text-secondary-text font-display uppercase tracking-wider flex items-center gap-2">
           <Contact2 className="w-4 h-4 text-primary" />
@@ -335,14 +224,9 @@ export default function StudentRegister({
         </button>
       </div>
 
-      {/* Horizontal Scroll bar */}
       <div 
-        ref={carouselRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        className="flex items-center gap-3 overflow-x-auto pb-2.5 scrollbar-thin px-0.5 cursor-grab select-none active:cursor-grabbing"
+        className="flex items-center gap-3 overflow-x-auto pb-2.5 px-0.5"
+        style={{ scrollSnapType: 'x mandatory' }}
       >
         {workspace.students.length === 0 ? (
           <div className="text-muted-text text-xs font-mono py-4 px-4 border border-dashed border-border-color/60 rounded-xl w-full text-center">
@@ -357,14 +241,14 @@ export default function StudentRegister({
             return (
               <div 
                 key={stud.id}
-                onClick={(e) => handleCardClick(stud.id, e)}
+                onClick={() => handleSelectStudent(stud.id)}
                 className={`group min-w-[210px] max-w-[220px] shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
                   isSelected 
                     ? 'border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20' 
                     : 'border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40'
                 }`}
+                style={{ scrollSnapAlign: 'start' }}
               >
-                {/* Visual Avatar Row */}
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full bg-elevated border border-border-color flex items-center justify-center font-bold text-xs text-primary uppercase select-none shrink-0">
                     {initials}
@@ -375,7 +259,6 @@ export default function StudentRegister({
                   </div>
                 </div>
 
-                {/* Status Badges Row */}
                 <div className="flex items-center justify-between pt-1 border-t border-border-color/40">
                   <span className={`text-[9px] font-semibold px-2 py-0.5 font-mono border rounded-full ${perf.bg} ${perf.text} flex items-center gap-1.5`}>
                     <span className={`w-1.2 h-1.2 rounded-full ${perf.dot} inline-block`}></span>
@@ -392,12 +275,10 @@ export default function StudentRegister({
         )}
       </div>
 
-      {/* Student Portfolio Drawer sheet overlay */}
       {selectedStudent && (
         <div className="fixed inset-0 bg-primary-text/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-surface border border-border-color rounded-3xl max-w-4xl w-full h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
             
-            {/* Close trigger handles */}
             <button 
               onClick={() => setSelectedStudentId(null)}
               className="absolute right-5 top-5 hover:bg-elevated p-2 rounded-xl text-muted-text hover:text-primary-text transition-colors cursor-pointer"
@@ -405,7 +286,6 @@ export default function StudentRegister({
               <X className="w-4.5 h-4.5" />
             </button>
 
-            {/* Profile Drawer Main Header */}
             <div className="p-6 border-b border-border-color bg-elevated/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center font-display font-semibold text-xl text-primary">
@@ -417,7 +297,6 @@ export default function StudentRegister({
                     <span className="text-xs font-mono text-muted-text">ID: {selectedStudent.rollNumber}</span>
                   </div>
                   
-                  {/* Status Selection list */}
                   <div className="flex items-center gap-2 mt-1.5">
                     <select 
                       value={selectedStudent.statusIndicator}
@@ -437,7 +316,6 @@ export default function StudentRegister({
                 </div>
               </div>
 
-              {/* Roster actions */}
               <div className="flex items-center gap-2 pr-12">
                 <button 
                   onClick={() => handleDeleteStudent(selectedStudent.id)}
@@ -449,13 +327,10 @@ export default function StudentRegister({
               </div>
             </div>
 
-            {/* Split panels container */}
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
               
-              {/* Left Panel: Contacts & custom fields */}
               <div className="w-full md:w-80 border-r border-border-color p-6 overflow-y-auto space-y-6 shrink-0 bg-background/50">
                 
-                {/* Basic coordinates list */}
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">Contact Dossier</h4>
                   
@@ -489,7 +364,6 @@ export default function StudentRegister({
                   </div>
                 </div>
 
-                {/* Parents Guardian block details */}
                 <div className="space-y-4 pt-4 border-t border-border-color">
                   <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">Family & Guardians</h4>
                   <div className="space-y-3">
@@ -522,31 +396,30 @@ export default function StudentRegister({
                   </div>
                 </div>
 
-                {/* Google Contacts-style Custom Attributes list */}
                 <div className="space-y-4 pt-4 border-t border-border-color">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">Custom Fields</h4>
                     <button 
-                      onClick={() => setShowCustomForm(!showCustomForm)}
+                      onClick={() => setCustomFieldForm(f => ({ ...f, show: !f.show }))}
                       className="text-[10px] font-semibold text-primary hover:text-primary/80"
                     >
-                      {showCustomForm ? 'Cancel' : '+ New Field'}
+                      {customFieldForm.show ? 'Cancel' : '+ New Field'}
                     </button>
                   </div>
 
-                  {showCustomForm && (
+                  {customFieldForm.show && (
                     <form onSubmit={handleAddCustomField} className="bg-elevated border border-border-color rounded-lg p-3 space-y-2.5 shadow-sm">
                       <input 
                         type="text" 
                         placeholder="Label: IEP Accommodation" 
-                        value={newCustomLabel} 
-                        onChange={(e) => setNewCustomLabel(e.target.value)}
+                        value={customFieldForm.label} 
+                        onChange={(e) => setCustomFieldForm(f => ({ ...f, label: e.target.value }))}
                         className="w-full bg-surface border border-border-color rounded p-1.5 text-xs text-primary-text focus:outline-none focus:border-primary"
                         required
                       />
                       <select 
-                        value={newCustomType}
-                        onChange={(e) => setNewCustomType(e.target.value as CustomField['type'])}
+                        value={customFieldForm.type}
+                        onChange={(e) => setCustomFieldForm(f => ({ ...f, type: e.target.value as CustomField['type'] }))}
                         className="w-full bg-surface border border-border-color rounded p-1.5 text-xs text-secondary-text outline-none focus:border-primary"
                       >
                         <option value="text">Text Field</option>
@@ -556,8 +429,8 @@ export default function StudentRegister({
                       <input 
                         type="text" 
                         placeholder="Value: True or High tutoring" 
-                        value={newCustomVal} 
-                        onChange={(e) => setNewCustomVal(e.target.value)}
+                        value={customFieldForm.value} 
+                        onChange={(e) => setCustomFieldForm(f => ({ ...f, value: e.target.value }))}
                         className="w-full bg-surface border border-border-color rounded p-1.5 text-xs text-primary-text focus:outline-none focus:border-primary"
                       />
                       <button 
@@ -590,10 +463,8 @@ export default function StudentRegister({
 
               </div>
 
-              {/* Right Panel: Academic scorecard and homework uploads */}
               <div className="flex-1 p-6 overflow-y-auto space-y-6">
                 
-                {/* 1. Academic records scorecard */}
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-primary-text font-display flex items-center gap-1.5">
@@ -601,15 +472,14 @@ export default function StudentRegister({
                       Academic Scorecard ({selectedStudent.grades.length} Grades)
                     </h4>
                     <button 
-                      onClick={() => setShowGradeForm(!showGradeForm)}
+                      onClick={() => setGradeForm(f => ({ ...f, show: !f.show }))}
                       className="text-xs font-bold text-primary hover:text-primary-text cursor-pointer"
                     >
-                      {showGradeForm ? 'Cancel Score' : '+ Record Evaluation'}
+                      {gradeForm.show ? 'Cancel Score' : '+ Record Evaluation'}
                     </button>
                   </div>
 
-                  {/* Inline Score feedback form */}
-                  {showGradeForm && (
+                  {gradeForm.show && (
                     <form onSubmit={handleAddGrade} className="bg-elevated border border-border-color rounded-xl p-4 space-y-3.5 shadow-sm">
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2">
@@ -617,8 +487,8 @@ export default function StudentRegister({
                           <input 
                             type="text" 
                             placeholder="Algebra Chapter 2 Quiz"
-                            value={newGradeName}
-                            onChange={(e) => setNewGradeName(e.target.value)}
+                            value={gradeForm.name}
+                            onChange={(e) => setGradeForm(f => ({ ...f, name: e.target.value }))}
                             className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text outline-none focus:border-primary"
                             required
                           />
@@ -628,8 +498,8 @@ export default function StudentRegister({
                           <div className="flex items-center gap-1">
                             <input 
                               type="number" 
-                              value={newGradeScore}
-                              onChange={(e) => setNewGradeScore(parseInt(e.target.value) || 0)}
+                              value={gradeForm.score}
+                              onChange={(e) => setGradeForm(f => ({ ...f, score: parseInt(e.target.value) || 0 }))}
                               className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text text-center focus:border-primary outline-none"
                               min="0"
                               required
@@ -637,8 +507,8 @@ export default function StudentRegister({
                             <span className="text-muted-text">/</span>
                             <input 
                               type="number" 
-                              value={newGradeMax}
-                              onChange={(e) => setNewGradeMax(parseInt(e.target.value) || 100)}
+                              value={gradeForm.max}
+                              onChange={(e) => setGradeForm(f => ({ ...f, max: parseInt(e.target.value) || 100 }))}
                               className="w-14 bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text text-center focus:border-primary outline-none"
                               min="1"
                               required
@@ -651,8 +521,8 @@ export default function StudentRegister({
                         <label className="text-[10px] text-muted-text font-mono block">PORTFOLIO COMMENT FEEDBACK ENRICHMENT</label>
                         <textarea 
                           placeholder="Provide encouraging assessment on concept development, e.g. Demonstrated solid operational mechanics..."
-                          value={newGradeFeedback}
-                          onChange={(e) => setNewGradeFeedback(e.target.value)}
+                          value={gradeForm.feedback}
+                          onChange={(e) => setGradeForm(f => ({ ...f, feedback: e.target.value }))}
                           className="w-full bg-surface border border-border-color rounded-lg p-2 text-xs text-primary-text h-16 resize-none outline-none focus:border-primary"
                         />
                       </div>
@@ -666,7 +536,6 @@ export default function StudentRegister({
                     </form>
                   )}
 
-                  {/* Scores tabular database */}
                   <div className="space-y-3">
                     {selectedStudent.grades.length === 0 ? (
                       <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
@@ -708,7 +577,6 @@ export default function StudentRegister({
 
                 </div>
 
-                {/* 2. File Upload Submissions repository */}
                 <div className="space-y-3.5 pt-4 border-t border-border-color">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-primary-text font-display flex items-center gap-1.5">
@@ -716,14 +584,14 @@ export default function StudentRegister({
                       Student Uploads & Homework Submissions ({selectedStudent.uploads?.length || 0} files)
                     </h4>
                     <button 
-                      onClick={() => setShowUploadForm(!showUploadForm)}
+                      onClick={() => setUploadForm(f => ({ ...f, show: !f.show }))}
                       className="text-xs font-bold text-success hover:text-success/80 cursor-pointer"
                     >
-                      {showUploadForm ? 'Cancel Submission' : '+ Log Written Work'}
+                      {uploadForm.show ? 'Cancel Submission' : '+ Log Written Work'}
                     </button>
                   </div>
 
-                  {showUploadForm && (
+                  {uploadForm.show && (
                     <form onSubmit={handleAddSubmission} className="bg-elevated border border-border-color rounded-xl p-4 space-y-3.5 shadow-sm">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -731,8 +599,8 @@ export default function StudentRegister({
                           <input 
                             type="text" 
                             placeholder="Midterm_Page3_SofiaRevision.pdf"
-                            value={newUploadName}
-                            onChange={(e) => setNewUploadName(e.target.value)}
+                            value={uploadForm.name}
+                            onChange={(e) => setUploadForm(f => ({ ...f, name: e.target.value }))}
                             className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text outline-none focus:border-success"
                             required
                           />
@@ -741,8 +609,8 @@ export default function StudentRegister({
                         <div>
                           <label className="text-[10px] text-muted-text font-mono">ASSIGNMENT TYPE</label>
                           <select 
-                            value={newUploadType}
-                            onChange={(e) => setNewUploadType(e.target.value)}
+                            value={uploadForm.type}
+                            onChange={(e) => setUploadForm(f => ({ ...f, type: e.target.value }))}
                             className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-secondary-text outline-none cursor-pointer focus:border-success"
                           >
                             <option value="Homework Submission">Homework Revision</option>
@@ -803,7 +671,7 @@ export default function StudentRegister({
                 </div>
 
               </div>
-              
+
             </div>
 
           </div>
