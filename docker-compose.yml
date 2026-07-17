@@ -28,7 +28,7 @@ services:
     environment:
       - PORT=${PORT}
       - BACKEND_PORT=${BACKEND_PORT}
-      - BACKEND_URL=http://backend:${BACKEND_PORT}/api/
+      - BACKEND_URL=http://backend:${BACKEND_PORT}
     depends_on:
       - backend
     restart: unless-stopped

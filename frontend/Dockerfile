@@ -25,6 +25,6 @@ COPY default.conf.template /etc/nginx/templates/default.conf.template
 # Default ports
 ENV PORT=8000
 ENV BACKEND_PORT=8001
-ENV BACKEND_URL=http://backend:8001/api/
+ENV BACKEND_URL=http://backend:8001
 
 CMD ["nginx", "-g", "daemon off;"]
