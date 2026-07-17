@@ -1,0 +1,19 @@
+[project]
+name = "teacher-assistant-backend"
+version = "0.1.0"
+description = "FastAPI backend using LangChain & OpenRouter"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "pydantic>=2.6.0",
+    "python-dotenv>=1.0.1",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.10",
+    "langchain-openai>=0.0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
