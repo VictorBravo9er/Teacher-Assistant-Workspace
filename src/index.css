@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;750&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #F8FAFC;
+  --surface: #FFFFFF;
+  --elevated: #F1F5F9;
+  --border-color: #CBD5E1;
+  --primary: #2563EB;
+  --secondary: #14B8A6;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #38BDF8;
+  --primary-text: #0F172A;
+  --secondary-text: #334155;
+  --muted-text: #64748B;
+  --gold: #D4AF37;
+  
+  --chart-1: #2563EB;
+  --chart-2: #14B8A6;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #22C55E;
+  --chart-6: #EC4899;
+}
+
+.dark {
+  --background: #0F172A;
+  --surface: #172033;
+  --elevated: #1E293B;
+  --border-color: #334155;
+  --primary: #60A5FA;
+  --secondary: #2DD4BF;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --error: #F87171;
+  --info: #7DD3FC;
+  --primary-text: #F8FAFC;
+  --secondary-text: #CBD5E1;
+  --muted-text: #94A3B8;
+  --gold: #E6C75A;
+  
+  --chart-1: #60A5FA;
+  --chart-2: #2DD4BF;
+  --chart-3: #FBBF24;
+  --chart-4: #A78BFA;
+  --chart-5: #4ADE80;
+  --chart-6: #F472B6;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-border-color: var(--border-color);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-primary-text: var(--primary-text);
+  --color-secondary-text: var(--secondary-text);
+  --color-muted-text: var(--muted-text);
+  --color-gold: var(--gold);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-primary-text antialiased font-sans transition-colors duration-200 overflow-hidden;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom high-tech translucent glass scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-color/60 rounded-full hover:bg-border-color/80 active:bg-border-color;
+  }
+}
+
+/* Animations & Glassmorphism effects */
+.glass-panel {
+  @apply bg-surface/50 backdrop-blur-xl border border-border-color/50;
+}
+
+.glass-panel-heavy {
+  @apply bg-surface/90 backdrop-blur-2xl border border-border-color/80;
+}
+
+.glow-indigo {
+  box-shadow: 0 0 20px -5px rgba(37, 99, 235, 0.15);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px -5px rgba(20, 184, 166, 0.15);
+}
+
+/* Custom pulsing live indicator */
+@keyframes pulse-ring {
+  0% { transform: scale(0.33); opacity: 1; }
+  80%, 100% { opacity: 0; }
+}
+.live-dot-ring {
+  animation: pulse-ring 1.25s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+}
+
