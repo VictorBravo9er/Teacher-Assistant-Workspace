@@ -19,8 +19,8 @@ import Visualizer from './Visualizer';
 interface RAGWorkspaceProps {
   workspace: Workspace;
   onUpdateWorkspace: (id: string, updatedFields: Partial<Workspace>) => void;
-  isFocusMode: boolean;
-  onToggleFocusMode: (focus: boolean) => void;
+  layoutMode: 'split' | 'chat-only' | 'details-only';
+  onToggleLayoutMode: (mode: 'split' | 'chat-only' | 'details-only') => void;
   onSendChatMessage: (sessionId: string, text: string) => Promise<void>;
   isGeneratingAI: boolean;
 }
@@ -28,8 +28,8 @@ interface RAGWorkspaceProps {
 export default function RAGWorkspace({
   workspace,
   onUpdateWorkspace,
-  isFocusMode,
-  onToggleFocusMode,
+  layoutMode,
+  onToggleLayoutMode,
   onSendChatMessage,
   isGeneratingAI
 }: RAGWorkspaceProps) {
@@ -63,7 +63,7 @@ export default function RAGWorkspace({
   // Handle setting active session (and auto-triggers focus mode!)
   const handleSelectSession = (id: string) => {
     setActiveSessionId(id);
-    onToggleFocusMode(true); // Automatically enter Focus Mode for conversational immersion
+    onToggleLayoutMode('chat-only'); // Automatically enter Focus Mode for conversational immersion
   };
 
   // Chat Actions
@@ -110,7 +110,7 @@ export default function RAGWorkspace({
 
     setActiveSessionId(newSession.id);
     setShowNewSessionModal(false);
-    onToggleFocusMode(true); // enter focus mode right away
+    onToggleLayoutMode('chat-only'); // enter focus mode right away
 
     // Clear form states
     setCustomBriefInstructions('');
@@ -244,9 +244,9 @@ export default function RAGWorkspace({
 
           {/* Focus Mode toggles */}
           <div className="flex items-center gap-2">
-            {isFocusMode ? (
+            {layoutMode === 'chat-only' ? (
               <button 
-                onClick={() => onToggleFocusMode(false)}
+                onClick={() => onToggleLayoutMode('split')}
                 className="px-3.5 py-1.8 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -254,7 +254,7 @@ export default function RAGWorkspace({
               </button>
             ) : (
               <button 
-                onClick={() => onToggleFocusMode(true)}
+                onClick={() => onToggleLayoutMode('chat-only')}
                 className="p-2 hover:bg-elevated text-secondary-text hover:text-primary-text rounded-xl transition-colors cursor-pointer"
                 title="Enter Distraction-Free Focus Mode"
               >

@@ -1,5 +1,5 @@
 # Base Stage
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 
 WORKDIR /app
 RUN mkdir -p /app/node_modules && chmod 777 /app/node_modules

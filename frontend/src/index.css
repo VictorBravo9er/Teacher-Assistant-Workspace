@@ -5,20 +5,20 @@
   --background: #F8FAFC;
   --surface: #FFFFFF;
   --elevated: #F1F5F9;
-  --border-color: #CBD5E1;
-  --primary: #2563EB;
-  --secondary: #14B8A6;
+  --border-color: #E2E8F0;
+  --primary: #3B82F6;
+  --secondary: #10B981;
   --success: #22C55E;
   --warning: #F59E0B;
   --error: #EF4444;
-  --info: #38BDF8;
+  --info: #0EA5E9;
   --primary-text: #0F172A;
   --secondary-text: #334155;
   --muted-text: #64748B;
   --gold: #D4AF37;
   
-  --chart-1: #2563EB;
-  --chart-2: #14B8A6;
+  --chart-1: #3B82F6;
+  --chart-2: #10B981;
   --chart-3: #F59E0B;
   --chart-4: #8B5CF6;
   --chart-5: #22C55E;
@@ -26,23 +26,23 @@
 }
 
 .dark {
-  --background: #0F172A;
-  --surface: #172033;
-  --elevated: #1E293B;
-  --border-color: #334155;
-  --primary: #60A5FA;
-  --secondary: #2DD4BF;
+  --background: #0B0F19;
+  --surface: #111827;
+  --elevated: #1F2937;
+  --border-color: #374151;
+  --primary: #3B82F6;
+  --secondary: #34D399;
   --success: #4ADE80;
   --warning: #FBBF24;
   --error: #F87171;
-  --info: #7DD3FC;
-  --primary-text: #F8FAFC;
-  --secondary-text: #CBD5E1;
-  --muted-text: #94A3B8;
-  --gold: #E6C75A;
+  --info: #38BDF8;
+  --primary-text: #F9FAFB;
+  --secondary-text: #D1D5DB;
+  --muted-text: #9CA3AF;
+  --gold: #FCD34D;
   
-  --chart-1: #60A5FA;
-  --chart-2: #2DD4BF;
+  --chart-1: #3B82F6;
+  --chart-2: #34D399;
   --chart-3: #FBBF24;
   --chart-4: #A78BFA;
   --chart-5: #4ADE80;
@@ -79,7 +79,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-primary-text antialiased font-sans transition-colors duration-200 overflow-hidden;
+    @apply bg-background text-primary-text antialiased font-sans transition-colors duration-200;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
