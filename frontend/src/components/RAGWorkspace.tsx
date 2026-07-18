@@ -1,29 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Workspace, RAGSession, Message, Student, Material } from '../types';
+import { Workspace, RAGSession, Message } from '../types';
 import { 
   Plus, 
   Trash2, 
   Copy, 
-  Archive, 
   Send, 
   Sparkles, 
   Bot, 
   User, 
-  BarChart4, 
-  Grid3X3, 
-  TrendingUp, 
-  FolderPlus, 
   Maximize2, 
-  Minimize2, 
   ArrowLeft,
   X,
-  FileSpreadsheet,
-  Check,
-  Flame,
   Brain,
-  History,
-  Info
+  History
 } from 'lucide-react';
+import Visualizer from './Visualizer';
 
 interface RAGWorkspaceProps {
   workspace: Workspace;
@@ -107,13 +98,7 @@ export default function RAGWorkspace({
         {
           id: `m-${Date.now()}-init`,
           role: 'assistant',
-          text: `### 🤖 RAG Analysis Session Established
-I have synced focus criteria onto: **${analysisType}** (${analysisScope.toUpperCase()} Scope).
-          
-* **Class contexts & Instructions loaded**: Checked (${workspace.instructions.length} custom guidelines parsed)
-* **Parent logs & grades directory**: Synced (${workspace.students.length} portfolios indexed)
-          
-How can I assist you with clinical evaluation reviews today? You can select a quick action suggestion below or draft custom requests directly.`,
+          text: `### 🤖 RAG Analysis Session Established\nI have synced focus criteria onto: **${analysisType}** (${analysisScope.toUpperCase()} Scope).\n          \n* **Class contexts & Instructions loaded**: Checked (${workspace.instructions.length} custom guidelines parsed)\n* **Parent logs & grades directory**: Synced (${workspace.students.length} portfolios indexed)\n          \nHow can I assist you with clinical evaluation reviews today? You can select a quick action suggestion below or draft custom requests directly.`,
           timestamp: new Date().toISOString()
         }
       ]
@@ -170,7 +155,7 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
   return (
     <div className="flex-1 flex overflow-hidden border border-border-color rounded-3xl bg-background/50 relative h-full">
       
-      {/* 2. RAG Left Sessions list panel */}
+      {/* RAG Left Sessions list panel */}
       <div className="w-64 border-r border-border-color flex flex-col bg-elevated/40 shrink-0">
         
         {/* Panel header controls */}
@@ -242,7 +227,7 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
 
       </div>
 
-      {/* 3. Main chat chatbot workspace pane */}
+      {/* Main chat chatbot workspace pane */}
       <div className="flex-1 flex flex-col justify-between bg-background/10 relative overflow-hidden h-full">
         
         {/* Header bar */}
@@ -253,7 +238,7 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
               <h2 className="text-xs font-bold text-primary-text uppercase font-display tracking-wider">
                 {activeSession?.title || 'Classroom Assistant Chat'}
               </h2>
-              <span className="text-[10px] font-mono text-muted-text">Live Server Agent: Gemini 3.5 Flash</span>
+              <span className="text-[10px] font-mono text-muted-text">Client Copilot Agent</span>
             </div>
           </div>
 
@@ -312,7 +297,6 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
                         : 'bg-primary border-primary text-white font-medium'
                     }`}>
                       <div className="space-y-3 prose prose-invert text-xs select-text">
-                        {/* Process markdown text blocks simply */}
                         {msg.text.split('\n\n').map((para, pIdx) => {
                           if (para.startsWith('###')) {
                             return <h3 key={pIdx} className="text-sm font-bold font-display text-primary mt-2 pb-1.5 border-b border-border-color">{para.replace('###', '').trim()}</h3>;
@@ -320,7 +304,7 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
                           if (para.startsWith('####')) {
                             return <h4 key={pIdx} className="text-xs font-bold text-primary-text mt-1">{para.replace('####', '').trim()}</h4>;
                           }
-                          if (para.startsWith('**') || para.trim().startsWith('-')) {
+                          if (para.startsWith('**') || para.trim().startsWith('-') || para.trim().startsWith('*')) {
                             const listItems = para.split('\n').filter(l => l.trim().length > 0);
                             return (
                               <ul key={pIdx} className="list-disc pl-4 space-y-1">
@@ -337,7 +321,7 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
                       </div>
                     </div>
 
-                    {/* Dynamic Pure SVG Visualizer widget inside assistant bubbles */}
+                    {/* Dynamic SVG Visualizer widget */}
                     {isAssistant && msg.visualization && (
                       <div className="bg-elevated border border-border-color rounded-2xl p-4 w-full md:min-w-[480px] hover:border-primary/50 transition-colors shadow-xl">
                         <div className="pb-3 border-b border-border-color mb-4">
@@ -347,9 +331,7 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
                             <p className="text-[10px] text-muted-text font-mono mt-0.5">{msg.visualization.description}</p>
                           )}
                         </div>
-
-                        {/* RENDER SELECTED SVG VISUALIZER */}
-                        {renderSvgVisualizer(msg.visualization)}
+                        <Visualizer visualization={msg.visualization} />
                       </div>
                     )}
 
@@ -564,142 +546,4 @@ How can I assist you with clinical evaluation reviews today? You can select a qu
 
     </div>
   );
-}
-
-// Interactive Pure SVG visualizer compiler
-function renderSvgVisualizer(visualization: any) {
-  const { type, data } = visualization;
-  if (!Array.isArray(data) || data.length === 0) return null;
-
-  switch (type) {
-    case 'ranking':
-      return (
-        <div className="space-y-3 font-mono text-[11px]">
-          {data.map((item: any, idx: number) => {
-            const pct = (item.score / 100) * 100;
-            return (
-              <div key={idx} className="space-y-1">
-                <div className="flex justify-between text-secondary-text">
-                  <span className="font-semibold text-primary-text">{item.name}</span>
-                  <span className="text-primary font-bold">{item.score}%</span>
-                </div>
-                <div className="w-full h-2.5 bg-elevated border border-border-color rounded-full overflow-hidden flex relative">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-1000"
-                    style={{ width: `${pct}%` }}
-                  ></div>
-                  {/* Class average guide overlay */}
-                  <div 
-                    className="absolute h-full w-[2px] bg-success top-0"
-                    style={{ left: `${item.classAvg || 80}%` }}
-                    title="Class Average Line"
-                  ></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-
-    case 'timeline':
-      // Renders score trajectory pathways simply using raw clean SVGs polylines
-      const points = data.map((item: any, idx: number) => {
-        const x = 50 + idx * 140;
-        const y = 140 - (item.SofiaScore || item.score || 50) * 1.1; // scale y
-        return { x, y, label: item.period || item.date };
-      });
-      const polylinePoints = points.map((p: any) => `${p.x},${p.y}`).join(' ');
-
-      return (
-        <div className="flex flex-col gap-2">
-          <svg className="w-full h-36 bg-elevated/40 rounded-xl border border-border-color p-2" viewBox="0 0 400 150">
-            {/* Grid references lines */}
-            <line x1="40" y1="30" x2="380" y2="30" stroke="var(--border-color)" strokeDasharray="3" opacity="0.4" />
-            <line x1="40" y1="85" x2="380" y2="85" stroke="var(--border-color)" strokeDasharray="3" opacity="0.4" />
-            <line x1="40" y1="130" x2="380" y2="130" stroke="var(--border-color)" strokeDasharray="3" opacity="0.4" />
-
-            {/* Connecting Pathway vector line */}
-            <polyline 
-              fill="none" 
-              stroke="var(--primary)" 
-              strokeWidth="2.5" 
-              points={polylinePoints} 
-              className="transition-all"
-            />
-
-            {/* Marker Nodes */}
-            {points.map((p: any, idx: number) => (
-              <g key={idx}>
-                <circle 
-                  cx={p.x} 
-                  cy={p.y} 
-                  r="5" 
-                  className="fill-surface stroke-primary stroke-2" 
-                />
-                <text 
-                  x={p.x} 
-                  y={p.y - 12} 
-                  textAnchor="middle" 
-                  fill="var(--primary)" 
-                  fontSize="10" 
-                  fontFamily="monospace"
-                  fontWeight="bold"
-                >
-                  {Math.round(140 - p.y) / 1.1}%
-                </text>
-                <text 
-                  x={p.x} 
-                  y="145" 
-                  textAnchor="middle" 
-                  fill="var(--muted-text)" 
-                  fontSize="8" 
-                  fontFamily="monospace"
-                >
-                  {p.label}
-                </text>
-              </g>
-            ))}
-          </svg>
-        </div>
-      );
-
-    case 'heatmap':
-      return (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {data.map((item: any, idx: number) => {
-            const mastery = item.mastery || 60;
-            let theme = 'border-error/30 bg-error/10 text-error';
-            let label = 'Urgent Remedial';
-            if (mastery >= 85) {
-              theme = 'border-success/30 bg-success/10 text-success';
-              label = 'Secure Mastery';
-            } else if (mastery >= 70) {
-              theme = 'border-secondary/30 bg-secondary/10 text-secondary';
-              label = 'Developing';
-            }
-
-            return (
-              <div key={idx} className={`border rounded-xl p-3 flex flex-col gap-1 transition-colors ${theme}`}>
-                <span className="text-[9px] font-mono font-bold tracking-wider block uppercase">{label}</span>
-                <span className="text-xs font-bold font-display truncate block mt-1">{item.topic || item.subject}</span>
-                <h5 className="text-md font-extrabold font-mono mt-1">{mastery}%</h5>
-              </div>
-            );
-          })}
-        </div>
-      );
-
-    case 'stats':
-    default:
-      return (
-        <div className="grid grid-cols-2 gap-3.5">
-          {data.map((item: any, idx: number) => (
-            <div key={idx} className="bg-surface border border-border-color rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[10px] font-mono text-muted-text block uppercase leading-tight">{item.label}</span>
-              <span className="text-xs font-bold text-primary-text mt-2 block break-words">{item.value}</span>
-            </div>
-          ))}
-        </div>
-      );
-  }
 }

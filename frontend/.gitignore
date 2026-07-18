@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+/jspm_packages/
+/web_modules/
+
+# Production/Build outputs
+dist/
+tmp/
+out/
+build/
+.next/
+.nuxt/
+.svelte-kit/
+.vuepress/dist
+.docusaurus/
+storybook-static/
+
+# Caches and tooling
+.vite/
+.astro/
+.eslintcache
+.stylelintcache
+.prettiercache
+.parcel-cache/
+.serverless/
+.tap/
+.nyc_output/
+coverage/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# TypeScript
+*.tsbuildinfo
+
+# Cypress/Testing
+cypress/screenshots/
+cypress/videos/
+.releaserc

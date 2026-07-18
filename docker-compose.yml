@@ -1,0 +1,34 @@
+services:
+  backend:
+    image: ta-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ta-backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT}
+    expose:
+      - "${BACKEND_PORT}"
+    restart: unless-stopped
+
+  frontend:
+    image: ta-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ta-frontend
+    ports:
+      - "80:${PORT}"
+    env_file:
+      - path: ./frontend/.env
+        required: false
+    environment:
+      - PORT=${PORT}
+      - BACKEND_PORT=${BACKEND_PORT}
+      - BACKEND_URL=http://backend:${BACKEND_PORT}
+    depends_on:
+      - backend
+    restart: unless-stopped
