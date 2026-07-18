@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Workspace, Student, Grade, CustomField, StudentUpload } from '../types';
 import { 
   Mail, 
@@ -11,7 +11,9 @@ import {
   Clock, 
   Trash, 
   Contact2,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface StudentRegisterProps {
@@ -24,7 +26,19 @@ export default function StudentRegister({
   onUpdateWorkspace
 }: StudentRegisterProps) {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const selectedStudent = workspace.students.find(s => s.id === selectedStudentId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // If scrolling vertically (deltaY != 0), translate it to horizontal scroll
+    if (scrollRef.current && e.deltaY !== 0) {
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  };
+  
+  const selectedStudentIndex = workspace.students.findIndex(s => s.id === selectedStudentId);
+  const selectedStudent = selectedStudentIndex !== -1 ? workspace.students[selectedStudentIndex] : undefined;
+  const previousStudent = selectedStudentIndex > 0 ? workspace.students[selectedStudentIndex - 1] : null;
+  const nextStudent = selectedStudentIndex !== -1 && selectedStudentIndex < workspace.students.length - 1 ? workspace.students[selectedStudentIndex + 1] : null;
 
   // Grouped form state variables
   const [gradeForm, setGradeForm] = useState({ name: '', score: 85, max: 100, feedback: '', show: false });
@@ -225,6 +239,8 @@ export default function StudentRegister({
       </div>
 
       <div 
+        ref={scrollRef}
+        onWheel={handleWheel}
         className="flex items-center gap-3 overflow-x-auto pb-2.5 px-0.5"
         style={{ scrollSnapType: 'x mandatory' }}
       >
@@ -288,6 +304,26 @@ export default function StudentRegister({
 
             <div className="p-6 border-b border-border-color bg-elevated/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
+                
+                <div className="flex flex-col gap-1 pr-3 border-r border-border-color/50">
+                  <button 
+                    onClick={() => previousStudent && handleSelectStudent(previousStudent.id)}
+                    disabled={!previousStudent}
+                    className="p-1 rounded bg-surface border border-border-color hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Previous Student"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-primary-text" />
+                  </button>
+                  <button 
+                    onClick={() => nextStudent && handleSelectStudent(nextStudent.id)}
+                    disabled={!nextStudent}
+                    className="p-1 rounded bg-surface border border-border-color hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Next Student"
+                  >
+                    <ChevronRight className="w-4 h-4 text-primary-text" />
+                  </button>
+                </div>
+
                 <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center font-display font-semibold text-xl text-primary">
                   {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </div>
