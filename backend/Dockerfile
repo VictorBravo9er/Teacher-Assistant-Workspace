@@ -5,6 +5,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Set working directory
 WORKDIR /app
+RUN mkdir -p /app/.venv && chmod 777 /app/.venv
 
 # Set path to use virtual environment's bin folder
 ENV PATH="/app/.venv/bin:$PATH"
