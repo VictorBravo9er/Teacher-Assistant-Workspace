@@ -14,7 +14,7 @@ FROM base AS build
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv sync
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev && uv pip install "uvicorn>=0.28.0"
 
 # Copy application source
 COPY . .

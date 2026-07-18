@@ -789,7 +789,7 @@ wheels = [
 
 [[package]]
 name = "langsmith"
-version = "0.10.5"
+version = "0.10.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -807,9 +807,9 @@ dependencies = [
     { name = "xxhash" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1f/65/3867765976e4d43b98a4ea6a41c0712dda17a600ad998e02976b445874d7/langsmith-0.10.5.tar.gz", hash = "sha256:60053c1d88dc332a002cbac38601cc8b912466e7fc2a86bc9e690fa4d5bc1c78", size = 4720550, upload-time = "2026-07-15T08:28:51.445Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/7e/05db6baaed1383386afd34e5d8fbf0b6cff1e87ed6b5c98d444511af6490/langsmith-0.10.6.tar.gz", hash = "sha256:6ec5b26bb57ee41363c07eb2884f24d69910b8d6bc26cae1f9e367af15259f1b", size = 4729044, upload-time = "2026-07-17T17:14:02.897Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/3e/213d9bb122f97d89987bd4c175cc4be9f2fa090e868ac8b5156c3265d8dd/langsmith-0.10.5-py3-none-any.whl", hash = "sha256:116adf2c30dfc1d0daf16919879b90c4093aad6122f44b80cc1f035b874dc9d6", size = 657879, upload-time = "2026-07-15T08:28:48.68Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/d5/2d8d84f5330aa773bae18644aaf7e3288b2f082e31640080784a7d908a24/langsmith-0.10.6-py3-none-any.whl", hash = "sha256:094285b755224f49fd396c3672b0f747294c7b8d9e8278a81d76b487b5cfdb56", size = 661257, upload-time = "2026-07-17T17:14:01.118Z" },
 ]
 
 [[package]]
@@ -1111,7 +1111,7 @@ wheels = [
 
 [[package]]
 name = "openrouter"
-version = "0.11.39"
+version = "0.11.44"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpcore" },
@@ -1119,9 +1119,9 @@ dependencies = [
     { name = "jsonpath-python" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/1b/5c9fb87d4a9be5e05b80f1d7d27b29f191aefd7e144e8c7a6826a8e50574/openrouter-0.11.39.tar.gz", hash = "sha256:26d5e64958b1191e0a294228fee6e43cc91239297aa82d0f2c905e0d7fc0c296", size = 379680, upload-time = "2026-07-16T19:46:47.505Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/66/1c239f07abd22c7eb505e664deb31eee7b9d1451a4f7e7249e60711b42b7/openrouter-0.11.44.tar.gz", hash = "sha256:7a61c42949a96a6c2da2bb7810f7ba99581271c2344deecff34d2bbae9b83157", size = 380246, upload-time = "2026-07-17T20:59:07.669Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/2f/d7bb8f4e89154bbc11c29b66cc4ea3ff5dad06949b132a0f1f9ac7e556f9/openrouter-0.11.39-py3-none-any.whl", hash = "sha256:c35df9d0b142e6de1f368fb79793bb5bb50d588b3c181c5fe03eb012fa9eda78", size = 835811, upload-time = "2026-07-16T19:46:46.019Z" },
+    { url = "https://files.pythonhosted.org/packages/08/c4/1572fff0d9169c0aa849ebaa7d492508eb2d4d583b8b5caf9a5a97760123/openrouter-0.11.44-py3-none-any.whl", hash = "sha256:b787f132a00fe058d8772985d5ec25dfa446b2ad00309be03143f8d8f5b5371b", size = 837128, upload-time = "2026-07-17T20:59:06.287Z" },
 ]
 
 [[package]]
@@ -1747,9 +1747,9 @@ dependencies = [
     { name = "langchain-community" },
     { name = "langchain-openai" },
     { name = "langchain-openrouter" },
+    { name = "langgraph" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -1757,6 +1757,7 @@ dev = [
     { name = "basedpyright" },
     { name = "poethepoet" },
     { name = "ruff" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -1766,9 +1767,9 @@ requires-dist = [
     { name = "langchain-community", specifier = ">=0.0.10" },
     { name = "langchain-openai", specifier = ">=0.0.8" },
     { name = "langchain-openrouter", specifier = ">=0.2.6" },
+    { name = "langgraph", specifier = ">=1.2.9" },
     { name = "pydantic", specifier = ">=2.6.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
-    { name = "uvicorn", specifier = ">=0.28.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1776,6 +1777,7 @@ dev = [
     { name = "basedpyright", specifier = ">=1.38.3" },
     { name = "poethepoet", specifier = ">=0.25.0" },
     { name = "ruff", specifier = ">=0.3.0" },
+    { name = "uvicorn", specifier = ">=0.28.0" },
 ]
 
 [[package]]
@@ -1872,14 +1874,14 @@ wheels = [
 
 [[package]]
 name = "tqdm"
-version = "4.68.4"
+version = "4.69.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/5f/57ff8b434839e70dab45601284ea413e947a63799891b7553e5960a793a8/tqdm-4.68.4.tar.gz", hash = "sha256:19829c9673638f2a0b8617da4cdcb927e831cd88bcfcb6e78d42a4d1af131520", size = 792418, upload-time = "2026-07-07T09:58:18.369Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/69/40407dfc835517f058b603dbf37a6df094d8582b015a51eddc988febbcb7/tqdm-4.69.0.tar.gz", hash = "sha256:700c5e85dcd5f009dd6222588a29180a193a748247a5d855b4d67db93d79a53b", size = 792569, upload-time = "2026-07-17T18:09:06.2Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/2a/5e5e750890ada51017d18d0d4c30da696e5b5bd3180947729927628fc3cb/tqdm-4.68.4-py3-none-any.whl", hash = "sha256:5168118b2368f48c561afda8020fd79195b1bdb0bdf8086b88442c267a315dc2", size = 676612, upload-time = "2026-07-07T09:58:16.256Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/21/99a0cdaf54eb35e77623c41b5a2c9472ee4404bba687052791fe2aba6773/tqdm-4.69.0-py3-none-any.whl", hash = "sha256:9979978912be667a6ef21fd5d8abf54e324e63d82f7f43c360792ebc2bc4e622", size = 676680, upload-time = "2026-07-17T18:09:04.172Z" },
 ]
 
 [[package]]
