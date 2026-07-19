@@ -79,7 +79,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               <BookOpen className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Resource Management</h3>
-            <p className="text-muted-text text-sm">Organize documents, syllabi, and custom instructions in dedicated, easily accessible workspaces.</p>
+            <p className="text-muted-text text-sm">Organize documents, syllabi, and custom instructions in dedicated, easily accessible classes.</p>
           </div>
         </div>
       </main>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
-import WorkspaceApp from './components/WorkspaceApp';
+import ClassApp from './components/ClassApp';
 import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
@@ -27,7 +27,7 @@ export default function App() {
     <>
       {currentView === 'landing' && <LandingPage onNavigate={(view) => setCurrentView(view)} />}
       {currentView === 'auth' && <AuthPage onBack={() => setCurrentView('landing')} />}
-      {currentView === 'app' && <WorkspaceApp />}
+      {currentView === 'app' && <ClassApp />}
     </>
   );
 }

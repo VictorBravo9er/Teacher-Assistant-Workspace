@@ -5,103 +5,13 @@ import {
   Lock,
   User,
   Phone,
-  Building2,
   ArrowRight,
-  Loader2,
-  MapPin,
-  Globe2,
-  GraduationCap
+  Loader2
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface AuthPageProps {
   onBack: () => void;
-}
-
-interface FuzzyAutocompleteFieldProps {
-  label: string;
-  icon: React.ReactNode;
-  placeholder: string;
-  value: string;
-  onChange: (val: string) => void;
-  rpcMethod: string;
-}
-
-function FuzzyAutocompleteField({ label, icon, placeholder, value, onChange, rpcMethod }: FuzzyAutocompleteFieldProps) {
-  const [results, setResults] = useState<string[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const fetchResults = async () => {
-      if (value.length < 2) {
-        setResults([]);
-        return;
-      }
-      const { data, error } = await supabase.rpc(rpcMethod as any, { search_term: value });
-      if (!error && data) {
-        setResults(data.map((r: any) => r.result));
-      }
-    };
-    
-    // Add small debounce
-    const timeoutId = setTimeout(fetchResults, 300);
-    return () => clearTimeout(timeoutId);
-  }, [value, rpcMethod]);
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <label className="block text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider">{label}</label>
-      <div className="relative">
-        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text flex items-center justify-center">
-          {icon}
-        </div>
-        <input 
-          type="text"
-          value={value}
-          onChange={e => {
-            onChange(e.target.value);
-            setShowDropdown(true);
-          }}
-          onFocus={() => {
-            if (value.length >= 2) setShowDropdown(true);
-          }}
-          placeholder={placeholder}
-          className="w-full bg-surface border border-border-color rounded-lg py-2 pl-8 pr-3 text-xs focus:outline-none focus:border-primary transition-all"
-        />
-      </div>
-      
-      {showDropdown && results.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-surface border border-border-color rounded-lg shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="max-h-40 overflow-y-auto">
-            {results.map((res, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  onChange(res);
-                  setShowDropdown(false);
-                }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-primary/10 transition-colors border-b border-border-color/50 last:border-0 truncate"
-              >
-                {res}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 export default function AuthPage({ onBack }: AuthPageProps) {
@@ -116,61 +26,10 @@ export default function AuthPage({ onBack }: AuthPageProps) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   
-  // Institute Autocomplete State
-  const [instituteSearch, setInstituteSearch] = useState("");
-  const [instituteResults, setInstituteResults] = useState<any[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedInstituteId, setSelectedInstituteId] = useState<string | null>(null);
-  const [selectedInstitute, setSelectedInstitute] = useState<any>(null);
   
-  // New Institute State
-  const [isCreatingInstitute, setIsCreatingInstitute] = useState(false);
-  const [newInstitute, setNewInstitute] = useState({
-    district: "",
-    city: "",
-    state: "",
-    country: "",
-    type: "K-12"
-  });
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Handle clicking outside to close dropdown
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Debounced search for institutes
-  useEffect(() => {
-    if (isLogin) return;
-    
-    const searchInstitutes = async () => {
-      if (instituteSearch.length < 2) {
-        setInstituteResults([]);
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .rpc('search_institutes', { search_term: instituteSearch });
-        
-      if (!error && data) {
-        setInstituteResults(data);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      searchInstitutes();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [instituteSearch, isLogin]);
-
+  
+  
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -185,28 +44,10 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         if (error) throw error;
       } else {
         
-        let finalInstituteId = selectedInstituteId;
-        let finalInstituteName = instituteSearch;
-
-        if (!isCreatingInstitute && !selectedInstituteId) {
-          throw new Error("Please select an institute from the list or click 'Create' to add a new one.");
-        }
-
         const metadata: any = {
           full_name: fullName,
-          phone: phone,
-          institute: finalInstituteName,
-          institute_id: finalInstituteId
+          phone: phone
         };
-
-        if (isCreatingInstitute) {
-          metadata.institute_district = newInstitute.district;
-          metadata.institute_city = newInstitute.city;
-          metadata.institute_state = newInstitute.state;
-          metadata.institute_country = newInstitute.country;
-          metadata.institute_type = newInstitute.type;
-          metadata.is_new_institute = true;
-        }
 
         const { error } = await supabase.auth.signUp({
           email,
@@ -225,20 +66,6 @@ export default function AuthPage({ onBack }: AuthPageProps) {
     }
   };
 
-  const handleSelectInstitute = (inst: any) => {
-    setInstituteSearch(inst.name);
-    setSelectedInstituteId(inst.id);
-    setSelectedInstitute(inst);
-    setShowDropdown(false);
-    setIsCreatingInstitute(false);
-  };
-
-  const handleStartCreateInstitute = () => {
-    setSelectedInstituteId(null);
-    setSelectedInstitute(null);
-    setShowDropdown(false);
-    setIsCreatingInstitute(true);
-  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden font-sans text-primary-text">
@@ -285,9 +112,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                   setIsLogin(true);
                   setEmail("");
                   setPassword("");
-                  setInstituteSearch("");
-                  setSelectedInstituteId(null);
-                  setIsCreatingInstitute(false);
+                  
                 }}
                 className="w-full py-3 bg-elevated hover:bg-elevated/80 border border-border-color text-primary-text font-semibold rounded-xl transition-all cursor-pointer"
               >
@@ -301,7 +126,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
               </h2>
               <p className="text-sm text-muted-text text-center mb-6">
                 {isLogin
-                  ? "Enter your credentials to access your workspace"
+                  ? "Enter your credentials to access your classItem"
                   : "Join to start managing your classrooms with AI"}
               </p>
 
@@ -347,196 +172,25 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                         />
                       </div>
                     </div>
-
-                    <div className="relative" ref={dropdownRef}>
-                      <label className="block text-xs font-semibold text-muted-text mb-1.5 uppercase tracking-wider">
-                        Institute <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
-                        <input
-                          type="text"
-                          value={instituteSearch}
-                          onChange={(e) => {
-                            setInstituteSearch(e.target.value);
-                            setShowDropdown(true);
-                            setIsCreatingInstitute(false);
-                            setSelectedInstituteId(null);
-                            setSelectedInstitute(null);
-                          }}
-                          onFocus={() => setShowDropdown(true)}
-                          placeholder="Search or enter your Institute"
-                          required
-                          className="w-full bg-elevated border border-border-color rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                        />
-                      </div>
-                      
-                      {/* Autocomplete Dropdown */}
-                      {showDropdown && instituteSearch.length >= 2 && !isCreatingInstitute && (
-                        <div className="absolute z-50 w-full mt-2 bg-elevated border border-border-color rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
-                          {instituteResults.length > 0 ? (
-                            <>
-                              <div className="px-3 py-2 text-[10px] font-bold text-muted-text uppercase tracking-wider bg-surface/50">
-                                Matching Institutes
-                              </div>
-                              {instituteResults.map((inst) => (
-                                <button
-                                  key={inst.id}
-                                  type="button"
-                                  onClick={() => handleSelectInstitute(inst)}
-                                  className="w-full text-left px-4 py-3 hover:bg-primary/10 transition-colors border-b border-border-color/50 last:border-0 flex flex-col gap-1 cursor-pointer"
-                                >
-                                  <span className="font-semibold text-sm">{inst.name}</span>
-                                  {(inst.district || inst.city || inst.country) && (
-                                    <span className="text-xs text-muted-text">
-                                      {inst.district}{inst.district && inst.city ? ', ' : ''}{inst.city}{inst.city && inst.country ? ', ' : ''}{inst.country}
-                                    </span>
-                                  )}
-                                </button>
-                              ))}
-                            </>
-                          ) : (
-                            <div className="px-4 py-3 text-sm text-muted-text italic">
-                              No matches found.
-                            </div>
-                          )}
-                          
-                          <button
-                            type="button"
-                            onClick={handleStartCreateInstitute}
-                            className="w-full text-left px-4 py-3 bg-primary/5 hover:bg-primary/10 text-primary transition-colors border-t border-border-color font-semibold text-sm cursor-pointer"
-                          >
-                            + Create "{instituteSearch}"
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Selected Institute Details */}
-                    {selectedInstitute && !isCreatingInstitute && (
-                      <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-4 duration-300">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Building2 className="w-3 h-3 text-primary" />
-                          </div>
-                          <span className="text-sm font-semibold text-primary">{selectedInstitute.name}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-text mt-1 pl-7">
-                          {selectedInstitute.district && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {selectedInstitute.district}
-                            </span>
-                          )}
-                          {selectedInstitute.city && (
-                            <span className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {selectedInstitute.city}{selectedInstitute.state ? `, ${selectedInstitute.state}` : ''}
-                            </span>
-                          )}
-                          {selectedInstitute.country && (
-                            <span className="flex items-center gap-1">
-                              <Globe2 className="w-3 h-3" />
-                              {selectedInstitute.country}
-                            </span>
-                          )}
-                          {selectedInstitute.type && (
-                            <span className="flex items-center gap-1">
-                              <GraduationCap className="w-3 h-3" />
-                              {selectedInstitute.type}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* New Institute Extended Form */}
-                    {isCreatingInstitute && (
-                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Building2 className="w-3.5 h-3.5 text-primary" />
-                          </div>
-                          <span className="text-sm font-semibold text-primary">New Institute Details</span>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                          <FuzzyAutocompleteField
-                            label="District"
-                            icon={<MapPin className="w-full h-full" />}
-                            placeholder="District"
-                            value={newInstitute.district}
-                            onChange={(val) => setNewInstitute({...newInstitute, district: val})}
-                            rpcMethod="search_districts"
-                          />
-                          <FuzzyAutocompleteField
-                            label="City"
-                            icon={<Building2 className="w-full h-full" />}
-                            placeholder="City"
-                            value={newInstitute.city}
-                            onChange={(val) => setNewInstitute({...newInstitute, city: val})}
-                            rpcMethod="search_cities"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                          <FuzzyAutocompleteField
-                            label="State/Region"
-                            icon={<MapPin className="w-full h-full" />}
-                            placeholder="State"
-                            value={newInstitute.state}
-                            onChange={(val) => setNewInstitute({...newInstitute, state: val})}
-                            rpcMethod="search_states"
-                          />
-                          <FuzzyAutocompleteField
-                            label="Country"
-                            icon={<Globe2 className="w-full h-full" />}
-                            placeholder="Country"
-                            value={newInstitute.country}
-                            onChange={(val) => setNewInstitute({...newInstitute, country: val})}
-                            rpcMethod="search_countries"
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 gap-3">
-                          <div>
-                            <label className="block text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider">Type</label>
-                            <div className="relative">
-                              <GraduationCap className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text" />
-                              <select 
-                                value={newInstitute.type}
-                                onChange={e => setNewInstitute({...newInstitute, type: e.target.value})}
-                                className="w-full bg-surface border border-border-color rounded-lg py-2 pl-8 pr-3 text-xs focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
-                              >
-                                <option value="K-12">K-12 School</option>
-                                <option value="Higher Education">Higher Education</option>
-                                <option value="Vocational">Vocational</option>
-                                <option value="Other">Other</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-muted-text mb-1.5 uppercase tracking-wider">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="teacher@school.edu"
-                      required
-                      className="w-full bg-elevated border border-border-color rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    />
-                  </div>
-                </div>
+                      <label className="block text-xs font-semibold text-muted-text mb-1.5 uppercase tracking-wider">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="teacher@school.edu"
+                          required
+                          className="w-full bg-elevated border border-border-color rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                        />
+                      </div>
+                    </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-1.5">

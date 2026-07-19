@@ -85,8 +85,9 @@ export interface RAGSession {
   createdAt: string;
 }
 
-export interface Workspace {
+export interface ClassModel {
   id: string;
+  instituteId?: string;
   name: string;
   academicYear: string;
   semester: string;

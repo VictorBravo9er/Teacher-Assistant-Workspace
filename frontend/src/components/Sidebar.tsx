@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Workspace, Template } from '../types';
+import { ClassModel, Template } from '../types';
+import CreateClassModal from './CreateClassModal';
+import { ConfirmModal, PromptModal } from './CustomDialogs';
 import { 
   Sparkles, 
   FolderLock, 
@@ -28,52 +30,59 @@ import {
 } from 'lucide-react';
 
 interface SidebarProps {
-  workspaces: Workspace[];
-  activeWorkspaceId: string;
+  classes: ClassModel[];
+  activeClassId: string;
   templates: Template[];
   theme: 'system' | 'light' | 'dark';
   onChangeTheme: (mode: 'system' | 'light' | 'dark') => void;
-  onSelectWorkspace: (id: string) => void;
-  onCreateWorkspace: (name: string, templateId?: string) => void;
-  onRenameWorkspace: (id: string, newName: string) => void;
-  onDuplicateWorkspace: (id: string) => void;
-  onArchiveWorkspace: (id: string) => void;
-  onDeleteWorkspace: (id: string) => void;
+  onSelectClass: (id: string) => void;
+  onCreateClass: (name: string, templateId?: string, instituteId?: string) => void;
+  onRenameClass: (id: string, newName: string) => void;
+  onDuplicateClass: (id: string) => void;
+  onArchiveClass: (id: string) => void;
+  onDeleteClass: (id: string) => void;
   
   onCreateTemplate: (template: Omit<Template, 'id'>) => void;
   onSaveCurrentAsTemplate: () => void;
   onDeleteTemplate: (id: string) => void;
-  onSelectTemplateAsPreset: (tpl: Template) => void;
+  onSelectTemplate: (id: string) => void;
+  isEditMode: boolean;
 
   onOpenAccountModal: (type: 'profile' | 'preferences' | 'settings' | 'subscription') => void;
+  onTriggerToast: (text: string) => void;
 }
 
 export default function Sidebar({
-  workspaces,
-  activeWorkspaceId,
+  classes,
+  activeClassId,
   templates,
   theme,
   onChangeTheme,
-  onSelectWorkspace,
-  onCreateWorkspace,
-  onRenameWorkspace,
-  onDuplicateWorkspace,
-  onArchiveWorkspace,
-  onDeleteWorkspace,
+  onSelectClass,
+  onCreateClass,
+  onRenameClass,
+  onDuplicateClass,
+  onArchiveClass,
+  onDeleteClass,
   onCreateTemplate,
   onSaveCurrentAsTemplate,
   onDeleteTemplate,
-  onSelectTemplateAsPreset,
-  onOpenAccountModal
+  onSelectTemplate,
+  isEditMode,
+  onOpenAccountModal,
+  onTriggerToast
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [sidebarSearch, setSidebarSearch] = useState('');
+  const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
+  const [isTemplatePromptOpen, setIsTemplatePromptOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<string | null>(null);
 
-  const filteredWorkspaces = workspaces.filter(ws => {
+  const filteredClasses = classes.filter(ws => {
     // Check archive state
     const matchesArchive = showArchived ? !!ws.archived : !ws.archived;
     // Check search term
@@ -84,22 +93,30 @@ export default function Sidebar({
     );
   });
 
-  const handleStartRename = (ws: Workspace, e: React.MouseEvent) => {
+  const handleStartRename = (ws: ClassModel, e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditingWorkspaceId(ws.id);
+    setEditingClassId(ws.id);
     setRenameValue(ws.name);
     setActiveMenuId(null);
   };
 
   const handleSaveRename = (id: string) => {
     if (renameValue.trim()) {
-      onRenameWorkspace(id, renameValue.trim());
+      onRenameClass(id, renameValue.trim());
     }
-    setEditingWorkspaceId(null);
+    setEditingClassId(null);
   };
 
   const expandSidebar = () => {
     if (isCollapsed) setIsCollapsed(false);
+  };
+
+  const checkEditMode = (callback: () => void) => {
+    if (isEditMode) {
+      onTriggerToast("Please save your changes first.");
+      return;
+    }
+    callback();
   };
 
   return (
@@ -187,19 +204,7 @@ export default function Sidebar({
                   Teacher Templates
                 </span>
                 <button 
-                  onClick={() => {
-                    const name = prompt("Enter Template Name:");
-                    if (name) {
-                      onCreateTemplate({
-                        name,
-                        description: "Custom template created from sidebar.",
-                        subject: "General",
-                        teachingStyle: "Structured",
-                        instructions: [],
-                        materialsPreset: []
-                      });
-                    }
-                  }}
+                  onClick={() => setIsTemplatePromptOpen(true)}
                   title="Create Base Template" 
                   className="p-1 hover:bg-elevated rounded text-muted-text hover:text-primary-text transition-colors cursor-pointer"
                 >
@@ -211,7 +216,7 @@ export default function Sidebar({
                 {templates.map(tpl => (
                   <div 
                     key={tpl.id}
-                    onClick={() => onSelectTemplateAsPreset(tpl)}
+                    onClick={() => checkEditMode(() => onSelectTemplate(tpl.id))}
                     className="group flex items-center justify-between text-xs px-2.5 py-2 rounded-lg bg-elevated/30 border border-transparent hover:border-border-color/30 hover:bg-elevated/60 text-secondary-text hover:text-primary-text transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-2 truncate">
@@ -238,7 +243,7 @@ export default function Sidebar({
               </div>
             </div>
 
-            {/* Workspace Projects section */}
+            {/* ClassModel Projects section */}
             <div>
               <div className="flex items-center justify-between text-[11px] font-semibold text-muted-text uppercase tracking-wider mb-2.5 px-1">
                 <span className="flex items-center gap-1.5 font-display">
@@ -248,17 +253,14 @@ export default function Sidebar({
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => setShowArchived(!showArchived)}
-                    title={showArchived ? "Show Active Workspaces" : "Show Archived Workspaces"}
+                    title={showArchived ? "Show Active Class" : "Show Archived Class"}
                     className={`p-1 rounded transition-colors cursor-pointer ${showArchived ? 'bg-primary/15 text-primary' : 'text-muted-text hover:bg-elevated hover:text-primary-text'}`}
                   >
                     <FolderArchive className="w-3.5 h-3.5" />
                   </button>
                   <button 
-                    onClick={() => {
-                      const name = prompt("Enter Class Name (e.g., Grade 10 Mathematics):");
-                      if (name) onCreateWorkspace(name);
-                    }}
-                    title="Create Workspace Project" 
+                    onClick={() => setIsCreateClassModalOpen(true)}
+                    title="Create ClassModel Project" 
                     className="p-1 hover:bg-elevated rounded text-muted-text hover:text-primary-text transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -267,19 +269,19 @@ export default function Sidebar({
               </div>
 
               <div className="space-y-1">
-                {filteredWorkspaces.length === 0 ? (
+                {filteredClasses.length === 0 ? (
                   <div className="text-[11px] font-mono p-3 text-muted-text text-center bg-elevated/25 rounded-lg border border-dashed border-border-color/60">
                     No classes found
                   </div>
                 ) : (
-                  filteredWorkspaces.map(ws => {
-                    const isActive = ws.id === activeWorkspaceId;
-                    const isEditing = editingWorkspaceId === ws.id;
+                  filteredClasses.map(ws => {
+                    const isActive = ws.id === activeClassId;
+                    const isEditing = editingClassId === ws.id;
 
                     return (
                       <div 
                         key={ws.id}
-                        onClick={() => !isEditing && onSelectWorkspace(ws.id)}
+                        onClick={() => !isEditing && checkEditMode(() => onSelectClass(ws.id))}
                         className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all cursor-pointer ${
                           isActive 
                             ? 'bg-primary/10 border-primary/30 text-primary font-semibold shadow-sm' 
@@ -296,7 +298,7 @@ export default function Sidebar({
                               onChange={(e) => setRenameValue(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleSaveRename(ws.id);
-                                if (e.key === 'Escape') setEditingWorkspaceId(null);
+                                if (e.key === 'Escape') setEditingClassId(null);
                               }}
                               onBlur={() => handleSaveRename(ws.id)}
                               autoFocus
@@ -331,14 +333,14 @@ export default function Sidebar({
                                   Rename Class
                                 </button>
                                 <button 
-                                  onClick={() => { onDuplicateWorkspace(ws.id); setActiveMenuId(null); }}
+                                  onClick={() => { onDuplicateClass(ws.id); setActiveMenuId(null); }}
                                   className="w-full text-left px-2.5 py-1.5 hover:bg-elevated rounded-lg flex items-center gap-2 hover:text-primary-text cursor-pointer"
                                 >
                                   <Copy className="w-3.5 h-3.5 text-secondary" />
                                   Duplicate Class
                                 </button>
                                 <button 
-                                  onClick={() => { onArchiveWorkspace(ws.id); setActiveMenuId(null); }}
+                                  onClick={() => { onArchiveClass(ws.id); setActiveMenuId(null); }}
                                   className="w-full text-left px-2.5 py-1.5 hover:bg-elevated rounded-lg flex items-center gap-2 hover:text-primary-text cursor-pointer"
                                 >
                                   <FolderArchive className="w-3.5 h-3.5 text-warning" />
@@ -346,7 +348,7 @@ export default function Sidebar({
                                 </button>
                                 <div className="h-[1px] bg-border-color/40 my-1"></div>
                                 <button 
-                                  onClick={() => { if (confirm("Delete this workspace entirely?")) onDeleteWorkspace(ws.id); setActiveMenuId(null); }}
+                                  onClick={() => { setClassToDelete(ws.id); setActiveMenuId(null); }}
                                   className="w-full text-left px-2.5 py-1.5 hover:bg-error/10 text-error hover:text-error rounded-lg flex items-center gap-2 cursor-pointer"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -488,6 +490,46 @@ export default function Sidebar({
           </div>
         </div>
       )}
+
+      <CreateClassModal
+        isOpen={isCreateClassModalOpen}
+        onClose={() => setIsCreateClassModalOpen(false)}
+        onCreateClass={onCreateClass}
+        onTriggerToast={onTriggerToast}
+      />
+
+      <PromptModal
+        isOpen={isTemplatePromptOpen}
+        title="Create Teacher Template"
+        message="Enter a name for your new base template."
+        placeholder="e.g. 10th Grade English"
+        submitText="Create Template"
+        onSubmit={(name) => {
+          onCreateTemplate({
+            name,
+            description: "Custom template created from sidebar.",
+            subject: "General",
+            teachingStyle: "Structured",
+            instructions: [],
+            materialsPreset: []
+          });
+          setIsTemplatePromptOpen(false);
+        }}
+        onCancel={() => setIsTemplatePromptOpen(false)}
+      />
+
+      <ConfirmModal
+        isOpen={classToDelete !== null}
+        title="Delete Class"
+        message="Are you sure you want to delete this class? This action cannot be undone."
+        confirmText="Delete"
+        isDestructive={true}
+        onConfirm={() => {
+          if (classToDelete) onDeleteClass(classToDelete);
+          setClassToDelete(null);
+        }}
+        onCancel={() => setClassToDelete(null)}
+      />
     </aside>
   );
 }

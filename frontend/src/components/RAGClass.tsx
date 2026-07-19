@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Workspace, RAGSession, Message } from '../types';
+import { ClassModel, RAGSession, Message } from '../types';
 import { 
   Plus, 
   Trash2, 
@@ -16,23 +16,23 @@ import {
 } from 'lucide-react';
 import Visualizer from './Visualizer';
 
-interface RAGWorkspaceProps {
-  workspace: Workspace;
-  onUpdateWorkspace: (id: string, updatedFields: Partial<Workspace>) => void;
+interface RAGClassProps {
+  classItem: ClassModel;
+  onUpdateClass: (id: string, updatedFields: Partial<ClassModel>) => void;
   layoutMode: 'split' | 'chat-only' | 'details-only';
   onToggleLayoutMode: (mode: 'split' | 'chat-only' | 'details-only') => void;
   onSendChatMessage: (sessionId: string, text: string) => Promise<void>;
   isGeneratingAI: boolean;
 }
 
-export default function RAGWorkspace({
-  workspace,
-  onUpdateWorkspace,
+export default function RAGClass({
+  classItem,
+  onUpdateClass,
   layoutMode,
   onToggleLayoutMode,
   onSendChatMessage,
   isGeneratingAI
-}: RAGWorkspaceProps) {
+}: RAGClassProps) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sessionSearch, setSessionSearch] = useState('');
   
@@ -48,7 +48,7 @@ export default function RAGWorkspace({
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
   // Dynamic lists of RAG sessions
-  const sessions = workspace.ragSessions || [];
+  const sessions = classItem.ragSessions || [];
   const filteredSessions = sessions.filter(s => 
     s.title.toLowerCase().includes(sessionSearch.toLowerCase())
   );
@@ -98,13 +98,13 @@ export default function RAGWorkspace({
         {
           id: `m-${Date.now()}-init`,
           role: 'assistant',
-          text: `### 🤖 RAG Analysis Session Established\nI have synced focus criteria onto: **${analysisType}** (${analysisScope.toUpperCase()} Scope).\n          \n* **Class contexts & Instructions loaded**: Checked (${workspace.instructions.length} custom guidelines parsed)\n* **Parent logs & grades directory**: Synced (${workspace.students.length} portfolios indexed)\n          \nHow can I assist you with clinical evaluation reviews today? You can select a quick action suggestion below or draft custom requests directly.`,
+          text: `### 🤖 RAG Analysis Session Established\nI have synced focus criteria onto: **${analysisType}** (${analysisScope.toUpperCase()} Scope).\n          \n* **Class contexts & Instructions loaded**: Checked (${classItem.instructions.length} custom guidelines parsed)\n* **Parent logs & grades directory**: Synced (${classItem.students.length} portfolios indexed)\n          \nHow can I assist you with clinical evaluation reviews today? You can select a quick action suggestion below or draft custom requests directly.`,
           timestamp: new Date().toISOString()
         }
       ]
     };
 
-    onUpdateWorkspace(workspace.id, {
+    onUpdateClass(classItem.id, {
       ragSessions: [newSession, ...sessions]
     });
 
@@ -130,7 +130,7 @@ export default function RAGWorkspace({
       messages: [...target.messages]
     };
 
-    onUpdateWorkspace(workspace.id, {
+    onUpdateClass(classItem.id, {
       ragSessions: [duplicated, ...sessions]
     });
   };
@@ -138,7 +138,7 @@ export default function RAGWorkspace({
   const handleDeleteSession = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const filtered = sessions.filter(s => s.id !== id);
-    onUpdateWorkspace(workspace.id, { ragSessions: filtered });
+    onUpdateClass(classItem.id, { ragSessions: filtered });
     if (activeSessionId === id) {
       setActiveSessionId(filtered[0]?.id || null);
     }
@@ -227,43 +227,9 @@ export default function RAGWorkspace({
 
       </div>
 
-      {/* Main chat chatbot workspace pane */}
+      {/* Main chat chatbot classItem pane */}
       <div className="flex-1 flex flex-col justify-between bg-background/10 relative overflow-hidden h-full">
         
-        {/* Header bar */}
-        <div className="p-4 border-b border-border-color bg-surface/30 shrink-0 flex items-center justify-between z-30">
-          <div className="flex items-center gap-2.5">
-            <Bot className="w-5 h-5 text-primary" />
-            <div>
-              <h2 className="text-xs font-bold text-primary-text uppercase font-display tracking-wider">
-                {activeSession?.title || 'Classroom Assistant Chat'}
-              </h2>
-              <span className="text-[10px] font-mono text-muted-text">Client Copilot Agent</span>
-            </div>
-          </div>
-
-          {/* Focus Mode toggles */}
-          <div className="flex items-center gap-2">
-            {layoutMode === 'chat-only' ? (
-              <button 
-                onClick={() => onToggleLayoutMode('split')}
-                className="px-3.5 py-1.8 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Split Workspace
-              </button>
-            ) : (
-              <button 
-                onClick={() => onToggleLayoutMode('chat-only')}
-                className="p-2 hover:bg-elevated text-secondary-text hover:text-primary-text rounded-xl transition-colors cursor-pointer"
-                title="Enter Distraction-Free Focus Mode"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* Chat message streams list */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {(!activeSession || !activeSession.messages || activeSession.messages.length === 0) ? (
@@ -429,7 +395,7 @@ export default function RAGWorkspace({
               <Sparkles className="w-5 h-5 text-primary animate-pulse" />
               <div>
                 <h3 className="text-sm font-semibold text-primary-text">Start Diagnostic Analysis</h3>
-                <span className="text-[10px] font-mono text-muted-text">Retrieval Augmented Generation Workspace</span>
+                <span className="text-[10px] font-mono text-muted-text">Retrieval Augmented Generation ClassModel</span>
               </div>
             </div>
 
@@ -483,11 +449,11 @@ export default function RAGWorkspace({
                   <label className="text-[10px] font-mono text-muted-text uppercase block mb-1.5">Select specific bounds</label>
                   {analysisScope === 'class' ? (
                     <div className="text-[11px] font-mono py-2 text-primary leading-normal">
-                      Full class of {workspace.students.length} students indexed.
+                      Full class of {classItem.students.length} students indexed.
                     </div>
                   ) : (
                     <div className="max-h-20 overflow-y-auto border border-border-color rounded-lg p-1.5 bg-surface space-y-1">
-                      {analysisScope === 'students' && workspace.students.map(s => (
+                      {analysisScope === 'students' && classItem.students.map(s => (
                         <label key={s.id} className="flex items-center gap-1.5 text-xs text-primary-text">
                           <input 
                             type="checkbox" 
@@ -500,7 +466,7 @@ export default function RAGWorkspace({
                           {s.name}
                         </label>
                       ))}
-                      {analysisScope === 'materials' && workspace.materials.map(m => (
+                      {analysisScope === 'materials' && classItem.materials.map(m => (
                         <label key={m.id} className="flex items-center gap-1.5 text-xs text-primary-text">
                           <input 
                             type="checkbox" 
