@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+
 
 class Message(BaseModel):
     id: str
@@ -7,24 +7,29 @@ class Message(BaseModel):
     text: str
     timestamp: str
 
+
 class Material(BaseModel):
     name: str
     type: str
-    tags: Optional[List[str]] = []
+    tags: list[str] | None = []
+
 
 class Instruction(BaseModel):
     title: str
     type: str
     content: str
 
+
 class StudentGrade(BaseModel):
     assessmentName: str
     score: float
     maxScore: float
 
+
 class StudentCustomField(BaseModel):
     label: str
     value: str
+
 
 class Student(BaseModel):
     name: str
@@ -32,29 +37,31 @@ class Student(BaseModel):
     email: str
     performanceIndicator: str
     attendance: float
-    grades: List[StudentGrade] = []
-    customFields: List[StudentCustomField] = []
-    parentName: Optional[str] = ""
-    parentContact: Optional[str] = ""
-    parentNotes: Optional[str] = ""
+    grades: list[StudentGrade] = []
+    customFields: list[StudentCustomField] = []
+    parentName: str | None = ""
+    parentContact: str | None = ""
+    parentNotes: str | None = ""
+
 
 class AnalysisConfig(BaseModel):
     type: str
     scopeType: str
-    selectedIds: List[str] = []
-    customInstructions: Optional[str] = ""
+    selectedIds: list[str] = []
+    customInstructions: str | None = ""
+
 
 class ChatPayload(BaseModel):
-    messages: List[Message]
+    messages: list[Message]
     workspaceName: str
     subject: str
     academicYear: str
     semester: str
     teacherName: str
     teachingStyle: str
-    specialNotes: Optional[str] = ""
-    assessmentPreferences: Optional[str] = ""
-    materials: List[Material] = []
-    instructions: List[Instruction] = []
-    students: List[Student] = []
-    newAnalysisConfig: Optional[AnalysisConfig] = None
+    specialNotes: str | None = ""
+    assessmentPreferences: str | None = ""
+    materials: list[Material] = []
+    instructions: list[Instruction] = []
+    students: list[Student] = []
+    newAnalysisConfig: AnalysisConfig | None = None
