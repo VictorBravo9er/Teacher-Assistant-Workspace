@@ -10,6 +10,9 @@ load_dotenv()
 
 app = FastAPI(
     title="Teacher Assistant RAG API",
+    docs_url="/docs",
+    redoc_url=None,
+    openapi_url="/api/internal-data/openapi.json",
 )
 
 # Configure CORS

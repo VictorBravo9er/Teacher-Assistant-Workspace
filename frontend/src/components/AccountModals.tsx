@@ -128,7 +128,7 @@ export default function AccountModals({ activeModal, onClose, onTriggerToast }: 
             <div className="flex items-center gap-3 pb-3 border-b border-border-color">
               <Sparkles className="w-5 h-5 text-primary animate-pulse" />
               <div>
-                <h3 className="text-sm font-semibold text-primary-text">Workspace Licensing</h3>
+                <h3 className="text-sm font-semibold text-primary-text">ClassModel Licensing</h3>
                 <span className="text-[10px] font-mono text-muted-text">Free Tier partner vs. Pro scaling models</span>
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function AccountModals({ activeModal, onClose, onTriggerToast }: 
                 <div>
                   <span className="text-xs font-bold text-primary block">PRO LICENSE PASS</span>
                   <p className="text-[11px] text-secondary-text leading-relaxed block mt-1">
-                    Unlocks unlimited workspace classes, advanced radar visualizers, and direct batch Grading pipelines.
+                    Unlocks unlimited classItem classes, advanced radar visualizers, and direct batch Grading pipelines.
                   </p>
                 </div>
                 <button

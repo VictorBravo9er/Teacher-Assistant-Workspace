@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Workspace, Student } from '../types';
+import { ClassModel, Student } from '../types';
 import { Search, Sparkles, User, Settings, FolderClosed, Terminal, Minimize, BookOpen } from 'lucide-react';
 
 interface CommandPaletteProps {
-  workspaces: Workspace[];
-  activeWorkspace: Workspace;
-  onSelectWorkspace: (id: string) => void;
+  classes: ClassModel[];
+  activeClass: ClassModel;
+  onSelectClass: (id: string) => void;
   onOpenStudent: (id: string) => void;
   onToggleFocusMode: (focus: boolean) => void;
   isFocusMode: boolean;
@@ -13,9 +13,9 @@ interface CommandPaletteProps {
 }
 
 export default function CommandPalette({
-  workspaces,
-  activeWorkspace,
-  onSelectWorkspace,
+  classes,
+  activeClass,
+  onSelectClass,
   onOpenStudent,
   onToggleFocusMode,
   isFocusMode,
@@ -42,18 +42,18 @@ export default function CommandPalette({
   }, []);
 
   // Filter rosters matches
-  const filteredStudents = activeWorkspace.students?.filter(s => 
+  const filteredStudents = activeClass.students?.filter(s => 
     s.name.toLowerCase().includes(query.toLowerCase()) || 
     s.rollNumber.toLowerCase().includes(query.toLowerCase())
   ) || [];
 
-  const filteredWorkspaces = workspaces.filter(w => 
+  const filteredClasses = classes.filter(w => 
     w.name.toLowerCase().includes(query.toLowerCase()) ||
     w.subject.toLowerCase().includes(query.toLowerCase())
   );
 
-  const handleSelectWorkspace = (id: string) => {
-    onSelectWorkspace(id);
+  const handleSelectClass = (id: string) => {
+    onSelectClass(id);
     setIsOpen(false);
     setQuery('');
     onTriggerToast(`Switched active class context.`);
@@ -68,7 +68,7 @@ export default function CommandPalette({
   const handleToggleFocus = () => {
     onToggleFocusMode(!isFocusMode);
     setIsOpen(false);
-    onTriggerToast(isFocusMode ? "Restored full workspace widgets" : "Entered immersive Focus Mode");
+    onTriggerToast(isFocusMode ? "Restored full classItem widgets" : "Entered immersive Focus Mode");
   };
 
   if (!isOpen) return null;
@@ -117,13 +117,13 @@ export default function CommandPalette({
           </div>
 
           {/* Classes Result */}
-          {filteredWorkspaces.length > 0 && (
+          {filteredClasses.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[9px] font-mono font-bold text-muted-text uppercase px-2 py-1 block">Switch Class Workspace</span>
-              {filteredWorkspaces.map(ws => (
+              <span className="text-[9px] font-mono font-bold text-muted-text uppercase px-2 py-1 block">Switch Class ClassModel</span>
+              {filteredClasses.map(ws => (
                 <div 
                   key={ws.id}
-                  onClick={() => handleSelectWorkspace(ws.id)}
+                  onClick={() => handleSelectClass(ws.id)}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-elevated text-xs text-secondary-text hover:text-primary-text transition-all cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4 text-primary" />
@@ -154,7 +154,7 @@ export default function CommandPalette({
           )}
 
           {/* No matches */}
-          {filteredStudents.length === 0 && filteredWorkspaces.length === 0 && (
+          {filteredStudents.length === 0 && filteredClasses.length === 0 && (
             <div className="text-center py-6 text-muted-text font-mono text-xs">
               No match for "{query}"
             </div>

@@ -1,25 +1,27 @@
 import os
-from typing import Dict, Any
-from src.types.schemas import ChatPayload
+from typing import Any
+
+from langchain_core.prompts import ChatPromptTemplate
 from src.lib.formatter import (
+    format_analysis_config_context,
     format_classroom_context,
     format_students_context,
-    format_analysis_config_context
 )
 from src.lib.llm import get_openrouter_llm, parse_llm_response
 from src.lib.logger import logger
-from langchain_core.prompts import ChatPromptTemplate
+from src.types.schemas import ChatPayload
+
 
 class ChatService:
     """Service to coordinate data context formatting, prompt templating, and LLM call operations."""
-    
+
     @staticmethod
-    async def process_chat_message(payload: ChatPayload, model: str) -> Dict[str, Any]:
+    async def process_chat_message(payload: ChatPayload, model: str) -> dict[str, Any]:
         logger.info(
             "Processing chat message: model=%s, message_count=%d, student_count=%d",
             model,
             len(payload.messages),
-            len(payload.students)
+            len(payload.students),
         )
         # EAFP: Access environmental variable directly
         api_key_str = os.environ["OPENROUTER_API_KEY"]
@@ -59,14 +61,19 @@ Data Schema Guidelines for "visualization":
         llm = get_openrouter_llm(model, api_key_str)
 
         # Build prompt template
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system", system_instruction),
-            ("placeholder", "{history}"),
-            ("user", "CONTEXT METADATA:\n{class_context}\n\nSTUDENT PORTFOLIOS:\n{students_context}\n\nACTIVE CONFIGURATION:\n{analysis_config_text}\n\nUSER PROMPT: {user_prompt}")
-        ])
+        prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_instruction),
+                ("placeholder", "{history}"),
+                (
+                    "user",
+                    "CONTEXT METADATA:\n{class_context}\n\nSTUDENT PORTFOLIOS:\n{students_context}\n\nACTIVE CONFIGURATION:\n{analysis_config_text}\n\nUSER PROMPT: {user_prompt}",
+                ),
+            ]
+        )
 
         # Formulate history sequence
-        history_msgs = []
+        history_msgs: list[tuple[str, str]] = []
         for m in payload.messages[:-1]:
             history_msgs.append((m.role, m.text))
 
@@ -75,14 +82,16 @@ Data Schema Guidelines for "visualization":
             class_context=class_context,
             students_context=students_context,
             analysis_config_text=analysis_config_text,
-            user_prompt=payload.messages[-1].text
+            user_prompt=payload.messages[-1].text,
         )
 
         # 3. Call LLM generation
         logger.info("Invoking OpenRouter LLM: model=%s", model)
         try:
             response = llm.invoke(formatted_messages)
-            logger.info("LLM generation successful, response_length=%d", len(response.content))
+            logger.info(
+                "LLM generation successful, response_length=%d", len(response.content)
+            )
         except Exception as err:
             logger.error("LLM generation failed: %s", str(err), exc_info=True)
             raise

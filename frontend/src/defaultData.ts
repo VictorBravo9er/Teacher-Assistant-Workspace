@@ -1,4 +1,4 @@
-import { Workspace, Template } from './types';
+import { ClassModel, Template } from './types';
 
 export const DEFAULT_TEMPLATES: Template[] = [
   {
@@ -86,7 +86,7 @@ export const DEFAULT_TEMPLATES: Template[] = [
   }
 ];
 
-export const DEFAULT_WORKSPACES: Workspace[] = [
+export const DEFAULT_WORKSPACES: ClassModel[] = [
   {
     id: 'ws-1',
     name: 'Grade 10 Mathematics',

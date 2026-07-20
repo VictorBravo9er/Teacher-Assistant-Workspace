@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Workspace, Material, Instruction } from '../types';
+import { ClassModel, Material, Instruction } from '../types';
+import { PromptModal } from './CustomDialogs';
 import { 
   Building2, 
   BookMarked, 
@@ -21,23 +22,23 @@ import {
   Info
 } from 'lucide-react';
 
-interface WorkspaceDetailsProps {
-  workspace: Workspace;
-  onUpdateWorkspace: (id: string, updatedFields: Partial<Workspace>) => void;
-  onAddMaterial: (workspaceId: string, material: Omit<Material, 'id' | 'uploadDate'>) => void;
-  onDeleteMaterial: (workspaceId: string, materialId: string) => void;
-  onAddInstruction: (workspaceId: string, instruction: Omit<Instruction, 'id'>) => void;
-  onDeleteInstruction: (workspaceId: string, instructionId: string) => void;
+interface ClassDetailsProps {
+  classItem: ClassModel;
+  onUpdateClass: (id: string, updatedFields: Partial<ClassModel>) => void;
+  onAddMaterial: (classId: string, material: Omit<Material, 'id' | 'uploadDate'>) => void;
+  onDeleteMaterial: (classId: string, materialId: string) => void;
+  onAddInstruction: (classId: string, instruction: Omit<Instruction, 'id'>) => void;
+  onDeleteInstruction: (classId: string, instructionId: string) => void;
 }
 
-export default function WorkspaceDetails({
-  workspace,
-  onUpdateWorkspace,
+export default function ClassDetails({
+  classItem,
+  onUpdateClass,
   onAddMaterial,
   onDeleteMaterial,
   onAddInstruction,
   onDeleteInstruction
-}: WorkspaceDetailsProps) {
+}: ClassDetailsProps) {
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'materials' | 'prompts'>('profile');
   
   // Local form states for files/materials
@@ -54,6 +55,7 @@ export default function WorkspaceDetails({
 
   // Selected material for Version Log Modal
   const [selectedMaterialHistory, setSelectedMaterialHistory] = useState<Material | null>(null);
+  const [isVersionPromptOpen, setIsVersionPromptOpen] = useState(false);
 
   const handleCreateMaterial = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +66,7 @@ export default function WorkspaceDetails({
       .map(t => t.trim())
       .filter(t => t.length > 0);
 
-    onAddMaterial(workspace.id, {
+    onAddMaterial(classItem.id, {
       name: newFileName.trim(),
       type: newFileType,
       size: `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
@@ -83,7 +85,7 @@ export default function WorkspaceDetails({
     e.preventDefault();
     if (!newPromptTitle.trim() || !newPromptContent.trim()) return;
 
-    onAddInstruction(workspace.id, {
+    onAddInstruction(classItem.id, {
       title: newPromptTitle.trim(),
       type: newPromptType,
       content: newPromptContent.trim()
@@ -121,9 +123,9 @@ export default function WorkspaceDetails({
         >
           <BookMarked className="w-3.5 h-3.5" />
           Materials
-          {workspace.materials.length > 0 && (
+          {classItem.materials.length > 0 && (
             <span className="ml-1 px-1.5 py-0.2 bg-primary/10 text-primary text-[10px] rounded-full font-mono border border-primary/20 font-bold">
-              {workspace.materials.length}
+              {classItem.materials.length}
             </span>
           )}
         </button>
@@ -137,9 +139,9 @@ export default function WorkspaceDetails({
         >
           <Award className="w-3.5 h-3.5" />
           AI Instructions
-          {workspace.instructions.length > 0 && (
+          {classItem.instructions.length > 0 && (
             <span className="ml-1 px-1.5 py-0.2 bg-secondary/15 text-secondary text-[10px] rounded-full font-mono border border-secondary/25 font-bold">
-              {workspace.instructions.length}
+              {classItem.instructions.length}
             </span>
           )}
         </button>
@@ -156,11 +158,11 @@ export default function WorkspaceDetails({
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
                 <span className="text-[10px] font-mono text-muted-text block uppercase">Curriculum Course</span>
-                <span className="text-xs font-semibold text-primary-text block mt-1 truncate">{workspace.subject}</span>
+                <span className="text-xs font-semibold text-primary-text block mt-1 truncate">{classItem.subject}</span>
               </div>
               <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
                 <span className="text-[10px] font-mono text-muted-text block uppercase">Academic Period</span>
-                <span className="text-xs font-semibold text-primary-text block mt-1 truncate">{workspace.semester}, {workspace.academicYear}</span>
+                <span className="text-xs font-semibold text-primary-text block mt-1 truncate">{classItem.semester}, {classItem.academicYear}</span>
               </div>
             </div>
 
@@ -176,31 +178,31 @@ export default function WorkspaceDetails({
                   <label className="text-[10px] uppercase font-mono text-muted-text">Instructor style</label>
                   <input 
                     type="text"
-                    value={workspace.teachingStyle}
-                    onChange={(e) => onUpdateWorkspace(workspace.id, { teachingStyle: e.target.value })}
+                    value={classItem.teachingStyle}
+                    onChange={(e) => onUpdateClass(classItem.id, { teachingStyle: e.target.value })}
                     className="w-full bg-transparent text-xs text-primary-text font-semibold focus:outline-none focus:border-b focus:border-primary/50 pt-0.5"
                   />
                 </div>
                 
                 <div>
                   <label className="text-[10px] uppercase font-mono text-muted-text">Experience scale</label>
-                  <p className="text-xs font-medium text-secondary-text pt-0.5">{workspace.experienceLevel}</p>
+                  <p className="text-xs font-medium text-secondary-text pt-0.5">{classItem.experienceLevel}</p>
                 </div>
 
                 <div>
                   <label className="text-[10px] uppercase font-mono text-muted-text">Assessment Preferences</label>
                   <textarea 
-                    value={workspace.assessmentPreferences || 'No specific preferences.'}
-                    onChange={(e) => onUpdateWorkspace(workspace.id, { assessmentPreferences: e.target.value })}
+                    value={classItem.assessmentPreferences || 'No specific preferences.'}
+                    onChange={(e) => onUpdateClass(classItem.id, { assessmentPreferences: e.target.value })}
                     className="w-full bg-transparent text-xs text-secondary-text h-10 resize-none focus:outline-none focus:border-b focus:border-primary/50 pt-0.5"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-mono text-muted-text">Workspace Reminders / Notes</label>
+                  <label className="text-[10px] uppercase font-mono text-muted-text">ClassModel Reminders / Notes</label>
                   <textarea 
-                    value={workspace.specialNotes || ''}
-                    onChange={(e) => onUpdateWorkspace(workspace.id, { specialNotes: e.target.value })}
+                    value={classItem.specialNotes || ''}
+                    onChange={(e) => onUpdateClass(classItem.id, { specialNotes: e.target.value })}
                     placeholder="E.g. Focus on bridging Algebra basics before Geometry exams..."
                     className="w-full bg-surface border border-border-color rounded-lg p-2 text-xs text-secondary-text h-14 resize-none focus:outline-none focus:border-primary/50 shadow-sm"
                   />
@@ -287,12 +289,12 @@ export default function WorkspaceDetails({
 
             {/* Files Grid list */}
             <div className="space-y-2.5">
-              {workspace.materials.length === 0 ? (
+              {classItem.materials.length === 0 ? (
                 <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
                   No reference files. Let's upload a textbook.
                 </div>
               ) : (
-                workspace.materials.map(mat => (
+                classItem.materials.map(mat => (
                   <div 
                     key={mat.id}
                     className="group bg-surface border border-border-color hover:bg-elevated rounded-xl p-3 flex items-center justify-between transition-colors cursor-pointer"
@@ -320,7 +322,7 @@ export default function WorkspaceDetails({
                         <History className="w-3.5 h-3.5" />
                       </button>
                       <button 
-                        onClick={() => onDeleteMaterial(workspace.id, mat.id)}
+                        onClick={() => onDeleteMaterial(classItem.id, mat.id)}
                         title="Delete Document"
                         className="p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded cursor-pointer transition-colors"
                       >
@@ -401,12 +403,12 @@ export default function WorkspaceDetails({
 
             {/* Prompts list */}
             <div className="space-y-3">
-              {workspace.instructions.length === 0 ? (
+              {classItem.instructions.length === 0 ? (
                 <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
                   No criteria instructions flagged. Assistant is using default grading rules.
                 </div>
               ) : (
-                workspace.instructions.map(inst => (
+                classItem.instructions.map(inst => (
                   <div 
                     key={inst.id}
                     className="bg-surface border border-border-color rounded-xl p-3.5 space-y-2 shadow-sm transition-colors"
@@ -416,7 +418,7 @@ export default function WorkspaceDetails({
                         {inst.type}
                       </span>
                       <button 
-                        onClick={() => onDeleteInstruction(workspace.id, inst.id)}
+                        onClick={() => onDeleteInstruction(classItem.id, inst.id)}
                         className="text-muted-text hover:text-red-500 p-1 rounded hover:bg-background transition-colors cursor-pointer"
                         title="Delete Guideline"
                       >
@@ -471,28 +473,14 @@ export default function WorkspaceDetails({
                 <div className="flex gap-3 text-xs bg-elevated rounded-xl p-3 border border-border-color">
                   <span className="font-mono text-primary font-bold shrink-0">v1.0</span>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-muted-text font-mono block">{workspace.academicYear} semester release</span>
+                    <span className="text-[10px] text-muted-text font-mono block">{classItem.academicYear} semester release</span>
                     <p className="text-secondary-text">Initial repository indexing completed.</p>
                   </div>
                 </div>
               )}
 
               <button 
-                onClick={() => {
-                  const note = prompt("Enter version update note:");
-                  if (note) {
-                    const updatedVer = [...(selectedMaterialHistory.versionHistory || []), {
-                      version: `v1.${(selectedMaterialHistory.versionHistory?.length || 1)}`,
-                      date: new Date().toISOString().split('T')[0],
-                      note
-                    }];
-                    const updatedMats = workspace.materials.map(m => 
-                      m.id === selectedMaterialHistory.id ? { ...m, versionHistory: updatedVer } : m
-                    );
-                    onUpdateWorkspace(workspace.id, { materials: updatedMats });
-                    setSelectedMaterialHistory({ ...selectedMaterialHistory, versionHistory: updatedVer });
-                  }
-                }}
+                onClick={() => setIsVersionPromptOpen(true)}
                 className="w-full bg-background hover:bg-elevated text-secondary-text hover:text-primary-text font-mono text-[11px] py-1.5 border border-border-color rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
@@ -503,6 +491,29 @@ export default function WorkspaceDetails({
         </div>
       )}
 
+      <PromptModal
+        isOpen={isVersionPromptOpen}
+        title="Update Version"
+        message="Enter a note explaining what changed in this version."
+        placeholder="e.g. Added chapter 4 summary"
+        submitText="Commit Update"
+        onSubmit={(note) => {
+          if (selectedMaterialHistory) {
+            const updatedVer = [...(selectedMaterialHistory.versionHistory || []), {
+              version: `v1.${(selectedMaterialHistory.versionHistory?.length || 1)}`,
+              date: new Date().toISOString().split('T')[0],
+              note
+            }];
+            const updatedMats = classItem.materials.map(m => 
+              m.id === selectedMaterialHistory.id ? { ...m, versionHistory: updatedVer } : m
+            );
+            onUpdateClass(classItem.id, { materials: updatedMats });
+            setSelectedMaterialHistory({ ...selectedMaterialHistory, versionHistory: updatedVer });
+          }
+          setIsVersionPromptOpen(false);
+        }}
+        onCancel={() => setIsVersionPromptOpen(false)}
+      />
     </div>
   );
 }

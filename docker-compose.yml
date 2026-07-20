@@ -4,14 +4,24 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: prod
+
+
     container_name: ta-backend
     env_file:
       - path: ./backend/.env
         required: false
+      - path: ./backend/.env.example
+        required: true
     environment:
-      - BACKEND_PORT=${BACKEND_PORT}
+      - BACKEND_PORT
     expose:
       - "${BACKEND_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${BACKEND_PORT}/api/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   frontend:
@@ -19,16 +29,28 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: prod
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
     container_name: ta-frontend
     ports:
-      - "80:${PORT}"
+      - "${HOST_PORT}:${FRONTEND_PORT}"
     env_file:
       - path: ./frontend/.env
         required: false
+      - path: ./frontend/.env.example
+        required: true
     environment:
-      - PORT=${PORT}
-      - BACKEND_PORT=${BACKEND_PORT}
+      - FRONTEND_PORT
+      - BACKEND_PORT
       - BACKEND_URL=http://backend:${BACKEND_PORT}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:${FRONTEND_PORT}/ > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped

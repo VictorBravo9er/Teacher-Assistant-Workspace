@@ -77,10 +77,10 @@ export async function getMockChatResponse(ctx: MockChatContext): Promise<ChatRes
 
   // Default response
   return {
-    text: `### Workspace Assistant Ready\n\nI have loaded your classroom context, student profiles, and instructional guidelines.\n\nHere is what you can ask:\n1. **"Analyze Sofia Patel's grades and outline parent briefing points."**\n2. **"Review our learning materials and suggest quiz prompts."**\n3. **"Show a topic mastery grid comparing class performance."**\n4. **"Produce a curriculum template for high-anxiety students."**`,
+    text: `### ClassModel Assistant Ready\n\nI have loaded your classroom context, student profiles, and instructional guidelines.\n\nHere is what you can ask:\n1. **"Analyze Sofia Patel's grades and outline parent briefing points."**\n2. **"Review our learning materials and suggest quiz prompts."**\n3. **"Show a topic mastery grid comparing class performance."**\n4. **"Produce a curriculum template for high-anxiety students."**`,
     visualization: {
       type: 'stats',
-      title: 'Workspace Summary',
+      title: 'ClassModel Summary',
       description: 'Preloaded context for this session',
       data: [
         { label: 'Registered Students', value: `${ctx.students.length} Portfolios` },

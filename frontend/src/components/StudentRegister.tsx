@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Workspace, Student, Grade, CustomField, StudentUpload } from '../types';
+import React, { useState, useRef } from 'react';
+import { ClassModel, Student, Grade, CustomField, StudentUpload } from '../types';
+import { ConfirmModal, PromptModal } from './CustomDialogs';
 import { 
   Mail, 
   Phone, 
@@ -11,25 +12,41 @@ import {
   Clock, 
   Trash, 
   Contact2,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface StudentRegisterProps {
-  workspace: Workspace;
-  onUpdateWorkspace: (id: string, updatedFields: Partial<Workspace>) => void;
+  classItem: ClassModel;
+  onUpdateClass: (id: string, updatedFields: Partial<ClassModel>) => void;
 }
 
 export default function StudentRegister({
-  workspace,
-  onUpdateWorkspace
+  classItem,
+  onUpdateClass
 }: StudentRegisterProps) {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const selectedStudent = workspace.students.find(s => s.id === selectedStudentId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // If scrolling vertically (deltaY != 0), translate it to horizontal scroll
+    if (scrollRef.current && e.deltaY !== 0) {
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  };
+  
+  const selectedStudentIndex = classItem.students.findIndex(s => s.id === selectedStudentId);
+  const selectedStudent = selectedStudentIndex !== -1 ? classItem.students[selectedStudentIndex] : undefined;
+  const previousStudent = selectedStudentIndex > 0 ? classItem.students[selectedStudentIndex - 1] : null;
+  const nextStudent = selectedStudentIndex !== -1 && selectedStudentIndex < classItem.students.length - 1 ? classItem.students[selectedStudentIndex + 1] : null;
 
   // Grouped form state variables
   const [gradeForm, setGradeForm] = useState({ name: '', score: 85, max: 100, feedback: '', show: false });
   const [customFieldForm, setCustomFieldForm] = useState({ label: '', type: 'text' as CustomField['type'], value: '', show: false });
   const [uploadForm, setUploadForm] = useState({ name: '', type: 'Homework Submission', show: false });
+  const [isAddStudentPromptOpen, setIsAddStudentPromptOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
 
   // Helper for performance colors
   const getPerformanceStyles = (perf: Student['performanceIndicator']) => {
@@ -69,10 +86,9 @@ export default function StudentRegister({
   };
 
   // Student list mutations
-  const handleAddNewStudent = () => {
-    const name = prompt("Enter Student Name:");
-    if (!name) return;
-    const roll = `M10-0${workspace.students.length + 1}`;
+  const handleAddNewStudent = (name: string) => {
+    if (!name.trim()) return;
+    const roll = `M10-0${classItem.students.length + 1}`;
 
     const newStudent: Student = {
       id: `stud-${Date.now()}`,
@@ -96,17 +112,17 @@ export default function StudentRegister({
       avatarSeed: name.split(' ')[0] || 'Student'
     };
 
-    onUpdateWorkspace(workspace.id, {
-      students: [...workspace.students, newStudent]
+    onUpdateClass(classItem.id, {
+      students: [...classItem.students, newStudent]
     });
     handleSelectStudent(newStudent.id);
   };
 
   const handleUpdateStudentDetails = (studentId: string, updatedFields: Partial<Student>) => {
-    const updated = workspace.students.map(s => 
+    const updated = classItem.students.map(s => 
       s.id === studentId ? { ...s, ...updatedFields } : s
     );
-    onUpdateWorkspace(workspace.id, { students: updated });
+    onUpdateClass(classItem.id, { students: updated });
   };
 
   // Grade nested operations
@@ -201,11 +217,9 @@ export default function StudentRegister({
   };
 
   const handleDeleteStudent = (studId: string) => {
-    if (confirm("Remove this student portfolio entirely from clinical records?")) {
-      const filtered = workspace.students.filter(s => s.id !== studId);
-      onUpdateWorkspace(workspace.id, { students: filtered });
-      setSelectedStudentId(null);
-    }
+    const filtered = classItem.students.filter(s => s.id !== studId);
+    onUpdateClass(classItem.id, { students: filtered });
+    setSelectedStudentId(null);
   };
 
   return (
@@ -213,10 +227,10 @@ export default function StudentRegister({
       <div className="flex items-center justify-between px-1">
         <h3 className="text-xs font-bold text-secondary-text font-display uppercase tracking-wider flex items-center gap-2">
           <Contact2 className="w-4 h-4 text-primary" />
-          Roster Student Cards ({workspace.students.length})
+          Roster Student Cards ({classItem.students.length})
         </h3>
         <button 
-          onClick={handleAddNewStudent}
+          onClick={() => setIsAddStudentPromptOpen(true)}
           className="text-xs font-bold text-primary hover:text-primary/95 flex items-center gap-1 bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg border border-primary/10 transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -225,15 +239,17 @@ export default function StudentRegister({
       </div>
 
       <div 
+        ref={scrollRef}
+        onWheel={handleWheel}
         className="flex items-center gap-3 overflow-x-auto pb-2.5 px-0.5"
         style={{ scrollSnapType: 'x mandatory' }}
       >
-        {workspace.students.length === 0 ? (
+        {classItem.students.length === 0 ? (
           <div className="text-muted-text text-xs font-mono py-4 px-4 border border-dashed border-border-color/60 rounded-xl w-full text-center">
             No students registered in this class. Click Add Student above to begin roster.
           </div>
         ) : (
-          workspace.students.map(stud => {
+          classItem.students.map(stud => {
             const perf = getPerformanceStyles(stud.performanceIndicator);
             const initials = stud.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
             const isSelected = stud.id === selectedStudentId;
@@ -288,6 +304,26 @@ export default function StudentRegister({
 
             <div className="p-6 border-b border-border-color bg-elevated/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
+                
+                <div className="flex flex-col gap-1 pr-3 border-r border-border-color/50">
+                  <button 
+                    onClick={() => previousStudent && handleSelectStudent(previousStudent.id)}
+                    disabled={!previousStudent}
+                    className="p-1 rounded bg-surface border border-border-color hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Previous Student"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-primary-text" />
+                  </button>
+                  <button 
+                    onClick={() => nextStudent && handleSelectStudent(nextStudent.id)}
+                    disabled={!nextStudent}
+                    className="p-1 rounded bg-surface border border-border-color hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Next Student"
+                  >
+                    <ChevronRight className="w-4 h-4 text-primary-text" />
+                  </button>
+                </div>
+
                 <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center font-display font-semibold text-xl text-primary">
                   {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </div>
@@ -318,7 +354,7 @@ export default function StudentRegister({
 
               <div className="flex items-center gap-2 pr-12">
                 <button 
-                  onClick={() => handleDeleteStudent(selectedStudent.id)}
+                  onClick={() => setStudentToDelete(selectedStudent.id)}
                   className="px-3.5 py-1.8 hover:bg-red-500/10 border border-red-500/20 text-red-400 hover:text-red-300 text-xs font-medium rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Trash className="w-3.5 h-3.5" />
@@ -678,6 +714,31 @@ export default function StudentRegister({
         </div>
       )}
 
+      <PromptModal
+        isOpen={isAddStudentPromptOpen}
+        title="Add New Student"
+        message="Enter the full name of the student to register them in this class."
+        placeholder="e.g. Michael Chen"
+        submitText="Add Student"
+        onSubmit={(name) => {
+          handleAddNewStudent(name);
+          setIsAddStudentPromptOpen(false);
+        }}
+        onCancel={() => setIsAddStudentPromptOpen(false)}
+      />
+
+      <ConfirmModal
+        isOpen={studentToDelete !== null}
+        title="Expel Student Records"
+        message="Remove this student portfolio entirely from clinical records? This action cannot be undone."
+        confirmText="Remove Student"
+        isDestructive={true}
+        onConfirm={() => {
+          if (studentToDelete) handleDeleteStudent(studentToDelete);
+          setStudentToDelete(null);
+        }}
+        onCancel={() => setStudentToDelete(null)}
+      />
     </div>
   );
 }
