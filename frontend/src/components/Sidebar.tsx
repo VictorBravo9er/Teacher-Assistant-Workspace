@@ -26,7 +26,9 @@ import {
   Moon,
   Monitor,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -47,6 +49,8 @@ interface SidebarProps {
   onDeleteTemplate: (id: string) => void;
   onSelectTemplate: (id: string) => void;
   isEditMode: boolean;
+  viewMode: 'class' | 'template';
+  activeTemplateId: string | null;
 
   onOpenAccountModal: (type: 'profile' | 'preferences' | 'settings' | 'subscription') => void;
   onTriggerToast: (text: string) => void;
@@ -69,6 +73,8 @@ export default function Sidebar({
   onDeleteTemplate,
   onSelectTemplate,
   isEditMode,
+  viewMode,
+  activeTemplateId,
   onOpenAccountModal,
   onTriggerToast
 }: SidebarProps) {
@@ -81,6 +87,9 @@ export default function Sidebar({
   const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
   const [isTemplatePromptOpen, setIsTemplatePromptOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<string | null>(null);
+  
+  const [isTemplatesCollapsed, setIsTemplatesCollapsed] = useState(false);
+  const [isClassesCollapsed, setIsClassesCollapsed] = useState(false);
 
   const filteredClasses = classes.filter(ws => {
     // Check archive state
@@ -198,13 +207,22 @@ export default function Sidebar({
             
             {/* Reusable Templates section */}
             <div>
-              <div className="flex items-center justify-between text-[11px] font-semibold text-muted-text uppercase tracking-wider mb-2.5 px-1">
-                <span className="flex items-center gap-1.5 font-display">
+              <div 
+                className="flex items-center justify-between text-[11px] font-semibold text-muted-text uppercase tracking-wider mb-2.5 px-1 cursor-pointer select-none group"
+                onClick={() => setIsTemplatesCollapsed(!isTemplatesCollapsed)}
+                title={isTemplatesCollapsed ? "Expand Templates" : "Collapse Templates"}
+              >
+                <span className="flex items-center gap-1.5 font-display group-hover:text-primary-text transition-colors">
+                  {isTemplatesCollapsed ? (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
                   <Layers className="w-3.5 h-3.5 text-primary" />
                   Teacher Templates
                 </span>
                 <button 
-                  onClick={() => setIsTemplatePromptOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setIsTemplatePromptOpen(true); }}
                   title="Create Base Template" 
                   className="p-1 hover:bg-elevated rounded text-muted-text hover:text-primary-text transition-colors cursor-pointer"
                 >
@@ -212,15 +230,23 @@ export default function Sidebar({
                 </button>
               </div>
               
+              {!isTemplatesCollapsed && (
               <div className="space-y-1">
-                {templates.map(tpl => (
+                {templates.map(tpl => {
+                  const isTemplateActive = viewMode === 'template' && tpl.id === activeTemplateId;
+                  
+                  return (
                   <div 
                     key={tpl.id}
                     onClick={() => checkEditMode(() => onSelectTemplate(tpl.id))}
-                    className="group flex items-center justify-between text-xs px-2.5 py-2 rounded-lg bg-elevated/30 border border-transparent hover:border-border-color/30 hover:bg-elevated/60 text-secondary-text hover:text-primary-text transition-all cursor-pointer"
+                    className={`group flex items-center justify-between text-xs px-2.5 py-2 rounded-lg border transition-all cursor-pointer ${
+                      isTemplateActive
+                        ? 'bg-primary/10 border-primary/30 text-primary font-semibold shadow-sm'
+                        : 'bg-elevated/30 border-transparent hover:border-border-color/30 hover:bg-elevated/60 text-secondary-text hover:text-primary-text'
+                    }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/85 shadow-[0_0_8px_rgba(37,99,235,0.4)]"></div>
+                      <div className={`w-1.5 h-1.5 rounded-full bg-primary/85 ${isTemplateActive ? 'shadow-[0_0_8px_rgba(37,99,235,0.8)]' : 'shadow-[0_0_8px_rgba(37,99,235,0.4)]'}`}></div>
                       <span className="truncate py-0.5">{tpl.name}</span>
                     </div>
                     <button 
@@ -231,7 +257,7 @@ export default function Sidebar({
                       <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
-                ))}
+                )})}
                 
                 <button 
                   onClick={onSaveCurrentAsTemplate}
@@ -241,25 +267,35 @@ export default function Sidebar({
                   Save Active Class as Template
                 </button>
               </div>
+              )}
             </div>
 
             {/* ClassModel Projects section */}
             <div>
-              <div className="flex items-center justify-between text-[11px] font-semibold text-muted-text uppercase tracking-wider mb-2.5 px-1">
-                <span className="flex items-center gap-1.5 font-display">
+              <div 
+                className="flex items-center justify-between text-[11px] font-semibold text-muted-text uppercase tracking-wider mb-2.5 px-1 cursor-pointer select-none group"
+                onClick={() => setIsClassesCollapsed(!isClassesCollapsed)}
+                title={isClassesCollapsed ? "Expand Classes" : "Collapse Classes"}
+              >
+                <span className="flex items-center gap-1.5 font-display group-hover:text-primary-text transition-colors">
+                  {isClassesCollapsed ? (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
                   <BookOpen className="w-3.5 h-3.5 text-secondary" />
                   Active Classes {showArchived ? '(Archived)' : ''}
                 </span>
                 <div className="flex items-center gap-1">
                   <button 
-                    onClick={() => setShowArchived(!showArchived)}
+                    onClick={(e) => { e.stopPropagation(); setShowArchived(!showArchived); }}
                     title={showArchived ? "Show Active Class" : "Show Archived Class"}
                     className={`p-1 rounded transition-colors cursor-pointer ${showArchived ? 'bg-primary/15 text-primary' : 'text-muted-text hover:bg-elevated hover:text-primary-text'}`}
                   >
                     <FolderArchive className="w-3.5 h-3.5" />
                   </button>
                   <button 
-                    onClick={() => setIsCreateClassModalOpen(true)}
+                    onClick={(e) => { e.stopPropagation(); setIsCreateClassModalOpen(true); }}
                     title="Create ClassModel Project" 
                     className="p-1 hover:bg-elevated rounded text-muted-text hover:text-primary-text transition-colors cursor-pointer"
                   >
@@ -268,6 +304,7 @@ export default function Sidebar({
                 </div>
               </div>
 
+              {!isClassesCollapsed && (
               <div className="space-y-1">
                 {filteredClasses.length === 0 ? (
                   <div className="text-[11px] font-mono p-3 text-muted-text text-center bg-elevated/25 rounded-lg border border-dashed border-border-color/60">
@@ -275,7 +312,7 @@ export default function Sidebar({
                   </div>
                 ) : (
                   filteredClasses.map(ws => {
-                    const isActive = ws.id === activeClassId;
+                    const isActive = viewMode === 'class' && ws.id === activeClassId;
                     const isEditing = editingClassId === ws.id;
 
                     return (
@@ -363,6 +400,7 @@ export default function Sidebar({
                   })
                 )}
               </div>
+              )}
             </div>
 
           </div>

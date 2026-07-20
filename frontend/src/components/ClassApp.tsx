@@ -19,6 +19,8 @@ import {
   Maximize2,
   Minimize2,
   ChevronDown,
+  ChevronUp,
+  Minus,
   Check,
   Edit3,
   Save
@@ -587,6 +589,8 @@ export default function ClassApp() {
         onDeleteTemplate={handleDeleteTemplate}
         onSelectTemplate={handleSelectTemplate}
         isEditMode={isEditMode}
+        viewMode={viewMode}
+        activeTemplateId={activeTemplateId}
         onOpenAccountModal={setActiveAccountModal}
         onTriggerToast={triggerToast}
       />
@@ -665,34 +669,41 @@ export default function ClassApp() {
                    </button>
                  )}
                  {viewMode === 'class' && (
-                   <>
-                     <button 
-                       disabled={isEditMode}
-                       onClick={() => setLayoutMode(layoutMode === 'chat-only' ? 'split' : 'chat-only')}
-                       className={`flex items-center justify-center w-7 h-7 border rounded-lg transition-colors cursor-pointer ${
-                         isEditMode 
-                           ? 'opacity-50 cursor-not-allowed bg-elevated/20 border-border-color/50 text-muted-text/50' 
-                           : 'bg-elevated/50 hover:bg-elevated border-border-color text-muted-text hover:text-primary-text'
+                   <div className={`flex items-center bg-elevated/40 border border-border-color rounded-lg p-0.5 ${isEditMode ? 'opacity-50 pointer-events-none' : ''}`}>
+                     <button
+                       onClick={() => setLayoutMode('chat-only')}
+                       className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
+                         layoutMode === 'chat-only' 
+                           ? 'bg-surface shadow-sm text-primary' 
+                           : 'text-muted-text hover:text-primary-text hover:bg-elevated/60'
                        }`}
-                       title={layoutMode === 'chat-only' ? "Display Details" : "Collapse Details"}
+                       title="Chat Only (Collapse Details)"
                      >
-                       <ChevronDown className={`w-4 h-4 transition-transform ${layoutMode === 'chat-only' ? 'rotate-180' : ''}`} />
+                       <ChevronUp className="w-4 h-4" />
                      </button>
-                     <button 
-                       disabled={isEditMode}
-                       onClick={() => setLayoutMode(layoutMode === 'details-only' ? 'split' : 'details-only')}
-                       className={`flex items-center justify-center w-7 h-7 border rounded-lg transition-colors cursor-pointer ${
-                         isEditMode
-                           ? 'opacity-50 cursor-not-allowed bg-elevated/20 border-border-color/50 text-primary/50'
-                           : layoutMode === 'details-only' 
-                             ? 'bg-primary/20 text-primary border-primary/40' 
-                             : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                     <button
+                       onClick={() => setLayoutMode('split')}
+                       className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
+                         layoutMode === 'split' 
+                           ? 'bg-surface shadow-sm text-primary' 
+                           : 'text-muted-text hover:text-primary-text hover:bg-elevated/60'
                        }`}
-                       title={layoutMode === 'details-only' ? "Restore Split View" : "Expand Details to Full Screen"}
+                       title="Split View"
                      >
-                       {layoutMode === 'details-only' ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                       <Minus className="w-4 h-4" />
                      </button>
-                   </>
+                     <button
+                       onClick={() => setLayoutMode('details-only')}
+                       className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
+                         layoutMode === 'details-only' 
+                           ? 'bg-surface shadow-sm text-primary' 
+                           : 'text-muted-text hover:text-primary-text hover:bg-elevated/60'
+                       }`}
+                       title="Details Only (Expand)"
+                     >
+                       <Maximize2 className="w-3.5 h-3.5" />
+                     </button>
+                   </div>
                  )}
               </div>
 
