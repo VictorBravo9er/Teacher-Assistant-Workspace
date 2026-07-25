@@ -1,21 +1,27 @@
 import React, { useState, useRef } from 'react';
-import { ClassModel, Student, Grade, CustomField, StudentUpload } from '../types';
+import {
+  ClassModel,
+  Student,
+  Grade,
+  CustomField,
+  StudentUpload,
+} from "../types/main";
 import { ConfirmModal, PromptModal } from './CustomDialogs';
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  GraduationCap, 
-  FileText, 
-  Plus, 
-  Trash2, 
-  Clock, 
-  Trash, 
+import {
+  Mail,
+  Phone,
+  MapPin,
+  GraduationCap,
+  FileText,
+  Plus,
+  Trash2,
+  Clock,
+  Trash,
   Contact2,
   X,
   ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+  ChevronRight,
+} from "lucide-react";
 
 interface StudentRegisterProps {
   classItem: ClassModel;
@@ -35,7 +41,7 @@ export default function StudentRegister({
       scrollRef.current.scrollLeft += e.deltaY;
     }
   };
-  
+
   const selectedStudentIndex = classItem.students.findIndex(s => s.id === selectedStudentId);
   const selectedStudent = selectedStudentIndex !== -1 ? classItem.students[selectedStudentIndex] : undefined;
   const previousStudent = selectedStudentIndex > 0 ? classItem.students[selectedStudentIndex - 1] : null;
@@ -119,8 +125,8 @@ export default function StudentRegister({
   };
 
   const handleUpdateStudentDetails = (studentId: string, updatedFields: Partial<Student>) => {
-    const updated = classItem.students.map(s => 
-      s.id === studentId ? { ...s, ...updatedFields } : s
+    const updated = classItem.students.map((s) =>
+      s.id === studentId ? { ...s, ...updatedFields } : s,
     );
     onUpdateClass(classItem.id, { students: updated });
   };
@@ -140,9 +146,12 @@ export default function StudentRegister({
     };
 
     const newGrades = [...selectedStudent.grades, newGrade];
-    const avgPercent = newGrades.length > 0 
-      ? newGrades.reduce((acc, g) => acc + (g.score / g.maxScore), 0) / newGrades.length * 100
-      : 80;
+    const avgPercent =
+      newGrades.length > 0
+        ? (newGrades.reduce((acc, g) => acc + g.score / g.maxScore, 0) /
+            newGrades.length) *
+          100
+        : 80;
 
     let perf: Student['performanceIndicator'] = 'good';
     if (avgPercent >= 90) perf = 'excellent';
@@ -223,13 +232,14 @@ export default function StudentRegister({
   };
 
   return (
-    <div className="flex flex-col gap-3 py-1">
+    <div id="student-register-container" className="flex flex-col gap-3 py-1">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-xs font-bold text-secondary-text font-display uppercase tracking-wider flex items-center gap-2">
           <Contact2 className="w-4 h-4 text-primary" />
           Roster Student Cards ({classItem.students.length})
         </h3>
-        <button 
+        <button
+          id="student-register-add-button"
           onClick={() => setIsAddStudentPromptOpen(true)}
           className="text-xs font-bold text-primary hover:text-primary/95 flex items-center gap-1 bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg border border-primary/10 transition-colors cursor-pointer"
         >
@@ -238,49 +248,64 @@ export default function StudentRegister({
         </button>
       </div>
 
-      <div 
+      <div
         ref={scrollRef}
         onWheel={handleWheel}
         className="flex items-center gap-3 overflow-x-auto pb-2.5 px-0.5"
-        style={{ scrollSnapType: 'x mandatory' }}
+        style={{ scrollSnapType: "x mandatory" }}
       >
         {classItem.students.length === 0 ? (
           <div className="text-muted-text text-xs font-mono py-4 px-4 border border-dashed border-border-color/60 rounded-xl w-full text-center">
-            No students registered in this class. Click Add Student above to begin roster.
+            No students registered in this class. Click Add Student above to
+            begin roster.
           </div>
         ) : (
-          classItem.students.map(stud => {
+          classItem.students.map((stud) => {
             const perf = getPerformanceStyles(stud.performanceIndicator);
-            const initials = stud.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            const initials = stud.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .substring(0, 2)
+              .toUpperCase();
             const isSelected = stud.id === selectedStudentId;
 
             return (
-              <div 
+              <div
                 key={stud.id}
+                id={`student-card-${stud.id}`}
                 onClick={() => handleSelectStudent(stud.id)}
                 className={`group min-w-[210px] max-w-[220px] shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
-                  isSelected 
-                    ? 'border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20' 
-                    : 'border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40'
+                  isSelected
+                    ? "border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20"
+                    : "border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40"
                 }`}
-                style={{ scrollSnapAlign: 'start' }}
+                style={{ scrollSnapAlign: "start" }}
               >
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full bg-elevated border border-border-color flex items-center justify-center font-bold text-xs text-primary uppercase select-none shrink-0">
                     {initials}
                   </div>
                   <div className="truncate flex-1">
-                    <h4 className="text-xs font-bold font-display text-primary-text truncate group-hover:text-primary">{stud.name}</h4>
-                    <span className="text-[10px] font-mono text-muted-text">{stud.rollNumber}</span>
+                    <h4 className="text-xs font-bold font-display text-primary-text truncate group-hover:text-primary">
+                      {stud.name}
+                    </h4>
+                    <span className="text-[10px] font-mono text-muted-text">
+                      {stud.rollNumber}
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-border-color/40">
-                  <span className={`text-[9px] font-semibold px-2 py-0.5 font-mono border rounded-full ${perf.bg} ${perf.text} flex items-center gap-1.5`}>
-                    <span className={`w-1.2 h-1.2 rounded-full ${perf.dot} inline-block`}></span>
+                  <span
+                    className={`text-[9px] font-semibold px-2 py-0.5 font-mono border rounded-full ${perf.bg} ${perf.text} flex items-center gap-1.5`}
+                  >
+                    <span
+                      className={`w-1.2 h-1.2 rounded-full ${perf.dot} inline-block`}
+                    ></span>
                     {stud.performanceIndicator}
                   </span>
-                  
+
                   <span className="text-[10px] font-mono text-secondary-text bg-elevated/55 px-1.5 py-0.2 rounded border border-border-color/40">
                     {stud.attendance}% attendance
                   </span>
@@ -292,10 +317,16 @@ export default function StudentRegister({
       </div>
 
       {selectedStudent && (
-        <div className="fixed inset-0 bg-primary-text/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-surface border border-border-color rounded-3xl max-w-4xl w-full h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
-            
-            <button 
+        <div
+          id="student-detail-modal-overlay"
+          className="fixed inset-0 bg-primary-text/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
+        >
+          <div
+            id="student-detail-modal"
+            className="bg-surface border border-border-color rounded-3xl max-w-4xl w-full h-[90vh] overflow-hidden flex flex-col shadow-2xl relative"
+          >
+            <button
+              id="student-detail-close-button"
               onClick={() => setSelectedStudentId(null)}
               className="absolute right-5 top-5 hover:bg-elevated p-2 rounded-xl text-muted-text hover:text-primary-text transition-colors cursor-pointer"
             >
@@ -304,18 +335,21 @@ export default function StudentRegister({
 
             <div className="p-6 border-b border-border-color bg-elevated/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
-                
                 <div className="flex flex-col gap-1 pr-3 border-r border-border-color/50">
-                  <button 
-                    onClick={() => previousStudent && handleSelectStudent(previousStudent.id)}
+                  <button
+                    onClick={() =>
+                      previousStudent && handleSelectStudent(previousStudent.id)
+                    }
                     disabled={!previousStudent}
                     className="p-1 rounded bg-surface border border-border-color hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     title="Previous Student"
                   >
                     <ChevronLeft className="w-4 h-4 text-primary-text" />
                   </button>
-                  <button 
-                    onClick={() => nextStudent && handleSelectStudent(nextStudent.id)}
+                  <button
+                    onClick={() =>
+                      nextStudent && handleSelectStudent(nextStudent.id)
+                    }
                     disabled={!nextStudent}
                     className="p-1 rounded bg-surface border border-border-color hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     title="Next Student"
@@ -325,26 +359,43 @@ export default function StudentRegister({
                 </div>
 
                 <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center font-display font-semibold text-xl text-primary">
-                  {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {selectedStudent.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold font-display text-primary-text">{selectedStudent.name}</h3>
-                    <span className="text-xs font-mono text-muted-text">ID: {selectedStudent.rollNumber}</span>
+                    <h3 className="text-lg font-bold font-display text-primary-text">
+                      {selectedStudent.name}
+                    </h3>
+                    <span className="text-xs font-mono text-muted-text">
+                      ID: {selectedStudent.rollNumber}
+                    </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 mt-1.5">
-                    <select 
+                    <select
                       value={selectedStudent.statusIndicator}
-                      onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { statusIndicator: e.target.value as Student['statusIndicator'] })}
+                      onChange={(e) =>
+                        handleUpdateStudentDetails(selectedStudent.id, {
+                          statusIndicator: e.target
+                            .value as Student["statusIndicator"],
+                        })
+                      }
                       className="bg-surface border border-border-color rounded px-2 py-0.5 text-[10px] font-mono text-primary outline-none cursor-pointer focus:border-primary"
                     >
                       <option value="active">Roster: Active</option>
                       <option value="inactive">Roster: Inactive</option>
-                      <option value="needs-attention">Needs Care Attention</option>
+                      <option value="needs-attention">
+                        Needs Care Attention
+                      </option>
                     </select>
 
-                    <span className="text-[10px] font-mono text-muted-text">| Portfolio performance:</span>
+                    <span className="text-[10px] font-mono text-muted-text">
+                      | Portfolio performance:
+                    </span>
                     <span className="text-[10px] font-mono text-primary capitalize bg-primary/5 px-1.5 py-0.2 rounded border border-primary/20">
                       {selectedStudent.performanceIndicator}
                     </span>
@@ -353,7 +404,7 @@ export default function StudentRegister({
               </div>
 
               <div className="flex items-center gap-2 pr-12">
-                <button 
+                <button
                   onClick={() => setStudentToDelete(selectedStudent.id)}
                   className="px-3.5 py-1.8 hover:bg-red-500/10 border border-red-500/20 text-red-400 hover:text-red-300 text-xs font-medium rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
@@ -364,36 +415,48 @@ export default function StudentRegister({
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-              
               <div className="w-full md:w-80 border-r border-border-color p-6 overflow-y-auto space-y-6 shrink-0 bg-background/50">
-                
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">Contact Dossier</h4>
-                  
+                  <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
+                    Contact Dossier
+                  </h4>
+
                   <div className="space-y-3.5">
                     <div className="flex items-center gap-2.5 text-xs">
                       <Mail className="w-3.5 h-3.5 text-muted-text shrink-0" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={selectedStudent.email}
-                        onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { email: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStudentDetails(selectedStudent.id, {
+                            email: e.target.value,
+                          })
+                        }
                         className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 truncate w-full"
                       />
                     </div>
                     <div className="flex items-center gap-2.5 text-xs">
                       <Phone className="w-3.5 h-3.5 text-muted-text shrink-0" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={selectedStudent.phone}
-                        onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { phone: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStudentDetails(selectedStudent.id, {
+                            phone: e.target.value,
+                          })
+                        }
                         className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full"
                       />
                     </div>
                     <div className="flex items-start gap-2.5 text-xs">
                       <MapPin className="w-3.5 h-3.5 text-muted-text shrink-0 mt-0.5" />
-                      <textarea 
+                      <textarea
                         value={selectedStudent.address}
-                        onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { address: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStudentDetails(selectedStudent.id, {
+                            address: e.target.value,
+                          })
+                        }
                         className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full h-11 resize-none"
                       />
                     </div>
@@ -401,31 +464,51 @@ export default function StudentRegister({
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-border-color">
-                  <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">Family & Guardians</h4>
+                  <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
+                    Family & Guardians
+                  </h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[9px] text-muted-text font-mono block">PARENT GUARDIAN NAMES</label>
-                      <input 
-                        type="text" 
+                      <label className="text-[9px] text-muted-text font-mono block">
+                        PARENT GUARDIAN NAMES
+                      </label>
+                      <input
+                        type="text"
                         value={selectedStudent.parentName}
-                        onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { parentName: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStudentDetails(selectedStudent.id, {
+                            parentName: e.target.value,
+                          })
+                        }
                         className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-text font-mono block">URGENT CONTACT PREFERENCES</label>
-                      <input 
-                        type="text" 
+                      <label className="text-[9px] text-muted-text font-mono block">
+                        URGENT CONTACT PREFERENCES
+                      </label>
+                      <input
+                        type="text"
                         value={selectedStudent.parentContact}
-                        onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { parentContact: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStudentDetails(selectedStudent.id, {
+                            parentContact: e.target.value,
+                          })
+                        }
                         className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-text font-mono block">PARENT PORTAL FEEDBACK NOTES</label>
-                      <textarea 
+                      <label className="text-[9px] text-muted-text font-mono block">
+                        PARENT PORTAL FEEDBACK NOTES
+                      </label>
+                      <textarea
                         value={selectedStudent.parentNotes}
-                        onChange={(e) => handleUpdateStudentDetails(selectedStudent.id, { parentNotes: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStudentDetails(selectedStudent.id, {
+                            parentNotes: e.target.value,
+                          })
+                        }
                         className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none focus:border-primary/50 shadow-sm"
                       />
                     </div>
@@ -434,42 +517,64 @@ export default function StudentRegister({
 
                 <div className="space-y-4 pt-4 border-t border-border-color">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">Custom Fields</h4>
-                    <button 
-                      onClick={() => setCustomFieldForm(f => ({ ...f, show: !f.show }))}
+                    <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
+                      Custom Fields
+                    </h4>
+                    <button
+                      onClick={() =>
+                        setCustomFieldForm((f) => ({ ...f, show: !f.show }))
+                      }
                       className="text-[10px] font-semibold text-primary hover:text-primary/80"
                     >
-                      {customFieldForm.show ? 'Cancel' : '+ New Field'}
+                      {customFieldForm.show ? "Cancel" : "+ New Field"}
                     </button>
                   </div>
 
                   {customFieldForm.show && (
-                    <form onSubmit={handleAddCustomField} className="bg-elevated border border-border-color rounded-lg p-3 space-y-2.5 shadow-sm">
-                      <input 
-                        type="text" 
-                        placeholder="Label: IEP Accommodation" 
-                        value={customFieldForm.label} 
-                        onChange={(e) => setCustomFieldForm(f => ({ ...f, label: e.target.value }))}
+                    <form
+                      onSubmit={handleAddCustomField}
+                      className="bg-elevated border border-border-color rounded-lg p-3 space-y-2.5 shadow-sm"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Label: IEP Accommodation"
+                        value={customFieldForm.label}
+                        onChange={(e) =>
+                          setCustomFieldForm((f) => ({
+                            ...f,
+                            label: e.target.value,
+                          }))
+                        }
                         className="w-full bg-surface border border-border-color rounded p-1.5 text-xs text-primary-text focus:outline-none focus:border-primary"
                         required
                       />
-                      <select 
+                      <select
                         value={customFieldForm.type}
-                        onChange={(e) => setCustomFieldForm(f => ({ ...f, type: e.target.value as CustomField['type'] }))}
+                        onChange={(e) =>
+                          setCustomFieldForm((f) => ({
+                            ...f,
+                            type: e.target.value as CustomField["type"],
+                          }))
+                        }
                         className="w-full bg-surface border border-border-color rounded p-1.5 text-xs text-secondary-text outline-none focus:border-primary"
                       >
                         <option value="text">Text Field</option>
                         <option value="tag">Status Tag</option>
                         <option value="boolean">Yes/No Flag</option>
                       </select>
-                      <input 
-                        type="text" 
-                        placeholder="Value: True or High tutoring" 
-                        value={customFieldForm.value} 
-                        onChange={(e) => setCustomFieldForm(f => ({ ...f, value: e.target.value }))}
+                      <input
+                        type="text"
+                        placeholder="Value: True or High tutoring"
+                        value={customFieldForm.value}
+                        onChange={(e) =>
+                          setCustomFieldForm((f) => ({
+                            ...f,
+                            value: e.target.value,
+                          }))
+                        }
                         className="w-full bg-surface border border-border-color rounded p-1.5 text-xs text-primary-text focus:outline-none focus:border-primary"
                       />
-                      <button 
+                      <button
                         type="submit"
                         className="w-full bg-primary text-white font-semibold text-[11px] py-1 rounded cursor-pointer"
                       >
@@ -479,13 +584,20 @@ export default function StudentRegister({
                   )}
 
                   <div className="space-y-2.5">
-                    {selectedStudent.customFields?.map(field => (
-                      <div key={field.id} className="group bg-elevated border border-border-color rounded-lg p-2.5 flex items-center justify-between shadow-sm">
+                    {selectedStudent.customFields?.map((field) => (
+                      <div
+                        key={field.id}
+                        className="group bg-elevated border border-border-color rounded-lg p-2.5 flex items-center justify-between shadow-sm"
+                      >
                         <div className="flex flex-col truncate">
-                          <span className="text-[9px] font-mono text-muted-text">{field.label}</span>
-                          <span className="text-xs font-semibold text-primary mt-0.5 truncate">{field.value}</span>
+                          <span className="text-[9px] font-mono text-muted-text">
+                            {field.label}
+                          </span>
+                          <span className="text-xs font-semibold text-primary mt-0.5 truncate">
+                            {field.value}
+                          </span>
                         </div>
-                        <button 
+                        <button
                           onClick={() => handleDeleteCustomField(field.id)}
                           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/10 rounded text-muted-text hover:text-red-500 cursor-pointer"
                         >
@@ -494,57 +606,79 @@ export default function StudentRegister({
                       </div>
                     ))}
                   </div>
-
                 </div>
-
               </div>
 
               <div className="flex-1 p-6 overflow-y-auto space-y-6">
-                
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-primary-text font-display flex items-center gap-1.5">
                       <GraduationCap className="w-4 h-4 text-primary" />
-                      Academic Scorecard ({selectedStudent.grades.length} Grades)
+                      Academic Scorecard ({selectedStudent.grades.length}{" "}
+                      Grades)
                     </h4>
-                    <button 
-                      onClick={() => setGradeForm(f => ({ ...f, show: !f.show }))}
+                    <button
+                      onClick={() =>
+                        setGradeForm((f) => ({ ...f, show: !f.show }))
+                      }
                       className="text-xs font-bold text-primary hover:text-primary-text cursor-pointer"
                     >
-                      {gradeForm.show ? 'Cancel Score' : '+ Record Evaluation'}
+                      {gradeForm.show ? "Cancel Score" : "+ Record Evaluation"}
                     </button>
                   </div>
 
                   {gradeForm.show && (
-                    <form onSubmit={handleAddGrade} className="bg-elevated border border-border-color rounded-xl p-4 space-y-3.5 shadow-sm">
+                    <form
+                      onSubmit={handleAddGrade}
+                      className="bg-elevated border border-border-color rounded-xl p-4 space-y-3.5 shadow-sm"
+                    >
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2">
-                          <label className="text-[10px] text-muted-text font-mono">ASSESSMENT TITLE</label>
-                          <input 
-                            type="text" 
+                          <label className="text-[10px] text-muted-text font-mono">
+                            ASSESSMENT TITLE
+                          </label>
+                          <input
+                            type="text"
                             placeholder="Algebra Chapter 2 Quiz"
                             value={gradeForm.name}
-                            onChange={(e) => setGradeForm(f => ({ ...f, name: e.target.value }))}
+                            onChange={(e) =>
+                              setGradeForm((f) => ({
+                                ...f,
+                                name: e.target.value,
+                              }))
+                            }
                             className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text outline-none focus:border-primary"
                             required
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] text-muted-text font-mono">RAW SCORE</label>
+                          <label className="text-[10px] text-muted-text font-mono">
+                            RAW SCORE
+                          </label>
                           <div className="flex items-center gap-1">
-                            <input 
-                              type="number" 
+                            <input
+                              type="number"
                               value={gradeForm.score}
-                              onChange={(e) => setGradeForm(f => ({ ...f, score: parseInt(e.target.value) || 0 }))}
+                              onChange={(e) =>
+                                setGradeForm((f) => ({
+                                  ...f,
+                                  score: parseInt(e.target.value) || 0,
+                                }))
+                              }
                               className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text text-center focus:border-primary outline-none"
                               min="0"
                               required
                             />
                             <span className="text-muted-text">/</span>
-                            <input 
-                              type="number" 
+                            <input
+                              type="number"
                               value={gradeForm.max}
-                              onChange={(e) => setGradeForm(f => ({ ...f, max: parseInt(e.target.value) || 100 }))}
+                              onChange={(e) =>
+                                setGradeForm((f) => ({
+                                  ...f,
+                                  max: parseInt(e.target.value) || 100,
+                                }))
+                              }
                               className="w-14 bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text text-center focus:border-primary outline-none"
                               min="1"
                               required
@@ -554,16 +688,23 @@ export default function StudentRegister({
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-muted-text font-mono block">PORTFOLIO COMMENT FEEDBACK ENRICHMENT</label>
-                        <textarea 
+                        <label className="text-[10px] text-muted-text font-mono block">
+                          PORTFOLIO COMMENT FEEDBACK ENRICHMENT
+                        </label>
+                        <textarea
                           placeholder="Provide encouraging assessment on concept development, e.g. Demonstrated solid operational mechanics..."
                           value={gradeForm.feedback}
-                          onChange={(e) => setGradeForm(f => ({ ...f, feedback: e.target.value }))}
+                          onChange={(e) =>
+                            setGradeForm((f) => ({
+                              ...f,
+                              feedback: e.target.value,
+                            }))
+                          }
                           className="w-full bg-surface border border-border-color rounded-lg p-2 text-xs text-primary-text h-16 resize-none outline-none focus:border-primary"
                         />
                       </div>
 
-                      <button 
+                      <button
                         type="submit"
                         className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold py-2 px-4 rounded-lg cursor-pointer"
                       >
@@ -575,24 +716,38 @@ export default function StudentRegister({
                   <div className="space-y-3">
                     {selectedStudent.grades.length === 0 ? (
                       <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
-                        No evaluations logged. Record a score to establish performance trends.
+                        No evaluations logged. Record a score to establish
+                        performance trends.
                       </div>
                     ) : (
-                      selectedStudent.grades.map(grade => {
-                        const gradePercent = (grade.score / grade.maxScore) * 100;
-                        let gradeColor = 'text-success bg-success/10 border-success/20';
-                        if (gradePercent < 60) gradeColor = 'text-error bg-error/10 border-error/20';
-                        else if (gradePercent < 75) gradeColor = 'text-warning bg-warning/10 border-warning/20';
+                      selectedStudent.grades.map((grade) => {
+                        const gradePercent =
+                          (grade.score / grade.maxScore) * 100;
+                        let gradeColor =
+                          "text-success bg-success/10 border-success/20";
+                        if (gradePercent < 60)
+                          gradeColor = "text-error bg-error/10 border-error/20";
+                        else if (gradePercent < 75)
+                          gradeColor =
+                            "text-warning bg-warning/10 border-warning/20";
 
                         return (
-                          <div key={grade.id} className="bg-elevated border border-border-color hover:border-primary/30 rounded-xl p-4 space-y-2 relative group transition-colors shadow-sm">
+                          <div
+                            key={grade.id}
+                            className="bg-elevated border border-border-color hover:border-primary/30 rounded-xl p-4 space-y-2 relative group transition-colors shadow-sm"
+                          >
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-primary-text">{grade.assessmentName}</span>
+                              <span className="text-xs font-medium text-primary-text">
+                                {grade.assessmentName}
+                              </span>
                               <div className="flex items-center gap-3">
-                                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${gradeColor}`}>
-                                  {grade.score} / {grade.maxScore} ({gradePercent.toFixed(0)}%)
+                                <span
+                                  className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${gradeColor}`}
+                                >
+                                  {grade.score} / {grade.maxScore} (
+                                  {gradePercent.toFixed(0)}%)
                                 </span>
-                                <button 
+                                <button
                                   onClick={() => handleDeleteGrade(grade.id)}
                                   className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded cursor-pointer"
                                 >
@@ -610,54 +765,83 @@ export default function StudentRegister({
                       })
                     )}
                   </div>
-
                 </div>
 
                 <div className="space-y-3.5 pt-4 border-t border-border-color">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-primary-text font-display flex items-center gap-1.5">
                       <FileText className="w-4 h-4 text-success" />
-                      Student Uploads & Homework Submissions ({selectedStudent.uploads?.length || 0} files)
+                      Student Uploads & Homework Submissions (
+                      {selectedStudent.uploads?.length || 0} files)
                     </h4>
-                    <button 
-                      onClick={() => setUploadForm(f => ({ ...f, show: !f.show }))}
+                    <button
+                      onClick={() =>
+                        setUploadForm((f) => ({ ...f, show: !f.show }))
+                      }
                       className="text-xs font-bold text-success hover:text-success/80 cursor-pointer"
                     >
-                      {uploadForm.show ? 'Cancel Submission' : '+ Log Written Work'}
+                      {uploadForm.show
+                        ? "Cancel Submission"
+                        : "+ Log Written Work"}
                     </button>
                   </div>
 
                   {uploadForm.show && (
-                    <form onSubmit={handleAddSubmission} className="bg-elevated border border-border-color rounded-xl p-4 space-y-3.5 shadow-sm">
+                    <form
+                      onSubmit={handleAddSubmission}
+                      className="bg-elevated border border-border-color rounded-xl p-4 space-y-3.5 shadow-sm"
+                    >
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[10px] text-muted-text font-mono">FILE ATTACHMENT NAME</label>
-                          <input 
-                            type="text" 
+                          <label className="text-[10px] text-muted-text font-mono">
+                            FILE ATTACHMENT NAME
+                          </label>
+                          <input
+                            type="text"
                             placeholder="Midterm_Page3_SofiaRevision.pdf"
                             value={uploadForm.name}
-                            onChange={(e) => setUploadForm(f => ({ ...f, name: e.target.value }))}
+                            onChange={(e) =>
+                              setUploadForm((f) => ({
+                                ...f,
+                                name: e.target.value,
+                              }))
+                            }
                             className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-primary-text outline-none focus:border-success"
                             required
                           />
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-muted-text font-mono">ASSIGNMENT TYPE</label>
-                          <select 
+                          <label className="text-[10px] text-muted-text font-mono">
+                            ASSIGNMENT TYPE
+                          </label>
+                          <select
                             value={uploadForm.type}
-                            onChange={(e) => setUploadForm(f => ({ ...f, type: e.target.value }))}
+                            onChange={(e) =>
+                              setUploadForm((f) => ({
+                                ...f,
+                                type: e.target.value,
+                              }))
+                            }
                             className="w-full bg-surface border border-border-color rounded-lg p-1.8 text-xs text-secondary-text outline-none cursor-pointer focus:border-success"
                           >
-                            <option value="Homework Submission">Homework Revision</option>
-                            <option value="Written Midterm Submission">Written Exam Sheet</option>
-                            <option value="Practical Lab Notebook">Lab notebook index</option>
-                            <option value="Evaluation Sheet feedback">Remedial feedback draft</option>
+                            <option value="Homework Submission">
+                              Homework Revision
+                            </option>
+                            <option value="Written Midterm Submission">
+                              Written Exam Sheet
+                            </option>
+                            <option value="Practical Lab Notebook">
+                              Lab notebook index
+                            </option>
+                            <option value="Evaluation Sheet feedback">
+                              Remedial feedback draft
+                            </option>
                           </select>
                         </div>
                       </div>
 
-                      <button 
+                      <button
                         type="submit"
                         className="bg-success hover:bg-success/90 text-white text-xs font-semibold py-2 px-4 rounded-lg cursor-pointer"
                       >
@@ -669,30 +853,42 @@ export default function StudentRegister({
                   <div className="space-y-2.5">
                     {selectedStudent.uploads?.length === 0 ? (
                       <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
-                        No written answer sheets registered. Add a file to let AI analyze their calculations/handwriting structures.
+                        No written answer sheets registered. Add a file to let
+                        AI analyze their calculations/handwriting structures.
                       </div>
                     ) : (
-                      selectedStudent.uploads?.map(up => (
-                        <div key={up.id} className="group bg-elevated border border-border-color hover:border-success/30 rounded-xl p-3 flex items-center justify-between transition-colors shadow-sm">
+                      selectedStudent.uploads?.map((up) => (
+                        <div
+                          key={up.id}
+                          className="group bg-elevated border border-border-color hover:border-success/30 rounded-xl p-3 flex items-center justify-between transition-colors shadow-sm"
+                        >
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-surface rounded-lg text-secondary-text">
                               <FileText className="w-4 h-4 text-success" />
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-xs font-medium text-primary-text">{up.name}</span>
+                              <span className="text-xs font-medium text-primary-text">
+                                {up.name}
+                              </span>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[9px] font-mono text-muted-text">{up.date}</span>
+                                <span className="text-[9px] font-mono text-muted-text">
+                                  {up.date}
+                                </span>
                                 <span className="w-1.2 h-1.2 rounded-full bg-border-color"></span>
-                                <span className="text-[9px] font-mono text-primary/80">{up.type}</span>
+                                <span className="text-[9px] font-mono text-primary/80">
+                                  {up.type}
+                                </span>
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-mono px-2 py-0.2 rounded-full ${up.status === 'graded' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-warning/10 text-warning border border-warning/20'}`}>
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.2 rounded-full ${up.status === "graded" ? "bg-primary/10 text-primary border border-primary/20" : "bg-warning/10 text-warning border border-warning/20"}`}
+                            >
                               {up.status}
                             </span>
-                            <button 
+                            <button
                               onClick={() => handleDeleteSubmission(up.id)}
                               className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded transition-opacity cursor-pointer animate-fade-in"
                             >
@@ -703,13 +899,9 @@ export default function StudentRegister({
                       ))
                     )}
                   </div>
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
         </div>
       )}

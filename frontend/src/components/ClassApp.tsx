@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ClassModel, Template, Student, Material, Instruction, RAGSession, Message } from '../types';
+import {
+  ClassModel,
+  Template,
+  Student,
+  Material,
+  Instruction,
+  RAGSession,
+  Message,
+} from "../types/main";
 import { DEFAULT_WORKSPACES, DEFAULT_TEMPLATES } from '../defaultData';
 import Sidebar from './Sidebar';
 import ClassDetails from './ClassDetails';
@@ -8,8 +16,8 @@ import RAGClass from './RAGClass';
 import CommandPalette from './CommandPalette';
 import AccountModals from './AccountModals';
 import { getMockChatResponse } from '../mockChat';
-import { 
-  Sparkles, 
+import {
+  Sparkles,
   X,
   UserCircle2,
   ShieldCheck,
@@ -23,8 +31,8 @@ import {
   Minus,
   Check,
   Edit3,
-  Save
-} from 'lucide-react';
+  Save,
+} from "lucide-react";
 
 export default function ClassApp() {
   // --- Persistent Local States ---
@@ -62,7 +70,7 @@ export default function ClassApp() {
   useEffect(() => {
     localStorage.setItem('edu_rag_theme', theme);
     const root = window.document.documentElement;
-    
+
     const applyTheme = (t: 'system' | 'light' | 'dark') => {
       if (t === 'dark') {
         root.classList.add('dark');
@@ -203,9 +211,9 @@ export default function ClassApp() {
   };
 
   const handleArchiveClass = (id: string) => {
-    setClasses(classes.map(w => 
-      w.id === id ? { ...w, archived: !w.archived } : w
-    ));
+    setClasses(
+      classes.map((w) => (w.id === id ? { ...w, archived: !w.archived } : w)),
+    );
     const isNowArchived = classes.find(w => w.id === id)?.archived;
     triggerToast(isNowArchived ? "Restored classroom context." : "Archived selected classroom classItem.");
   };
@@ -276,8 +284,10 @@ export default function ClassApp() {
   };
 
   const handleDeleteMaterialInClass = (wsId: string, matId: string) => {
-    const updated = classes.map(w => 
-      w.id === wsId ? { ...w, materials: w.materials.filter(m => m.id !== matId) } : w
+    const updated = classes.map((w) =>
+      w.id === wsId
+        ? { ...w, materials: w.materials.filter((m) => m.id !== matId) }
+        : w,
     );
     setClasses(updated);
     triggerToast("Removed document card.");
@@ -300,8 +310,10 @@ export default function ClassApp() {
   };
 
   const handleDeleteInstructionInClass = (wsId: string, instId: string) => {
-    const updated = classes.map(w => 
-      w.id === wsId ? { ...w, instructions: w.instructions.filter(i => i.id !== instId) } : w
+    const updated = classes.map((w) =>
+      w.id === wsId
+        ? { ...w, instructions: w.instructions.filter((i) => i.id !== instId) }
+        : w,
     );
     setClasses(updated);
     triggerToast("Removed custom prompting rubric.");
@@ -474,7 +486,7 @@ export default function ClassApp() {
       } else {
         throw new Error(`HTTP Error Status: ${response.status}`);
       }
-      
+
       const serverMsg: Message = {
         id: `m-${Date.now()}-ai`,
         role: 'assistant',
@@ -507,7 +519,7 @@ export default function ClassApp() {
         instructions: activeClass.instructions
       };
       const mockResponse = await getMockChatResponse(mockCtx);
-      
+
       const serverMsg: Message = {
         id: `m-${Date.now()}-ai`,
         role: 'assistant',
@@ -549,30 +561,43 @@ export default function ClassApp() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-primary-text font-sans relative transition-colors duration-200">
-      
-      {/* Toast Alert pop notification */}
+      {/* Floating Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 bg-surface/90 border border-primary/30 backdrop-blur px-5 py-2.5 rounded-full shadow-2xl z-50 text-xs font-semibold text-primary flex items-center gap-2 animate-bounce flex-row">
-          <Sparkles className="w-4 h-4 animate-spin shrink-0" />
-          <span>{toastMessage}</span>
+        <div
+          id="toast-notification"
+          className="fixed top-5 right-5 z-50 bg-surface border border-primary/40 text-primary-text px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce"
+        >
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+          <span className="text-xs font-semibold font-mono">
+            {toastMessage}
+          </span>
+          <button
+            id="toast-dismiss-button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 hover:bg-elevated rounded-lg text-muted-text hover:text-primary-text transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {/* Global Command palette shortcut controller */}
-      {viewMode === 'class' && activeClass && (
-        <CommandPalette 
+      {viewMode === "class" && activeClass && (
+        <CommandPalette
           classes={classes}
           activeClass={activeClass}
           onSelectClass={handleSelectClass}
           onOpenStudent={handleOpenStudentDrawer}
-          onToggleFocusMode={(focus) => setLayoutMode(focus ? 'chat-only' : 'split')}
-          isFocusMode={layoutMode === 'chat-only'}
+          onToggleFocusMode={(focus) =>
+            setLayoutMode(focus ? "chat-only" : "split")
+          }
+          isFocusMode={layoutMode === "chat-only"}
           onTriggerToast={triggerToast}
         />
       )}
 
       {/* Persistence Side listing controls */}
-      <Sidebar 
+      <Sidebar
         classes={classes}
         activeClassId={activeClassId}
         templates={templates}
@@ -598,14 +623,17 @@ export default function ClassApp() {
       {/* Active Classroom viewport */}
       {adapterClassItem ? (
         <main className="flex-1 flex flex-col p-4 md:p-5 overflow-hidden h-screen space-y-4 md:space-y-4 relative">
-          
           {/* Breadcrumb Info Bar */}
           <div className="flex items-center justify-between shrink-0 px-1 pt-1.5 pb-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-muted-text">ClassModel / {viewMode === 'class' ? 'Classes' : 'Templates'} /</span>
-              <span className="text-xs font-bold text-primary-text font-display">{adapterClassItem.name}</span>
+              <span className="text-xs font-mono text-muted-text">
+                ClassModel / {viewMode === "class" ? "Classes" : "Templates"} /
+              </span>
+              <span className="text-xs font-bold text-primary-text font-display">
+                {adapterClassItem.name}
+              </span>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <span className="hidden md:inline-block text-[10px] font-mono text-muted-text bg-elevated border border-border-color px-2.5 py-1 rounded-lg">
                 Ctrl + K to query any Student or Cohort
@@ -615,117 +643,140 @@ export default function ClassApp() {
 
           {/* Core double split viewport */}
           <div className="flex-1 flex flex-col overflow-hidden min-h-0 gap-4 md:gap-4 relative">
-            
             {/* Combined Top Section Container */}
-            <div className={`flex flex-col transition-all border border-border-color rounded-3xl p-3 bg-surface/30 ${
-              layoutMode === 'details-only' ? 'flex-1 min-h-0' : layoutMode === 'chat-only' ? 'shrink-0' : 'h-[280px] shrink-0'
-            }`}>
-              
+            <div
+              className={`flex flex-col transition-all border border-border-color rounded-3xl p-3 bg-surface/30 ${
+                layoutMode === "details-only"
+                  ? "flex-1 min-h-0"
+                  : layoutMode === "chat-only"
+                    ? "shrink-0"
+                    : "h-[280px] shrink-0"
+              }`}
+            >
               {/* Upper section layout controls (ALWAYS VISIBLE) */}
-              <div className={`flex items-center justify-end gap-2 shrink-0 ${layoutMode !== 'chat-only' ? 'mb-2' : ''}`}>
-                 {viewMode === 'template' && !isEditMode && (
-                   <button 
-                     onClick={() => activeTemplate && handleSelectTemplateAsPreset(activeTemplate)}
-                     className="flex items-center justify-center w-7 h-7 bg-primary text-white border border-primary rounded-lg transition-colors cursor-pointer hover:bg-primary/90"
-                     title="Start Class from Template"
-                   >
-                     <Check className="w-4 h-4" />
-                   </button>
-                 )}
-                 {isEditMode ? (
-                   <>
-                     <button 
-                       onClick={() => {
-                         setIsEditMode(false);
-                         setLayoutMode(previousLayoutMode);
-                       }}
-                       className="flex items-center justify-center w-7 h-7 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90"
-                       title="Save Changes"
-                     >
-                       <Save className="w-4 h-4" />
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsEditMode(false);
-                         setLayoutMode(previousLayoutMode);
-                       }}
-                       className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
-                       title="Cancel Editing"
-                     >
-                       <X className="w-4 h-4" />
-                     </button>
-                   </>
-                 ) : (
-                   <button 
-                     onClick={() => {
-                       setPreviousLayoutMode(layoutMode);
-                       setIsEditMode(true);
-                       setLayoutMode('details-only');
-                     }}
-                     className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
-                     title="Edit"
-                   >
-                     <Edit3 className="w-4 h-4" />
-                   </button>
-                 )}
-                 {viewMode === 'class' && (
-                   <div className={`flex items-center bg-elevated/40 border border-border-color rounded-lg p-0.5 ${isEditMode ? 'opacity-50 pointer-events-none' : ''}`}>
-                     <button
-                       onClick={() => setLayoutMode('chat-only')}
-                       className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
-                         layoutMode === 'chat-only' 
-                           ? 'bg-surface shadow-sm text-primary' 
-                           : 'text-muted-text hover:text-primary-text hover:bg-elevated/60'
-                       }`}
-                       title="Chat Only (Collapse Details)"
-                     >
-                       <ChevronUp className="w-4 h-4" />
-                     </button>
-                     <button
-                       onClick={() => setLayoutMode('split')}
-                       className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
-                         layoutMode === 'split' 
-                           ? 'bg-surface shadow-sm text-primary' 
-                           : 'text-muted-text hover:text-primary-text hover:bg-elevated/60'
-                       }`}
-                       title="Split View"
-                     >
-                       <Minus className="w-4 h-4" />
-                     </button>
-                     <button
-                       onClick={() => setLayoutMode('details-only')}
-                       className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
-                         layoutMode === 'details-only' 
-                           ? 'bg-surface shadow-sm text-primary' 
-                           : 'text-muted-text hover:text-primary-text hover:bg-elevated/60'
-                       }`}
-                       title="Details Only (Expand)"
-                     >
-                       <Maximize2 className="w-3.5 h-3.5" />
-                     </button>
-                   </div>
-                 )}
+              <div
+                id="top-nav-controls"
+                className={`flex items-center justify-end gap-2 shrink-0 ${layoutMode !== "chat-only" ? "mb-2" : ""}`}
+              >
+                {viewMode === "template" && !isEditMode && (
+                  <button
+                    id="top-nav-preset-template-button"
+                    onClick={() =>
+                      activeTemplate &&
+                      handleSelectTemplateAsPreset(activeTemplate)
+                    }
+                    className="flex items-center justify-center w-7 h-7 bg-primary text-white border border-primary rounded-lg transition-colors cursor-pointer hover:bg-primary/90"
+                    title="Start Class from Template"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                )}
+                {isEditMode ? (
+                  <>
+                    <button
+                      id="top-nav-save-button"
+                      onClick={() => {
+                        setIsEditMode(false);
+                        setLayoutMode(previousLayoutMode);
+                      }}
+                      className="flex items-center justify-center w-7 h-7 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90"
+                      title="Save Changes"
+                    >
+                      <Save className="w-4 h-4" />
+                    </button>
+                    <button
+                      id="top-nav-cancel-button"
+                      onClick={() => {
+                        setIsEditMode(false);
+                        setLayoutMode(previousLayoutMode);
+                      }}
+                      className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
+                      title="Cancel Editing"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    id="top-nav-edit-button"
+                    onClick={() => {
+                      setPreviousLayoutMode(layoutMode);
+                      setIsEditMode(true);
+                      setLayoutMode("details-only");
+                    }}
+                    className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
+                    title="Edit"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                )}
+                {viewMode === "class" && (
+                  <div
+                    id="top-nav-view-mode-group"
+                    className={`flex items-center bg-elevated/40 border border-border-color rounded-lg p-0.5 ${isEditMode ? "opacity-50 pointer-events-none" : ""}`}
+                  >
+                    <button
+                      id="view-mode-chat-only-button"
+                      onClick={() => setLayoutMode("chat-only")}
+                      className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
+                        layoutMode === "chat-only"
+                          ? "bg-surface shadow-sm text-primary"
+                          : "text-muted-text hover:text-primary-text hover:bg-elevated/60"
+                      }`}
+                      title="Chat Only (Collapse Details)"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      id="view-mode-split-button"
+                      onClick={() => setLayoutMode("split")}
+                      className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
+                        layoutMode === "split"
+                          ? "bg-surface shadow-sm text-primary"
+                          : "text-muted-text hover:text-primary-text hover:bg-elevated/60"
+                      }`}
+                      title="Split View"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <button
+                      id="view-mode-details-only-button"
+                      onClick={() => setLayoutMode("details-only")}
+                      className={`flex items-center justify-center w-8 h-7 rounded-md transition-colors cursor-pointer ${
+                        layoutMode === "details-only"
+                          ? "bg-surface shadow-sm text-primary"
+                          : "text-muted-text hover:text-primary-text hover:bg-elevated/60"
+                      }`}
+                      title="Details Only (Expand)"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Top Row Content */}
-              {layoutMode !== 'chat-only' && (
-                <div className={`grid gap-4 flex-1 min-h-0 ${layoutMode === 'details-only' ? 'grid-cols-1 grid-rows-[auto_1fr]' : 'grid-cols-1 lg:grid-cols-12'}`}>
-                  {layoutMode === 'details-only' ? (
+              {layoutMode !== "chat-only" && (
+                <div
+                  className={`grid gap-4 flex-1 min-h-0 ${layoutMode === "details-only" ? "grid-cols-1 grid-rows-[auto_1fr]" : "grid-cols-1 lg:grid-cols-12"}`}
+                >
+                  {layoutMode === "details-only" ? (
                     <>
                       {/* Roster students top row */}
-                      {viewMode === 'class' && !isEditMode && (
+                      {viewMode === "class" && !isEditMode && (
                         <div className="w-full">
-                          <StudentRegister 
+                          <StudentRegister
                             classItem={adapterClassItem}
                             onUpdateClass={handleAdapterUpdate}
                           />
                         </div>
                       )}
-                      
+
                       {/* Details bottom row */}
                       <div className="w-full h-full min-h-0">
-                        <ClassDetails 
+                        <ClassDetails
                           classItem={adapterClassItem}
+                          isEditMode={isEditMode}
                           onUpdateClass={handleAdapterUpdate}
                           onAddMaterial={handleAdapterAddMaterial}
                           onDeleteMaterial={handleAdapterDeleteMaterial}
@@ -738,8 +789,9 @@ export default function ClassApp() {
                     <>
                       {/* Details top left section */}
                       <div className="lg:col-span-5 h-full min-h-0">
-                        <ClassDetails 
+                        <ClassDetails
                           classItem={adapterClassItem}
+                          isEditMode={isEditMode}
                           onUpdateClass={handleAdapterUpdate}
                           onAddMaterial={handleAdapterAddMaterial}
                           onDeleteMaterial={handleAdapterDeleteMaterial}
@@ -750,8 +802,8 @@ export default function ClassApp() {
 
                       {/* Roster students top right section */}
                       <div className="lg:col-span-7 h-full min-h-0">
-                        {viewMode === 'class' && !isEditMode && (
-                          <StudentRegister 
+                        {viewMode === "class" && !isEditMode && (
+                          <StudentRegister
                             classItem={adapterClassItem}
                             onUpdateClass={handleAdapterUpdate}
                           />
@@ -764,9 +816,9 @@ export default function ClassApp() {
             </div>
 
             {/* Bottom Row / Chat classItem */}
-            {layoutMode !== 'details-only' && viewMode === 'class' && (
+            {layoutMode !== "details-only" && viewMode === "class" && (
               <div className="flex-1 min-h-0 relative">
-                <RAGClass 
+                <RAGClass
                   classItem={adapterClassItem}
                   onUpdateClass={handleAdapterUpdate}
                   layoutMode={layoutMode}
@@ -776,14 +828,15 @@ export default function ClassApp() {
                 />
               </div>
             )}
-
           </div>
-
         </main>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center space-y-3">
-          <span className="text-sm font-mono text-muted-text">Register or select a Class ClassModel to initialize system dashboards</span>
-          <button 
+          <span className="text-sm font-mono text-muted-text">
+            Register or select a Class ClassModel to initialize system
+            dashboards
+          </span>
+          <button
             onClick={() => handleCreateClass("Grade 10 Mathematics Standard")}
             className="px-4 py-2 bg-primary rounded-xl text-white font-semibold text-xs cursor-pointer"
           >
@@ -793,12 +846,11 @@ export default function ClassApp() {
       )}
 
       {/* Account settings and utility modals */}
-      <AccountModals 
+      <AccountModals
         activeModal={activeAccountModal}
         onClose={() => setActiveAccountModal(null)}
         onTriggerToast={triggerToast}
       />
-
     </div>
   );
 }
