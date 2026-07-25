@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --debug --clearScreen false",
     "build": "vite build",
     "start": "vite preview",
     "preview": "vite preview",

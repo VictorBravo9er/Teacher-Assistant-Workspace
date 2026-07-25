@@ -22,16 +22,16 @@ export default defineConfig({
   },
   build: {
     // Switch to terser for JS minification (slower but more configurable)
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       compress: {
         // Keep it "not too aggressive": leave these as false for now if you want to retain logs
-        drop_console: false,
+        drop_console: true,
         drop_debugger: true,
       },
     },
     // Use LightningCSS for fast and standards-compliant CSS minification
-    cssMinify: 'lightningcss',
+    cssMinify: "lightningcss",
     // Lower threshold for inlining assets into JS/CSS as base64 (default is 4096)
     // 2048 means only files under 2KB are inlined; the rest are emitted as separate files for better caching.
     assetsInlineLimit: 2048,
@@ -41,24 +41,24 @@ export default defineConfig({
       output: {
         // Vendor splitting: split heavy dependencies into their own chunks
         manualChunks(id) {
-          if (id.includes('node_modules')) {
+          if (id.includes("node_modules")) {
             // Group React and related packages together
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "react-vendor";
             }
             // Separate heavy icon libraries
-            if (id.includes('lucide-react')) {
-              return 'ui-icons';
+            if (id.includes("lucide-react")) {
+              return "ui-icons";
             }
             // Separate Supabase SDK as it can be large and updates independently
-            if (id.includes('@supabase')) {
-              return 'supabase-vendor';
+            if (id.includes("@supabase")) {
+              return "supabase-vendor";
             }
             // Catch-all for remaining dependencies
-            return 'vendor';
+            return "vendor";
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });
