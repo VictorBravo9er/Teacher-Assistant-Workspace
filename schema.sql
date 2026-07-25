@@ -156,6 +156,7 @@ CREATE POLICY "Users can only delete their own classes" ON public.classes FOR DE
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    institute_id UUID REFERENCES public.institutes(id),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
@@ -229,19 +230,20 @@ USING (
 );
 
 -- ==========================================
--- 5. Materials Table
+-- 5. Materials Table (Central Repository)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    type TEXT,
+    category TEXT NOT NULL DEFAULT 'study_material', -- 'study_material', 'note', 'assigned_book', 'link', 'practical', 'assignment', 'test', 'exam'
+    content_type TEXT NOT NULL DEFAULT 'file', -- 'file', 'url', 'text'
+    storage_paths TEXT[], 
+    link_urls TEXT[],
     size TEXT,
     tags TEXT[],
-    storage_path TEXT, 
     version_history JSONB DEFAULT '[]'::jsonb,
-    upload_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
@@ -255,15 +257,60 @@ DROP POLICY IF EXISTS "Users can only delete their own materials" ON public.mate
 CREATE POLICY "Users can only delete their own materials" ON public.materials FOR DELETE USING (auth.uid() = user_id);
 
 -- ==========================================
--- 6. Instructions Table (Rubrics/Prompts)
+-- 5a. Template_Materials Junction
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.template_materials (
+    template_id UUID NOT NULL REFERENCES public.templates(id) ON DELETE CASCADE,
+    material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (template_id, material_id)
+);
+
+ALTER TABLE public.template_materials ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access template_materials via template ownership" ON public.template_materials;
+CREATE POLICY "Users can access template_materials via template ownership" 
+ON public.template_materials FOR ALL 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.templates 
+        WHERE templates.id = template_materials.template_id 
+        AND templates.user_id = auth.uid()
+    )
+);
+
+-- ==========================================
+-- 5b. Class_Materials Junction
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.class_materials (
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (class_id, material_id)
+);
+
+ALTER TABLE public.class_materials ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access class_materials via class ownership" ON public.class_materials;
+CREATE POLICY "Users can access class_materials via class ownership" 
+ON public.class_materials FOR ALL 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = class_materials.class_id 
+        AND classes.user_id = auth.uid()
+    )
+);
+
+-- ==========================================
+-- 6. Instructions Table (Rubrics/Prompts Central Repository)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.instructions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     type TEXT, 
     content TEXT NOT NULL,
+    when_to_apply TEXT,
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -276,6 +323,88 @@ DROP POLICY IF EXISTS "Users can only update their own instructions" ON public.i
 CREATE POLICY "Users can only update their own instructions" ON public.instructions FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own instructions" ON public.instructions;
 CREATE POLICY "Users can only delete their own instructions" ON public.instructions FOR DELETE USING (auth.uid() = user_id);
+
+-- ==========================================
+-- 6a. Template_Instructions Junction
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.template_instructions (
+    template_id UUID NOT NULL REFERENCES public.templates(id) ON DELETE CASCADE,
+    instruction_id UUID NOT NULL REFERENCES public.instructions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (template_id, instruction_id)
+);
+
+ALTER TABLE public.template_instructions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access template_instructions via template ownership" ON public.template_instructions;
+CREATE POLICY "Users can access template_instructions via template ownership" 
+ON public.template_instructions FOR ALL 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.templates 
+        WHERE templates.id = template_instructions.template_id 
+        AND templates.user_id = auth.uid()
+    )
+);
+
+-- ==========================================
+-- 6b. Class_Instructions Junction
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.class_instructions (
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    instruction_id UUID NOT NULL REFERENCES public.instructions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (class_id, instruction_id)
+);
+
+ALTER TABLE public.class_instructions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access class_instructions via class ownership" ON public.class_instructions;
+CREATE POLICY "Users can access class_instructions via class ownership" 
+ON public.class_instructions FOR ALL 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = class_instructions.class_id 
+        AND classes.user_id = auth.uid()
+    )
+);
+
+-- ==========================================
+-- 7. Student_Materials (Submissions & Work Tracking per Class)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.student_materials (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    material_id UUID REFERENCES public.materials(id) ON DELETE CASCADE,
+    submission_type TEXT NOT NULL DEFAULT 'assignment_submission', -- 'assignment_submission', 'lab_work', 'practical_completed', 'exam_paper'
+    storage_paths TEXT[],
+    submission_urls TEXT[],
+    content TEXT,
+    status TEXT NOT NULL DEFAULT 'assigned', -- 'assigned', 'pending', 'submitted', 'evaluated', 'graded'
+    due_at TIMESTAMP WITH TIME ZONE,
+    is_late BOOLEAN DEFAULT false,
+    grade TEXT,
+    score NUMERIC,
+    max_score NUMERIC DEFAULT 100,
+    rubric_breakdown JSONB DEFAULT '{}'::jsonb,
+    feedback TEXT,
+    private_teacher_notes TEXT,
+    submitted_at TIMESTAMP WITH TIME ZONE,
+    graded_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.student_materials ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access student_materials via class ownership" ON public.student_materials;
+CREATE POLICY "Users can access student_materials via class ownership" 
+ON public.student_materials FOR ALL 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = student_materials.class_id 
+        AND classes.user_id = auth.uid()
+    )
+);
 
 -- ==========================================
 -- Optional: Create Storage Bucket for Materials
@@ -291,4 +420,29 @@ DROP POLICY IF EXISTS "Users can insert their own storage objects" ON storage.ob
 CREATE POLICY "Users can insert their own storage objects" 
 ON storage.objects FOR INSERT 
 WITH CHECK (bucket_id = 'materials' AND auth.uid() = owner);
+
+-- ==========================================
+-- 8. Attendance_Records Table
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.attendance_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    status TEXT NOT NULL, -- e.g., 'present', 'absent', 'late'
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access attendance via class ownership" ON public.attendance_records;
+CREATE POLICY "Users can access attendance via class ownership" 
+ON public.attendance_records FOR ALL 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = attendance_records.class_id 
+        AND classes.user_id = auth.uid()
+    )
+);
 
