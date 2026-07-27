@@ -2,6 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python Debugger: Current File - system python",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "python": "/usr/bin/python"
+    },
+    {
       "name": "npm install && npm run dev",
       "type": "node-terminal",
       "request": "launch",
