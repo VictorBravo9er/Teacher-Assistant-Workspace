@@ -1,0 +1,14 @@
+services:
+  unified-app:
+    build:
+      # We set the build context to the parent directory (project root)
+      # so the Dockerfile can access both the frontend and alternative-host folders.
+      context: ../
+      dockerfile: alternative-host/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Explicitly pass environment variables per best practices
+      - PORT=8000
+      - HOST=0.0.0.0
+    restart: unless-stopped

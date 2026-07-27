@@ -1,0 +1,65 @@
+services:
+  backend:
+    image: ta-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod
+
+
+    container_name: ta-backend
+    # env_file:
+    #   - path: ./backend/.env.example
+    #     required: true
+      # - path: ./backend/.env
+      #   required: false
+    environment:
+      - BACKEND_PORT
+      # actual Env vars
+      - OPENROUTER_API_KEY
+      - OPENROUTER_MODEL
+    expose:
+      - "${BACKEND_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${BACKEND_PORT}/api/health', timeout=5)\" || exit 1"]
+      interval: 40s
+      timeout: 4s
+      retries: 3
+      start_period: 8s
+      start_interval: 4s
+    restart: unless-stopped
+
+  frontend:
+    image: ta-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+    container_name: ta-frontend
+    ports:
+      - "${HOST_PORT}:${FRONTEND_PORT}"
+    # env_file:
+    #   - path: ./frontend/.env.example
+    #     required: true
+      # - path: ./frontend/.env
+      #   required: false
+    environment:
+      - FRONTEND_PORT
+      - BACKEND_PORT
+      - BACKEND_URL=http://backend:${BACKEND_PORT}
+      # actual Env Vars
+      - VITE_SUPABASE_URL
+      - VITE_SUPABASE_PUBLISHABLE_KEY
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:${FRONTEND_PORT}/ > /dev/null || exit 1"]
+      interval: 40s
+      timeout: 4s
+      retries: 3
+      start_period: 8s
+    restart: unless-stopped
