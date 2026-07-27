@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { secureStorage } from '../lib/storage';
 import {
   ClassModel,
   Template,
@@ -42,17 +43,17 @@ export default function ClassApp() {
   });
 
   const [classes, setClasses] = useState<ClassModel[]>(() => {
-    const saved = localStorage.getItem('edu_rag_classes');
+    const saved = secureStorage.getItem('edu_rag_classes');
     return saved ? JSON.parse(saved) : DEFAULT_WORKSPACES;
   });
 
   const [templates, setTemplates] = useState<Template[]>(() => {
-    const saved = localStorage.getItem('edu_rag_templates');
+    const saved = secureStorage.getItem('edu_rag_templates');
     return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
   });
 
   const [activeClassId, setActiveClassId] = useState<string>(() => {
-    const saved = localStorage.getItem('edu_rag_active_ws');
+    const saved = secureStorage.getItem('edu_rag_active_ws');
     if (saved && saved !== 'null') return saved;
     return classes[0]?.id || '';
   });
@@ -104,15 +105,15 @@ export default function ClassApp() {
 
   // Auto-save values to storage
   useEffect(() => {
-    localStorage.setItem('edu_rag_classes', JSON.stringify(classes));
+    secureStorage.setItem('edu_rag_classes', JSON.stringify(classes));
   }, [classes]);
 
   useEffect(() => {
-    localStorage.setItem('edu_rag_templates', JSON.stringify(templates));
+    secureStorage.setItem('edu_rag_templates', JSON.stringify(templates));
   }, [templates]);
 
   useEffect(() => {
-    localStorage.setItem('edu_rag_active_ws', activeClassId);
+    secureStorage.setItem('edu_rag_active_ws', activeClassId);
   }, [activeClassId]);
 
   // Autohide toasts

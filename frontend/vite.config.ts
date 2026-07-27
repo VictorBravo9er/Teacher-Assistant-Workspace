@@ -1,10 +1,29 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+// import javascriptObfuscator from "vite-plugin-javascript-obfuscator";
+// import { obfuscator } from "rollup-obfuscator";
 import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // javascriptObfuscator({
+    //   apply: "build",
+    //   options: {
+    //     compact: true,
+    //     controlFlowFlattening: true,
+    //     deadCodeInjection: false,
+    //     stringArray: true,
+    //     stringArrayEncoding: ["base64"],
+    //     stringArrayThreshold: 0.8,
+    //     renameGlobals: false,
+    //     simplify: true,
+    //     selfDefending: true,
+    //   },
+    // }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
@@ -26,8 +45,15 @@ export default defineConfig({
     terserOptions: {
       compress: {
         // Keep it "not too aggressive": leave these as false for now if you want to retain logs
+        passes: 3,
         drop_console: true,
         drop_debugger: true,
+      },
+      mangle: {
+        toplevel: true,
+      },
+      format: {
+        comments: false,
       },
     },
     // Use LightningCSS for fast and standards-compliant CSS minification
@@ -59,6 +85,23 @@ export default defineConfig({
           }
         },
       },
+      plugins: [
+        // obfuscator({
+        //   include: ["assets/index-*.js"],
+        //   options: {
+        //     compact: true,
+        //     controlFlowFlattening: true,
+        //     controlFlowFlatteningThreshold: 0.3,
+        //     stringArray: true,
+        //     stringArrayEncoding: ["base64"],
+        //     stringArrayThreshold: 0.8,
+        //     identifierNamesGenerator: "hexadecimal",
+        //     renameGlobals: false,
+        //     selfDefending: true,
+        //     deadCodeInjection: false,
+        //   },
+        // }),
+      ],
     },
   },
 });

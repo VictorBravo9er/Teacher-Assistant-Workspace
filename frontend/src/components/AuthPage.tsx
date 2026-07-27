@@ -36,12 +36,18 @@ export default function AuthPage({ onBack }: AuthPageProps) {
     setErrorMsg(null);
 
     try {
+      if (!isLogin) {
+          if (password.length < 8) {
+              throw new Error("Password must be at least 8 characters long.");
+          }
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) throw new Error("Invalid login credentials.");
       } else {
         
         const metadata: any = {
@@ -56,7 +62,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             data: metadata,
           },
         });
-        if (error) throw error;
+        if (error) throw new Error("Invalid registration details or account already exists.");
         setIsSuccess(true);
       }
     } catch (err: any) {
