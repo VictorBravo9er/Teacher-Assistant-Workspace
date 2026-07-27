@@ -434,3 +434,27 @@ class PublicAttendanceRecordsUpdate(TypedDict):
     notes: NotRequired[Annotated[Optional[str], Field(alias="notes")]]
     status: NotRequired[Annotated[str, Field(alias="status")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
+
+class PublicChatSessions(BaseModel):
+    class_id: Optional[uuid.UUID] = Field(alias="class_id")
+    created_at: datetime.datetime = Field(alias="created_at")
+    id: uuid.UUID = Field(alias="id")
+    title: str = Field(alias="title")
+    updated_at: datetime.datetime = Field(alias="updated_at")
+    user_id: uuid.UUID = Field(alias="user_id")
+
+class PublicChatSessionsInsert(TypedDict):
+    class_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="class_id")]]
+    created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    title: NotRequired[Annotated[str, Field(alias="title")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
+    user_id: Annotated[uuid.UUID, Field(alias="user_id")]
+
+class PublicChatSessionsUpdate(TypedDict):
+    class_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="class_id")]]
+    created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    title: NotRequired[Annotated[str, Field(alias="title")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
+    user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]

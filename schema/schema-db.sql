@@ -500,3 +500,29 @@ CREATE INDEX IF NOT EXISTS idx_student_materials_student_id ON public.student_ma
 CREATE INDEX IF NOT EXISTS idx_student_materials_material_id ON public.student_materials(material_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_records_class_id ON public.attendance_records(class_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_records_student_id ON public.attendance_records(student_id);
+
+-- ==========================================
+-- 10. Chat_Sessions Table (AI Conversations)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.chat_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT 'New Chat',
+    class_id UUID REFERENCES public.classes(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can only view their own chat sessions" ON public.chat_sessions;
+CREATE POLICY "Users can only view their own chat sessions" ON public.chat_sessions FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can only insert their own chat sessions" ON public.chat_sessions;
+CREATE POLICY "Users can only insert their own chat sessions" ON public.chat_sessions FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can only update their own chat sessions" ON public.chat_sessions;
+CREATE POLICY "Users can only update their own chat sessions" ON public.chat_sessions FOR UPDATE USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can only delete their own chat sessions" ON public.chat_sessions;
+CREATE POLICY "Users can only delete their own chat sessions" ON public.chat_sessions FOR DELETE USING ((SELECT auth.uid()) = user_id);
+
+-- Chat System Indexes
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON public.chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_class_id ON public.chat_sessions(class_id);
