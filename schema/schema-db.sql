@@ -2,15 +2,22 @@
 -- Supabase EduRAG Assistant Database Schema
 -- ==========================================
 
--- Enable the pgcrypto extension for UUID generation if not already enabled
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 -- ==========================================
 -- 7. Institutes Table
 -- ==========================================
 
 -- Enable Trigram extension for fuzzy search (handling spelling mistakes)
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- 1) Ensure the target schema exists
+create schema if not exists extensions;
+CREATE SCHEMA IF NOT EXISTS langgraph;
+
+-- 2) Move the extension definition to that schema
+-- Note: this will require dropping/recreating the extension.
+create extension IF NOT EXISTS pg_trgm with schema extensions;
+-- Enable the pgcrypto extension for UUID generation if not already enabled
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" with schema extensions;
+
+
 
 CREATE TABLE IF NOT EXISTS public.institutes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,15 +38,15 @@ ALTER TABLE public.institutes ENABLE ROW LEVEL SECURITY;
 
 -- Allow ANYONE (even unauthenticated users on the signup page) to search/read the list of institutes
 DROP POLICY IF EXISTS "Public can view institutes" ON public.institutes;
-CREATE POLICY "Public can view institutes" 
-ON public.institutes FOR SELECT 
+CREATE POLICY "Public can view institutes"
+ON public.institutes FOR SELECT
 USING (true);
 
--- Allow authenticated users to insert new institutes 
+-- Allow authenticated users to insert new institutes
 DROP POLICY IF EXISTS "Authenticated users can insert institutes" ON public.institutes;
-CREATE POLICY "Authenticated users can insert institutes" 
-ON public.institutes FOR INSERT 
-WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert institutes"
+ON public.institutes FOR INSERT
+WITH CHECK ((SELECT auth.role()) = 'authenticated');
 
 -- ==========================================
 -- FUZZY SEARCH FUNCTION
@@ -47,25 +54,29 @@ WITH CHECK (auth.role() = 'authenticated');
 -- This function allows the frontend to search for institutes
 -- using trigram similarity, which naturally handles spelling mistakes.
 CREATE OR REPLACE FUNCTION search_institutes(search_term TEXT)
-RETURNS SETOF public.institutes AS $$
+RETURNS SETOF public.institutes
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public, extensions
+AS $$
 BEGIN
   -- If search term is empty, just return some recent ones or nothing
   IF trim(search_term) = '' THEN
     RETURN QUERY SELECT * FROM public.institutes ORDER BY created_at DESC LIMIT 5;
   ELSE
-    RETURN QUERY 
-      SELECT * 
+    RETURN QUERY
+      SELECT *
       FROM public.institutes
-      WHERE 
+      WHERE
         -- Check if a substring is similar (word_similarity > 0.1) to name, city, state, or district
         word_similarity(search_term, name) > 0.1 OR
         word_similarity(search_term, city) > 0.1 OR
         word_similarity(search_term, district) > 0.1 OR
         word_similarity(search_term, state) > 0.1
-      ORDER BY 
+      ORDER BY
         -- Order by the greatest substring similarity across the fields
         GREATEST(
-          word_similarity(search_term, name), 
+          word_similarity(search_term, name),
           word_similarity(search_term, city),
           word_similarity(search_term, district),
           word_similarity(search_term, state)
@@ -73,51 +84,67 @@ BEGIN
       LIMIT 5;
   END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- ==========================================
 -- FIELD AUTOCOMPLETE FUNCTIONS
 -- ==========================================
 
 CREATE OR REPLACE FUNCTION search_districts(search_term TEXT)
-RETURNS TABLE(result TEXT) AS $$
+RETURNS TABLE(result TEXT)
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = public, extensions
+AS $$
   SELECT district FROM public.institutes
-  WHERE district IS NOT NULL AND district != '' 
+  WHERE district IS NOT NULL AND district != ''
   AND word_similarity(search_term, district) > 0.1
   GROUP BY district
   ORDER BY word_similarity(search_term, district) DESC
   LIMIT 5;
-$$ LANGUAGE sql SECURITY DEFINER;
+$$;
 
 CREATE OR REPLACE FUNCTION search_cities(search_term TEXT)
-RETURNS TABLE(result TEXT) AS $$
+RETURNS TABLE(result TEXT)
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = public, extensions
+AS $$
   SELECT city FROM public.institutes
-  WHERE city IS NOT NULL AND city != '' 
+  WHERE city IS NOT NULL AND city != ''
   AND word_similarity(search_term, city) > 0.1
   GROUP BY city
   ORDER BY word_similarity(search_term, city) DESC
   LIMIT 5;
-$$ LANGUAGE sql SECURITY DEFINER;
+$$;
 
 CREATE OR REPLACE FUNCTION search_states(search_term TEXT)
-RETURNS TABLE(result TEXT) AS $$
+RETURNS TABLE(result TEXT)
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = public, extensions
+AS $$
   SELECT state FROM public.institutes
-  WHERE state IS NOT NULL AND state != '' 
+  WHERE state IS NOT NULL AND state != ''
   AND word_similarity(search_term, state) > 0.1
   GROUP BY state
   ORDER BY word_similarity(search_term, state) DESC
   LIMIT 5;
-$$ LANGUAGE sql SECURITY DEFINER;
+$$;
 
 CREATE OR REPLACE FUNCTION search_countries(search_term TEXT)
-RETURNS TABLE(result TEXT) AS $$
+RETURNS TABLE(result TEXT)
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = public, extensions
+AS $$
   SELECT country FROM public.institutes
-  WHERE country IS NOT NULL AND country != '' 
+  WHERE country IS NOT NULL AND country != ''
   AND word_similarity(search_term, country) > 0.1
   GROUP BY country
   ORDER BY word_similarity(search_term, country) DESC
   LIMIT 5;
-$$ LANGUAGE sql SECURITY DEFINER;
+$$;
 
 
 -- ==========================================
@@ -143,13 +170,13 @@ CREATE TABLE IF NOT EXISTS public.classes (
 
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own classes" ON public.classes;
-CREATE POLICY "Users can only view their own classes" ON public.classes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can only view their own classes" ON public.classes FOR SELECT USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only insert their own classes" ON public.classes;
-CREATE POLICY "Users can only insert their own classes" ON public.classes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can only insert their own classes" ON public.classes FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own classes" ON public.classes;
-CREATE POLICY "Users can only update their own classes" ON public.classes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only update their own classes" ON public.classes FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own classes" ON public.classes;
-CREATE POLICY "Users can only delete their own classes" ON public.classes FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only delete their own classes" ON public.classes FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- ==========================================
 -- 2. Templates Table
@@ -169,13 +196,13 @@ CREATE TABLE IF NOT EXISTS public.templates (
 
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own templates" ON public.templates;
-CREATE POLICY "Users can only view their own templates" ON public.templates FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can only view their own templates" ON public.templates FOR SELECT USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only insert their own templates" ON public.templates;
-CREATE POLICY "Users can only insert their own templates" ON public.templates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can only insert their own templates" ON public.templates FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own templates" ON public.templates;
-CREATE POLICY "Users can only update their own templates" ON public.templates FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only update their own templates" ON public.templates FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own templates" ON public.templates;
-CREATE POLICY "Users can only delete their own templates" ON public.templates FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only delete their own templates" ON public.templates FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- ==========================================
 -- 3. Students Table (Global Roster per Teacher)
@@ -194,13 +221,13 @@ CREATE TABLE IF NOT EXISTS public.students (
 
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own students" ON public.students;
-CREATE POLICY "Users can only view their own students" ON public.students FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can only view their own students" ON public.students FOR SELECT USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only insert their own students" ON public.students;
-CREATE POLICY "Users can only insert their own students" ON public.students FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can only insert their own students" ON public.students FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own students" ON public.students;
-CREATE POLICY "Users can only update their own students" ON public.students FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only update their own students" ON public.students FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own students" ON public.students;
-CREATE POLICY "Users can only delete their own students" ON public.students FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only delete their own students" ON public.students FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- ==========================================
 -- 4. Class_Students (Junction & Course-Specific Data)
@@ -218,14 +245,14 @@ CREATE TABLE IF NOT EXISTS public.class_students (
 ALTER TABLE public.class_students ENABLE ROW LEVEL SECURITY;
 -- Using class's user_id for security policy via implicit join
 DROP POLICY IF EXISTS "Users can access class_students via class ownership" ON public.class_students;
-CREATE POLICY "Users can access class_students via class ownership" 
-ON public.class_students 
-FOR ALL 
+CREATE POLICY "Users can access class_students via class ownership"
+ON public.class_students
+FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE classes.id = class_students.class_id 
-        AND classes.user_id = auth.uid()
+        SELECT 1 FROM public.classes
+        WHERE classes.id = class_students.class_id
+        AND classes.user_id =  (SELECT auth.uid())
     )
 );
 
@@ -238,7 +265,7 @@ CREATE TABLE IF NOT EXISTS public.materials (
     name TEXT NOT NULL,
     category TEXT NOT NULL DEFAULT 'study_material', -- 'study_material', 'note', 'assigned_book', 'link', 'practical', 'assignment', 'test', 'exam'
     content_type TEXT NOT NULL DEFAULT 'file', -- 'file', 'url', 'text'
-    storage_paths TEXT[], 
+    storage_paths TEXT[],
     link_urls TEXT[],
     size TEXT,
     tags TEXT[],
@@ -248,13 +275,13 @@ CREATE TABLE IF NOT EXISTS public.materials (
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own materials" ON public.materials;
-CREATE POLICY "Users can only view their own materials" ON public.materials FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can only view their own materials" ON public.materials FOR SELECT USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only insert their own materials" ON public.materials;
-CREATE POLICY "Users can only insert their own materials" ON public.materials FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can only insert their own materials" ON public.materials FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own materials" ON public.materials;
-CREATE POLICY "Users can only update their own materials" ON public.materials FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only update their own materials" ON public.materials FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own materials" ON public.materials;
-CREATE POLICY "Users can only delete their own materials" ON public.materials FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only delete their own materials" ON public.materials FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- ==========================================
 -- 5a. Template_Materials Junction
@@ -268,13 +295,13 @@ CREATE TABLE IF NOT EXISTS public.template_materials (
 
 ALTER TABLE public.template_materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access template_materials via template ownership" ON public.template_materials;
-CREATE POLICY "Users can access template_materials via template ownership" 
-ON public.template_materials FOR ALL 
+CREATE POLICY "Users can access template_materials via template ownership"
+ON public.template_materials FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.templates 
-        WHERE templates.id = template_materials.template_id 
-        AND templates.user_id = auth.uid()
+        SELECT 1 FROM public.templates
+        WHERE templates.id = template_materials.template_id
+        AND templates.user_id =  (SELECT auth.uid())
     )
 );
 
@@ -290,13 +317,13 @@ CREATE TABLE IF NOT EXISTS public.class_materials (
 
 ALTER TABLE public.class_materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_materials via class ownership" ON public.class_materials;
-CREATE POLICY "Users can access class_materials via class ownership" 
-ON public.class_materials FOR ALL 
+CREATE POLICY "Users can access class_materials via class ownership"
+ON public.class_materials FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE classes.id = class_materials.class_id 
-        AND classes.user_id = auth.uid()
+        SELECT 1 FROM public.classes
+        WHERE classes.id = class_materials.class_id
+        AND classes.user_id =  (SELECT auth.uid())
     )
 );
 
@@ -307,7 +334,7 @@ CREATE TABLE IF NOT EXISTS public.instructions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    type TEXT, 
+    type TEXT,
     content TEXT NOT NULL,
     when_to_apply TEXT,
     is_active BOOLEAN DEFAULT true,
@@ -316,13 +343,13 @@ CREATE TABLE IF NOT EXISTS public.instructions (
 
 ALTER TABLE public.instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own instructions" ON public.instructions;
-CREATE POLICY "Users can only view their own instructions" ON public.instructions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can only view their own instructions" ON public.instructions FOR SELECT USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only insert their own instructions" ON public.instructions;
-CREATE POLICY "Users can only insert their own instructions" ON public.instructions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can only insert their own instructions" ON public.instructions FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own instructions" ON public.instructions;
-CREATE POLICY "Users can only update their own instructions" ON public.instructions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only update their own instructions" ON public.instructions FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own instructions" ON public.instructions;
-CREATE POLICY "Users can only delete their own instructions" ON public.instructions FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can only delete their own instructions" ON public.instructions FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- ==========================================
 -- 6a. Template_Instructions Junction
@@ -336,13 +363,13 @@ CREATE TABLE IF NOT EXISTS public.template_instructions (
 
 ALTER TABLE public.template_instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access template_instructions via template ownership" ON public.template_instructions;
-CREATE POLICY "Users can access template_instructions via template ownership" 
-ON public.template_instructions FOR ALL 
+CREATE POLICY "Users can access template_instructions via template ownership"
+ON public.template_instructions FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.templates 
-        WHERE templates.id = template_instructions.template_id 
-        AND templates.user_id = auth.uid()
+        SELECT 1 FROM public.templates
+        WHERE templates.id = template_instructions.template_id
+        AND templates.user_id =  (SELECT auth.uid())
     )
 );
 
@@ -358,13 +385,13 @@ CREATE TABLE IF NOT EXISTS public.class_instructions (
 
 ALTER TABLE public.class_instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_instructions via class ownership" ON public.class_instructions;
-CREATE POLICY "Users can access class_instructions via class ownership" 
-ON public.class_instructions FOR ALL 
+CREATE POLICY "Users can access class_instructions via class ownership"
+ON public.class_instructions FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE classes.id = class_instructions.class_id 
-        AND classes.user_id = auth.uid()
+        SELECT 1 FROM public.classes
+        WHERE classes.id = class_instructions.class_id
+        AND classes.user_id =  (SELECT auth.uid())
     )
 );
 
@@ -396,13 +423,13 @@ CREATE TABLE IF NOT EXISTS public.student_materials (
 
 ALTER TABLE public.student_materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access student_materials via class ownership" ON public.student_materials;
-CREATE POLICY "Users can access student_materials via class ownership" 
-ON public.student_materials FOR ALL 
+CREATE POLICY "Users can access student_materials via class ownership"
+ON public.student_materials FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE classes.id = student_materials.class_id 
-        AND classes.user_id = auth.uid()
+        SELECT 1 FROM public.classes
+        WHERE classes.id = student_materials.class_id
+        AND classes.user_id =  (SELECT auth.uid())
     )
 );
 
@@ -412,14 +439,14 @@ USING (
 INSERT INTO storage.buckets (id, name, public) VALUES ('materials', 'materials', false) ON CONFLICT DO NOTHING;
 
 DROP POLICY IF EXISTS "Users can view their own storage objects" ON storage.objects;
-CREATE POLICY "Users can view their own storage objects" 
-ON storage.objects FOR SELECT 
-USING (bucket_id = 'materials' AND auth.uid() = owner);
+CREATE POLICY "Users can view their own storage objects"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'materials' AND  (SELECT auth.uid()) = owner);
 
 DROP POLICY IF EXISTS "Users can insert their own storage objects" ON storage.objects;
-CREATE POLICY "Users can insert their own storage objects" 
-ON storage.objects FOR INSERT 
-WITH CHECK (bucket_id = 'materials' AND auth.uid() = owner);
+CREATE POLICY "Users can insert their own storage objects"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'materials' AND  (SELECT auth.uid()) = owner);
 
 -- ==========================================
 -- 8. Attendance_Records Table
@@ -436,13 +463,40 @@ CREATE TABLE IF NOT EXISTS public.attendance_records (
 
 ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access attendance via class ownership" ON public.attendance_records;
-CREATE POLICY "Users can access attendance via class ownership" 
-ON public.attendance_records FOR ALL 
+CREATE POLICY "Users can access attendance via class ownership"
+ON public.attendance_records FOR ALL
 USING (
     EXISTS (
-        SELECT 1 FROM public.classes 
-        WHERE classes.id = attendance_records.class_id 
-        AND classes.user_id = auth.uid()
+        SELECT 1 FROM public.classes
+        WHERE classes.id = attendance_records.class_id
+        AND classes.user_id =  (SELECT auth.uid())
     )
 );
 
+-- ==========================================
+-- 9. Foreign Key & RLS Ownership Indexes
+-- ==========================================
+-- Essential indexes to prevent Sequential Scans on RLS checks, JOINs, and ON DELETE CASCADE operations.
+
+-- Foreign Key & RLS Ownership Indexes
+CREATE INDEX IF NOT EXISTS idx_classes_user_id ON public.classes(user_id);
+CREATE INDEX IF NOT EXISTS idx_classes_institute_id ON public.classes(institute_id);
+CREATE INDEX IF NOT EXISTS idx_templates_user_id ON public.templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_templates_institute_id ON public.templates(institute_id);
+CREATE INDEX IF NOT EXISTS idx_students_user_id ON public.students(user_id);
+CREATE INDEX IF NOT EXISTS idx_materials_user_id ON public.materials(user_id);
+CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON public.instructions(user_id);
+
+-- Secondary FK Indexes on Composite Primary Key Junction Tables
+CREATE INDEX IF NOT EXISTS idx_class_students_student_id ON public.class_students(student_id);
+CREATE INDEX IF NOT EXISTS idx_template_materials_material_id ON public.template_materials(material_id);
+CREATE INDEX IF NOT EXISTS idx_class_materials_material_id ON public.class_materials(material_id);
+CREATE INDEX IF NOT EXISTS idx_template_instructions_instruction_id ON public.template_instructions(instruction_id);
+CREATE INDEX IF NOT EXISTS idx_class_instructions_instruction_id ON public.class_instructions(instruction_id);
+
+-- Child Table Foreign Key Indexes (prevent Seq Scan on JOIN / CASCADE)
+CREATE INDEX IF NOT EXISTS idx_student_materials_class_id ON public.student_materials(class_id);
+CREATE INDEX IF NOT EXISTS idx_student_materials_student_id ON public.student_materials(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_materials_material_id ON public.student_materials(material_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_records_class_id ON public.attendance_records(class_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_records_student_id ON public.attendance_records(student_id);

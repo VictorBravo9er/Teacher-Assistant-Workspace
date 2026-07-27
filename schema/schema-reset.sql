@@ -14,3 +14,9 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authen
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+
+-- 5. Drop the langgraph schema and everything inside it (tables, policies, functions, triggers)
+DROP SCHEMA langgraph CASCADE;
+
+-- 6. Recreate a fresh langgraph schema
+CREATE SCHEMA langgraph;
