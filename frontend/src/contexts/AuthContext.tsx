@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { secureStorage } from '../lib/storage';
 import { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -33,6 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Clear PII from storage
+    secureStorage.removeItem('edu_rag_classes');
+    secureStorage.removeItem('edu_rag_templates');
+    secureStorage.removeItem('edu_rag_active_ws');
     await supabase.auth.signOut();
   };
 

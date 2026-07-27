@@ -134,6 +134,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
           <div>
             <label className="block text-[10px] font-semibold text-muted-text mb-1.5 uppercase tracking-wider">Class Name</label>
             <input 
+              id="create-class-name-input"
               type="text"
               value={className}
               onChange={(e) => setClassName(e.target.value)}
@@ -148,6 +149,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
               <label className="block text-[10px] font-semibold text-muted-text uppercase tracking-wider">Institute Details</label>
               <div className="flex bg-elevated rounded-lg p-0.5 border border-border-color/45">
                 <button
+                  id="create-class-mode-existing-button"
                   type="button"
                   onClick={() => { setMode('existing'); setError(null); }}
                   className={`px-3 py-1 text-[10px] font-semibold rounded-md transition-colors cursor-pointer ${mode === 'existing' ? 'bg-surface text-primary shadow-sm' : 'text-muted-text hover:text-primary-text'}`}
@@ -155,6 +157,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
                   Select Existing
                 </button>
                 <button
+                  id="create-class-mode-new-button"
                   type="button"
                   onClick={() => { setMode('new'); setError(null); }}
                   className={`px-3 py-1 text-[10px] font-semibold rounded-md transition-colors cursor-pointer ${mode === 'new' ? 'bg-surface text-primary shadow-sm' : 'text-muted-text hover:text-primary-text'}`}
@@ -250,6 +253,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
 
           <div className="pt-4 flex items-center justify-end gap-2 border-t border-border-color">
             <button 
+              id="create-class-cancel-button"
               type="button" 
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-muted-text hover:text-primary-text hover:bg-elevated rounded-lg transition-colors cursor-pointer"
@@ -257,6 +261,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
               Cancel
             </button>
             <button 
+              id="create-class-submit-button"
               type="submit" 
               disabled={isSubmitting}
               className="px-5 py-2 text-xs font-bold bg-success text-white rounded-lg hover:bg-success/90 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-md shadow-success/20"

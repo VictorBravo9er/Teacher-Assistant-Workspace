@@ -36,12 +36,18 @@ export default function AuthPage({ onBack }: AuthPageProps) {
     setErrorMsg(null);
 
     try {
+      if (!isLogin) {
+          if (password.length < 8) {
+              throw new Error("Password must be at least 8 characters long.");
+          }
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) throw new Error("Invalid login credentials.");
       } else {
         
         const metadata: any = {
@@ -56,7 +62,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             data: metadata,
           },
         });
-        if (error) throw error;
+        if (error) throw new Error("Invalid registration details or account already exists.");
         setIsSuccess(true);
       }
     } catch (err: any) {
@@ -77,6 +83,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
 
       <div className="w-full max-w-md z-10 my-8">
         <button
+          id="auth-back-to-home-button"
           onClick={onBack}
           className="text-sm font-medium text-muted-text hover:text-primary-text mb-6 flex items-center gap-1 transition-colors cursor-pointer"
         >
@@ -146,6 +153,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                       <div className="relative">
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
                         <input
+                          id="auth-fullname-input"
                           type="text"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
@@ -163,6 +171,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                       <div className="relative">
                         <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
                         <input
+                          id="auth-phone-input"
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
@@ -182,6 +191,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
                         <input
+                          id="auth-email-input"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -209,6 +219,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
                     <input
+                      id="auth-password-input"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -220,6 +231,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                 </div>
 
                 <button
+                  id="auth-submit-button"
                   type="submit"
                   disabled={isLoading}
                   className="w-full py-3.5 bg-primary text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 mt-6 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
@@ -240,6 +252,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                   ? "Don't have an account? "
                   : "Already have an account? "}
                 <button
+                  id="auth-toggle-mode-button"
                   type="button"
                   onClick={() => {
                     setIsLogin(!isLogin);

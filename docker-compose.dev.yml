@@ -28,3 +28,4 @@ services:
     volumes:
       - /app/node_modules
       - ./frontend:/app
+    depends_on: backend

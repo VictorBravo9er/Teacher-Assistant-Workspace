@@ -48,7 +48,10 @@ service-account.json
 .stylelintcache
 .prettiercache
 .turbo/
-
+.temp
+.supabase
 # Version control leftovers
 *.orig
 *.rej
+
+.npm
