@@ -10,4 +10,4 @@ POSTGRES_URI: str = os.getenv(
     "POSTGRES_URI", "postgres://postgres:postgres@localhost:5432/postgres"
 )
 DB_OPTIONS = os.getenv("DB_OPTIONS", "-c%20search_path%3Dlanggraph")
-DB_URI = POSTGRES_URI + "?options=" + DB_OPTIONS
+DB_OPTIONS_URI = POSTGRES_URI + "?options=" + DB_OPTIONS

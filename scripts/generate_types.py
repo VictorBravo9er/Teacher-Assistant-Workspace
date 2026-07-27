@@ -10,10 +10,9 @@ from pathlib import Path
 
 # Add scripts directory to sys.path to allow importing _env_helper
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import _env_helper  # pyright: ignore[reportImplicitRelativeImport]
 
 
-def main():
+def main(db_url: str | None = None):
     root_dir = Path(__file__).resolve().parent.parent
 
     # Destination files
@@ -24,14 +23,13 @@ def main():
     ts_file.parent.mkdir(parents=True, exist_ok=True)
     py_file.parent.mkdir(parents=True, exist_ok=True)
 
-    db_url = _env_helper.POSTGRES_URI
     if not db_url:
         print("Error: POSTGRES_URI environment variable is not set.", file=sys.stderr)
         print(
             "Please set it. Example: export POSTGRES_URI='postgresql://postgres:password@host:5432/postgres'",
             file=sys.stderr,
         )
-        sys.exit(1)
+        raise ValueError("POSTGRES_URI environment variable is not set.")
 
     # We only generate types for the 'public' schema since 'langgraph' is purely backend-internal memory.
     print("1. Generating TypeScript types for frontend...")
@@ -58,7 +56,7 @@ def main():
             f"   ❌ Error generating TypeScript types:\n{result_ts.stderr}",
             file=sys.stderr,
         )
-        sys.exit(1)
+        raise SystemExit(1)
 
     print("\n2. Generating Python types for backend...")
     cmd_py = [
@@ -83,7 +81,7 @@ def main():
         print(
             f"   ❌ Error generating Python types:\n{result_py.stderr}", file=sys.stderr
         )
-        sys.exit(1)
+        raise SystemExit(1)
 
     print("\n🎉 Type generation complete!")
 
