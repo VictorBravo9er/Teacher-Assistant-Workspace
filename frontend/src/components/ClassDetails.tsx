@@ -29,6 +29,7 @@ interface ClassDetailsProps {
   onAddMaterial: (
     classId: string,
     material: Omit<Material, "id" | "uploadDate">,
+    file?: File
   ) => void;
   onDeleteMaterial: (classId: string, materialId: string) => void;
   onAddInstruction: (
@@ -55,6 +56,7 @@ export default function ClassDetails({
   const [newFileName, setNewFileName] = useState("");
   const [newFileType, setNewFileType] = useState<Material["type"]>("pdf");
   const [newFileTags, setNewFileTags] = useState("");
+  const [newFileObj, setNewFileObj] = useState<File | null>(null);
   const [showFileForm, setShowFileForm] = useState(false);
 
   // Local form states for reusable instructions
@@ -81,7 +83,7 @@ export default function ClassDetails({
     onAddMaterial(classItem.id, {
       name: newFileName.trim(),
       type: newFileType,
-      size: `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
+      size: newFileObj ? `${(newFileObj.size / (1024 * 1024)).toFixed(1)} MB` : `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
       tags: tagsArr.length > 0 ? tagsArr : ["General"],
       versionHistory: [
         {
@@ -90,10 +92,11 @@ export default function ClassDetails({
           note: "Uploaded initial document",
         },
       ],
-    });
+    }, newFileObj || undefined);
 
     setNewFileName("");
     setNewFileTags("");
+    setNewFileObj(null);
     setShowFileForm(false);
   };
 
@@ -328,6 +331,16 @@ export default function ClassDetails({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-mono text-muted-text block mb-1">
+                      UPLOAD FILE (OPTIONAL)
+                    </label>
+                    <input
+                      type="file"
+                      onChange={(e) => setNewFileObj(e.target.files ? e.target.files[0] : null)}
+                      className="w-full text-xs text-primary-text file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                    />
+                  </div>
                   <div>
                     <label className="text-[10px] font-mono text-muted-text block">
                       DOCUMENT TYPE
@@ -364,7 +377,7 @@ export default function ClassDetails({
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs py-2 rounded-lg transition-colors cursor-pointer"
                 >
-                  Confirm Upload Simulation
+                  Upload & Commit Document
                 </button>
               </form>
             )}

@@ -9,7 +9,11 @@ import {
   RAGSession,
   Message,
 } from "../types/main";
-import { DEFAULT_WORKSPACES, DEFAULT_TEMPLATES } from '../defaultData';
+
+import { useWorkspaceData } from '../hooks/useWorkspaceData';
+import { classService } from '../services/classService';
+import { templateService } from '../services/templateService';
+import { materialService } from '../services/materialService';
 import Sidebar from './Sidebar';
 import ClassDetails from './ClassDetails';
 import StudentRegister from './StudentRegister';
@@ -25,11 +29,9 @@ import {
   Sliders,
   Settings,
   Key,
-  Maximize2,
-  Minimize2,
-  ChevronDown,
-  ChevronUp,
-  Minus,
+  PanelTop,
+  SquareSplitVertical,
+  Square,
   Check,
   Edit3,
   Save,
@@ -42,21 +44,23 @@ export default function ClassApp() {
     return (saved as 'system' | 'light' | 'dark') || 'system';
   });
 
-  const [classes, setClasses] = useState<ClassModel[]>(() => {
-    const saved = secureStorage.getItem('edu_rag_classes');
-    return saved ? JSON.parse(saved) : DEFAULT_WORKSPACES;
-  });
-
-  const [templates, setTemplates] = useState<Template[]>(() => {
-    const saved = secureStorage.getItem('edu_rag_templates');
-    return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
-  });
+  const { classes, templates, loading, error, mutateClasses, mutateTemplates, refresh } = useWorkspaceData();
 
   const [activeClassId, setActiveClassId] = useState<string>(() => {
     const saved = secureStorage.getItem('edu_rag_active_ws');
     if (saved && saved !== 'null') return saved;
-    return classes[0]?.id || '';
+    return '';
   });
+
+  // Ensure active class falls back when data loads
+  useEffect(() => {
+    if (!activeClassId && classes.length > 0) {
+      setActiveClassId(classes[0].id);
+    }
+  }, [classes, activeClassId]);
+
+  const setClasses = mutateClasses;
+  const setTemplates = mutateTemplates;
 
   const [viewMode, setViewMode] = useState<'class' | 'template'>('class');
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
@@ -103,15 +107,6 @@ export default function ClassApp() {
     }
   }, [theme]);
 
-  // Auto-save values to storage
-  useEffect(() => {
-    secureStorage.setItem('edu_rag_classes', JSON.stringify(classes));
-  }, [classes]);
-
-  useEffect(() => {
-    secureStorage.setItem('edu_rag_templates', JSON.stringify(templates));
-  }, [templates]);
-
   useEffect(() => {
     secureStorage.setItem('edu_rag_active_ws', activeClassId);
   }, [activeClassId]);
@@ -149,149 +144,182 @@ export default function ClassApp() {
     setPreviousLayoutMode('details-only');
   };
 
-  const handleCreateClass = (name: string, templateId?: string, instituteId?: string) => {
-    const matchedTemplate = templates.find(t => t.id === templateId);
+  const handleCreateClass = async (name: string, templateId?: string, instituteId?: string) => {
+    try {
+      const matchedTemplate = templates.find(t => t.id === templateId);
 
-    const newClass: ClassModel = {
-      id: `ws-${Date.now()}`,
-      instituteId,
-      name,
-      academicYear: '2025-2026',
-      semester: 'Semester 2',
-      subject: matchedTemplate ? matchedTemplate.subject : 'General Course Room',
-      teacherName: 'Elena Rostova',
-      teachingStyle: matchedTemplate ? matchedTemplate.teachingStyle : 'Structured Inquiry-led',
-      experienceLevel: 'Senior Instructor (12 Years)',
-      specialNotes: matchedTemplate ? matchedTemplate.description : 'Welcome to your brand new classItem cohort.',
-      materials: matchedTemplate ? matchedTemplate.materialsPreset.map((m, idx) => ({
-        ...m,
-        id: `mat-${Date.now()}-${idx}`,
-        uploadDate: new Date().toISOString().split('T')[0],
-        versionHistory: []
-      })) : [],
-      instructions: matchedTemplate ? matchedTemplate.instructions.map((i, idx) => ({
-        ...i,
-        id: `inst-${Date.now()}-${idx}`
-      })) : [],
-      students: [],
-      ragSessions: []
-    };
+      const newClass = await classService.createClass({
+        name,
+        instituteId,
+        subject: matchedTemplate ? matchedTemplate.subject : 'General Course Room',
+        teachingStyle: matchedTemplate ? matchedTemplate.teachingStyle : 'Structured Inquiry-led',
+        experienceLevel: 'Senior Instructor (12 Years)',
+        specialNotes: matchedTemplate ? matchedTemplate.description : 'Welcome to your brand new class cohort.',
+        materials: [], // We'd need to actually copy materials from preset to materials table in a real app
+        instructions: matchedTemplate ? (matchedTemplate.instructions as any) : [],
+      });
 
-    setClasses([newClass, ...classes]);
-    setActiveClassId(newClass.id);
-    setViewMode('class');
-    setIsEditMode(false);
-    setLayoutMode('split');
-    setPreviousLayoutMode('split');
-    triggerToast(`Created classroom: "${name}"`);
+      setClasses([newClass, ...classes]);
+      setActiveClassId(newClass.id);
+      setViewMode('class');
+      setIsEditMode(false);
+      setLayoutMode('split');
+      setPreviousLayoutMode('split');
+      triggerToast(`Created classroom: "${name}"`);
+    } catch (err: any) {
+      triggerToast(`Error creating class: ${err.message}`);
+    }
   };
 
-  const handleRenameClass = (id: string, newName: string) => {
-    setClasses(classes.map(w => w.id === id ? { ...w, name: newName } : w));
-    triggerToast("Class rename successfully committed.");
+  const handleRenameClass = async (id: string, newName: string) => {
+    try {
+      await classService.updateClass(id, { name: newName });
+      setClasses(classes.map(w => w.id === id ? { ...w, name: newName } : w));
+      triggerToast("Class rename successfully committed.");
+    } catch (err: any) {
+      triggerToast(`Failed to rename: ${err.message}`);
+    }
   };
 
-  const handleDuplicateClass = (id: string) => {
+  const handleDuplicateClass = async (id: string) => {
     const target = classes.find(w => w.id === id);
     if (!target) return;
 
-    const duplicated: ClassModel = {
-      ...target,
-      id: `ws-${Date.now()}`,
-      name: `${target.name} (Copy)`,
-      students: target.students.map(s => ({ ...s, id: `stud-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` })),
-      materials: target.materials.map(m => ({ ...m, id: `mat-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` })),
-      instructions: target.instructions.map(i => ({ ...i, id: `inst-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` })),
-      ragSessions: [], // Clear session context on duplicates
-      archived: false
-    };
+    try {
+      const duplicated = await classService.createClass({
+        ...target,
+        name: `${target.name} (Copy)`,
+      });
 
-    setClasses([duplicated, ...classes]);
-    setActiveClassId(duplicated.id);
-    triggerToast("Duplicated classroom classItem.");
-  };
-
-  const handleArchiveClass = (id: string) => {
-    setClasses(
-      classes.map((w) => (w.id === id ? { ...w, archived: !w.archived } : w)),
-    );
-    const isNowArchived = classes.find(w => w.id === id)?.archived;
-    triggerToast(isNowArchived ? "Restored classroom context." : "Archived selected classroom classItem.");
-  };
-
-  const handleDeleteClass = (id: string) => {
-    const filtered = classes.filter(w => w.id !== id);
-    setClasses(filtered);
-    if (activeClassId === id) {
-      setActiveClassId(filtered[0]?.id || '');
+      setClasses([duplicated, ...classes]);
+      setActiveClassId(duplicated.id);
+      triggerToast("Duplicated classroom context.");
+    } catch (err: any) {
+      triggerToast(`Failed to duplicate: ${err.message}`);
     }
-    triggerToast("Classroom portfolio permanently removed.");
   };
 
-  const handleUpdateClass = (id: string, updatedFields: Partial<ClassModel>) => {
-    setClasses(classes.map(w => w.id === id ? { ...w, ...updatedFields } : w));
+  const handleArchiveClass = async (id: string) => {
+    const target = classes.find(w => w.id === id);
+    if (!target) return;
+    try {
+      await classService.updateClass(id, { archived: !target.archived });
+      setClasses(classes.map((w) => (w.id === id ? { ...w, archived: !w.archived } : w)));
+      triggerToast(!target.archived ? "Archived classroom context." : "Restored classroom context.");
+    } catch (err: any) {
+      triggerToast(`Failed to archive: ${err.message}`);
+    }
+  };
+
+  const handleDeleteClass = async (id: string) => {
+    try {
+      await classService.deleteClass(id);
+      const filtered = classes.filter(w => w.id !== id);
+      setClasses(filtered);
+      if (activeClassId === id) {
+        setActiveClassId(filtered[0]?.id || '');
+      }
+      triggerToast("Classroom portfolio permanently removed.");
+    } catch (err: any) {
+      triggerToast(`Failed to delete: ${err.message}`);
+    }
+  };
+
+  const handleUpdateClass = async (id: string, updatedFields: Partial<ClassModel>) => {
+    try {
+      await classService.updateClass(id, updatedFields);
+      setClasses(classes.map(w => w.id === id ? { ...w, ...updatedFields } : w));
+    } catch (err: any) {
+      triggerToast(`Failed to update: ${err.message}`);
+    }
   };
 
   // --- Reusable templates mutations ---
-  const handleCreateTemplate = (tpl: Omit<Template, 'id'>) => {
-    const newTpl: Template = {
-      ...tpl,
-      id: `tpl-${Date.now()}`
-    };
-    setTemplates([newTpl, ...templates]);
-    triggerToast(`Created lesson template: "${newTpl.name}"`);
+  const handleCreateTemplate = async (tpl: Omit<Template, 'id'>) => {
+    try {
+      const newTpl = await templateService.createTemplate(tpl);
+      setTemplates([newTpl, ...templates]);
+      triggerToast(`Created lesson template: "${newTpl.name}"`);
+    } catch (err: any) {
+      triggerToast(`Error creating template: ${err.message}`);
+    }
   };
 
   const handleSelectTemplateAsPreset = (tpl: Template) => {
     handleCreateClass(tpl.name, tpl.id);
   };
 
-  const handleSaveCurrentAsTemplate = () => {
+  const handleSaveCurrentAsTemplate = async () => {
     if (!activeClass) return;
-    const newTpl: Template = {
-      id: `tpl-${Date.now()}`,
-      name: `${activeClass.name} Template`,
-      description: `Saved from active class ${activeClass.name} with ${activeClass.materials.length} reference materials files.`,
-      subject: activeClass.subject,
-      teachingStyle: activeClass.teachingStyle,
-      instructions: activeClass.instructions.map(i => ({ title: i.title, type: i.type, content: i.content })),
-      materialsPreset: activeClass.materials.map(m => ({ name: m.name, type: m.type, size: m.size, tags: m.tags }))
-    };
+    try {
+      const newTpl = await templateService.createTemplate({
+        name: `${activeClass.name} Template`,
+        description: `Saved from active class ${activeClass.name} with ${activeClass.materials.length} reference materials files.`,
+        subject: activeClass.subject,
+        teachingStyle: activeClass.teachingStyle,
+        instructions: activeClass.instructions.map(i => ({ title: i.title, type: i.type, content: i.content })),
+        materialsPreset: activeClass.materials.map(m => ({ name: m.name, type: m.type, size: m.size, tags: m.tags }))
+      });
 
-    setTemplates([newTpl, ...templates]);
-    triggerToast("Saved active class roster settings as reusable template!");
+      setTemplates([newTpl, ...templates]);
+      triggerToast("Saved active class roster settings as reusable template!");
+    } catch (err: any) {
+      triggerToast(`Failed to save template: ${err.message}`);
+    }
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    setTemplates(templates.filter(t => t.id !== id));
-    triggerToast("Template portfolio removed.");
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await templateService.deleteTemplate(id);
+      setTemplates(templates.filter(t => t.id !== id));
+      triggerToast("Template portfolio removed.");
+    } catch (err: any) {
+      triggerToast(`Failed to delete template: ${err.message}`);
+    }
   };
 
   // --- Nest Subitems ClassModel management (Materials) ---
-  const handleAddMaterialInClass = (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>) => {
-    const updated = classes.map(w => {
-      if (w.id === wsId) {
-        const newMat: Material = {
-          ...mat,
-          id: `mat-${Date.now()}`,
-          uploadDate: new Date().toISOString().split('T')[0]
-        };
-        return { ...w, materials: [...w.materials, newMat] };
+  const handleAddMaterialInClass = async (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
+    try {
+      let publicUrl = '';
+      if (file) {
+        publicUrl = await materialService.uploadMaterialFile(wsId, file);
       }
-      return w;
-    });
-    setClasses(updated);
-    triggerToast("Uploaded document simulation committed in classroom folders.");
+      
+      const newMat = await materialService.createMaterial(wsId, {
+        name: mat.name,
+        type: mat.type,
+        size: mat.size,
+        tags: mat.tags,
+        url: publicUrl,
+      });
+
+      const updated = classes.map(w => {
+        if (w.id === wsId) {
+          return { ...w, materials: [...w.materials, newMat] };
+        }
+        return w;
+      });
+      setClasses(updated);
+      triggerToast("Uploaded document simulation committed in classroom folders.");
+    } catch (err: any) {
+      triggerToast(`Failed to upload material: ${err.message}`);
+    }
   };
 
-  const handleDeleteMaterialInClass = (wsId: string, matId: string) => {
-    const updated = classes.map((w) =>
-      w.id === wsId
-        ? { ...w, materials: w.materials.filter((m) => m.id !== matId) }
-        : w,
-    );
-    setClasses(updated);
-    triggerToast("Removed document card.");
+  const handleDeleteMaterialInClass = async (wsId: string, matId: string) => {
+    try {
+      await materialService.deleteMaterial(matId);
+      const updated = classes.map((w) =>
+        w.id === wsId
+          ? { ...w, materials: w.materials.filter((m) => m.id !== matId) }
+          : w,
+      );
+      setClasses(updated);
+      triggerToast("Removed document card.");
+    } catch (err: any) {
+      triggerToast(`Failed to delete material: ${err.message}`);
+    }
   };
 
   // --- Prompts/Criteria nested operations ---
@@ -726,7 +754,7 @@ export default function ClassApp() {
                       }`}
                       title="Chat Only (Collapse Details)"
                     >
-                      <ChevronUp className="w-4 h-4" />
+                      <PanelTop className="w-4 h-4" />
                     </button>
                     <button
                       id="view-mode-split-button"
@@ -738,7 +766,7 @@ export default function ClassApp() {
                       }`}
                       title="Split View"
                     >
-                      <Minus className="w-4 h-4" />
+                      <SquareSplitVertical className="w-4 h-4" />
                     </button>
                     <button
                       id="view-mode-details-only-button"
@@ -750,7 +778,7 @@ export default function ClassApp() {
                       }`}
                       title="Details Only (Expand)"
                     >
-                      <Maximize2 className="w-3.5 h-3.5" />
+                      <Square className="w-4 h-4" />
                     </button>
                   </div>
                 )}

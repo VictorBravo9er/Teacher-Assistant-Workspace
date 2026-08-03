@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ClassModel, Template } from "../types/main";
 import CreateClassModal from './CreateClassModal';
 import { ConfirmModal, PromptModal } from './CustomDialogs';
+import BrandLogo from './BrandLogo';
 import {
   Sparkles,
   FolderLock,
@@ -141,27 +142,16 @@ export default function Sidebar({
         title={isCollapsed ? "Expand Sidebar" : ""}
       >
         {isCollapsed ? (
-          <div
-            id="sidebar-brand-icon-collapsed"
-            className="p-2 bg-secondary/10 border border-secondary/20 rounded-xl flex items-center justify-center text-secondary"
-          >
-            <Sparkles className="w-5 h-5" />
+          <div id="sidebar-brand-icon-collapsed">
+            <BrandLogo size="sm" showText={false} />
           </div>
         ) : (
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-secondary/10 border border-secondary/20 rounded-xl flex items-center justify-center text-secondary">
-                <Sparkles className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <h1 className="font-display font-semibold text-sm text-primary-text uppercase tracking-wider">
-                  EduCopilot RAG
-                </h1>
-                <p className="text-[10px] text-primary/80 font-mono font-bold">
-                  Academic Assistant
-                </p>
-              </div>
-            </div>
+            <BrandLogo
+              size="sm"
+              subtitle="Educator Workspace"
+              onClick={() => window.dispatchEvent(new CustomEvent('agy-navigate', { detail: 'landing' }))}
+            />
             <button
               id="sidebar-collapse-button"
               onClick={() => setIsCollapsed(true)}
