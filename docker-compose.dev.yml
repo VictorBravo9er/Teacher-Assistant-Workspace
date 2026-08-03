@@ -1,31 +1,24 @@
 services:
   backend:
     image: ta-backend-dev
-    build:
-      target: prep
     container_name: ta-backend-dev
-    user: "${UID:-1000}:${GID:-1000}"
-    environment:
-      - HOME=/tmp
-    command: sh -c "uv sync --frozen && exec /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port $${BACKEND_PORT} --reload --reload-dir main.py --reload-dir src"
+    command: sh -c "exec /app/.venv/bin/uvicorn src.main:app --host 0.0.0.0 --port $${BACKEND_PORT} --reload --reload-dir src"
     ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "${BACKEND_PORT:-8001}:${BACKEND_PORT:-8001}"
     volumes:
-      - /app/.venv
-      - ./backend:/app
+      - ./backend/src:/app/src:ro
 
   frontend:
     image: ta-frontend-dev
     container_name: ta-frontend-dev
     build:
-      target: base
-    user: "${UID:-1000}:${GID:-1000}"
-    environment:
-      - HOME=/tmp
-    command: sh -c "npm i && exec npm run dev -- --host 0.0.0.0 --port $${FRONTEND_PORT}"
+      target: dev
+    command: sh -c "exec npm run dev -- --host 0.0.0.0 --port $${FRONTEND_PORT}"
     ports:
-      - "${HOST_PORT}:${FRONTEND_PORT}"
+      - "${HOST_PORT:-8000}:${FRONTEND_PORT:-8000}"
     volumes:
-      - /app/node_modules
-      - ./frontend:/app
-    depends_on: backend
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+      - ./frontend/index.html:/app/index.html:ro
+      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
