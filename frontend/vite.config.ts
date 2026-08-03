@@ -32,7 +32,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: process.env.BACKEND_URL || "http://localhost:8000",
+        target: `http://${process.env.BACKEND_HOST || "localhost"}:${process.env.BACKEND_PORT || 8000}`,
         changeOrigin: true,
       },
     },
