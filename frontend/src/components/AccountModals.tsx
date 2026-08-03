@@ -49,7 +49,7 @@ export default function AccountModals({ activeModal, onClose, onTriggerToast }: 
                 <h4 className="font-mono text-[10px] uppercase font-bold text-muted-text">Academic Licenses</h4>
                 <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex justify-between items-center">
                   <div>
-                    <span className="font-semibold text-primary block">EduAssistant Partner API</span>
+                    <span className="font-semibold text-primary block">Teach&Learn Pro Educator License</span>
                     <span className="text-[10px] text-primary/80 font-mono block mt-0.5">Full access key granted</span>
                   </div>
                   <ShieldCheck className="w-5 h-5 text-primary" />

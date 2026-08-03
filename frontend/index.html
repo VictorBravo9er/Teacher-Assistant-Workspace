@@ -3,11 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Teacher Assistant Workspace</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>Teach&Learn — The Educator Workspace</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+    
+      html.dark {
+        color-scheme: dark;
+        background-color: #0B0F19;
+        color: #F9FAFB;
+      }
+    
+      body {
+        margin: 0;
+        background-color: inherit;
+        color: inherit;
+      }
+    </style>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('teach_and_learn_theme') || localStorage.getItem('didactiq_theme') || localStorage.getItem('edu_rag_theme') || 'system';
+
+          var isDark = saved === 'dark' ||
+            (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) { }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

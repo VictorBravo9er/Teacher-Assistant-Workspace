@@ -7,6 +7,7 @@ import {
   StudentUpload,
 } from "../types/main";
 import { ConfirmModal, PromptModal } from './CustomDialogs';
+import { studentService } from '../services/studentService';
 import {
   Mail,
   Phone,
@@ -55,9 +56,12 @@ export default function StudentRegister({
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
 
   // Helper for performance colors
-  const getPerformanceStyles = (perf: Student['performanceIndicator']) => {
-    switch (perf) {
+  const getPerformanceStyles = (perf?: string) => {
+    const normalized = (perf || 'average').toLowerCase();
+    switch (normalized) {
       case 'excellent':
+      case 'high':
+      case 'top':
         return {
           bg: 'bg-success/15 border-success/30',
           text: 'text-success',
@@ -69,20 +73,25 @@ export default function StudentRegister({
           text: 'text-secondary',
           dot: 'bg-secondary'
         };
-      case 'average':
-        return {
-          bg: 'bg-warning/15 border-warning/30',
-          text: 'text-warning',
-          dot: 'bg-warning'
-        };
       case 'critical':
+      case 'poor':
+      case 'low':
+      case 'needs-attention':
         return {
           bg: 'bg-error/15 border-error/30',
           text: 'text-error',
           dot: 'bg-error'
         };
+      case 'average':
+      default:
+        return {
+          bg: 'bg-warning/15 border-warning/30',
+          text: 'text-warning',
+          dot: 'bg-warning'
+        };
     }
   };
+
 
   const handleSelectStudent = (id: string) => {
     setSelectedStudentId(id);
@@ -92,12 +101,12 @@ export default function StudentRegister({
   };
 
   // Student list mutations
-  const handleAddNewStudent = (name: string) => {
+  const handleAddNewStudent = async (name: string) => {
     if (!name.trim()) return;
     const roll = `M10-0${classItem.students.length + 1}`;
 
     const newStudent: Student = {
-      id: `stud-${Date.now()}`,
+      id: `stud-${Date.now()}`, // Temporary ID
       name,
       rollNumber: roll,
       email: `${name.toLowerCase().replace(/[^a-z]/g, '')}@school.edu`,
@@ -118,17 +127,36 @@ export default function StudentRegister({
       avatarSeed: name.split(' ')[0] || 'Student'
     };
 
-    onUpdateClass(classItem.id, {
-      students: [...classItem.students, newStudent]
-    });
-    handleSelectStudent(newStudent.id);
+    try {
+      await studentService.addStudentToClass(classItem.id, newStudent);
+      onUpdateClass(classItem.id, {
+        students: [...classItem.students, newStudent]
+      });
+      handleSelectStudent(newStudent.id);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Failed to add student: ${e.message}`);
+    }
   };
 
-  const handleUpdateStudentDetails = (studentId: string, updatedFields: Partial<Student>) => {
-    const updated = classItem.students.map((s) =>
-      s.id === studentId ? { ...s, ...updatedFields } : s,
-    );
-    onUpdateClass(classItem.id, { students: updated });
+  const handleUpdateStudentDetails = async (studentId: string, updatedFields: Partial<Student>) => {
+    try {
+      // Optimistic update
+      const updated = classItem.students.map((s) =>
+        s.id === studentId ? { ...s, ...updatedFields } : s,
+      );
+      onUpdateClass(classItem.id, { students: updated });
+      
+      // We only sync specific fields to backend in this mock
+      if (updatedFields.performanceIndicator || updatedFields.grades) {
+        const student = updated.find(s => s.id === studentId);
+        if (student) {
+          await studentService.updateStudentClassData(classItem.id, studentId, student);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // Grade nested operations
@@ -225,10 +253,16 @@ export default function StudentRegister({
     handleUpdateStudentDetails(selectedStudent.id, { uploads: filtered });
   };
 
-  const handleDeleteStudent = (studId: string) => {
-    const filtered = classItem.students.filter(s => s.id !== studId);
-    onUpdateClass(classItem.id, { students: filtered });
-    setSelectedStudentId(null);
+  const handleDeleteStudent = async (studId: string) => {
+    try {
+      await studentService.removeStudentFromClass(classItem.id, studId);
+      const filtered = classItem.students.filter(s => s.id !== studId);
+      onUpdateClass(classItem.id, { students: filtered });
+      setSelectedStudentId(null);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Failed to delete student: ${e.message}`);
+    }
   };
 
   return (

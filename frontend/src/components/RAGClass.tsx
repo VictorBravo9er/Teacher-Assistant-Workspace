@@ -427,7 +427,7 @@ export default function RAGClass({
             <input
               id="rag-chat-input"
               type="text"
-              placeholder="Ask AI Copilot to grade assessments, calculate topic mastery regression, or write parent tips..."
+              placeholder="Ask Teach&Learn about student submissions, class averages, or grading recommendations..."
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               disabled={isGeneratingAI || !activeSession}
@@ -444,8 +444,7 @@ export default function RAGClass({
             </button>
           </form>
           <p className="text-[10px] text-muted-text font-mono text-center mt-2.5">
-            Press Enter to submit. EduCopilot evaluates syllabus documents and
-            custom student rosters in real-time.
+            Press Enter to submit. Ask any question about your students, assignments, or course materials.
           </p>
         </div>
       </div>
