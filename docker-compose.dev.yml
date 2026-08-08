@@ -1,22 +1,33 @@
+# Development Override Configuration
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
 services:
+  # ==========================================
+  # Backend API Service (Dev Override)
+  # ==========================================
   backend:
     image: ta-backend-dev
     container_name: ta-backend-dev
-    command: sh -c "exec /app/.venv/bin/uvicorn src.main:app --host 0.0.0.0 --port $${BACKEND_PORT} --reload --reload-dir src"
+    build:
+      target: dev
     ports:
-      - "${BACKEND_PORT:-8001}:${BACKEND_PORT:-8001}"
+      # Expose backend port directly to host for local testing / Swagger UI
+      - "${BACKEND_PORT:-8090}:${BACKEND_PORT:-8090}"
     volumes:
+      # Mount source code for live-reloading (read-only for security)
       - ./backend/src:/app/src:ro
 
+  # ==========================================
+  # Frontend Web Service (Dev Override)
+  # ==========================================
   frontend:
     image: ta-frontend-dev
     container_name: ta-frontend-dev
     build:
       target: dev
-    command: sh -c "exec npm run dev -- --host 0.0.0.0 --port $${FRONTEND_PORT}"
-    ports:
-      - "${HOST_PORT:-8000}:${FRONTEND_PORT:-8000}"
+    # Note: Startup command (npm run dev) is safely baked into the Dockerfile dev stage
     volumes:
+      # Mount source files explicitly to avoid host node_modules conflicts
       - ./frontend/src:/app/src:ro
       - ./frontend/public:/app/public:ro
       - ./frontend/index.html:/app/index.html:ro

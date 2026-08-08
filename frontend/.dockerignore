@@ -4,4 +4,8 @@ dist/
 .gitignore
 .env*
 .vite
+.node
+.npm
+.supabase
+.vscode
 UI_ELEMENT_IDS.md
