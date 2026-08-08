@@ -87,4 +87,8 @@ def main(db_url: str | None = None):
 
 
 if __name__ == "__main__":
-    main()
+    from _env_helper import (  # pyright: ignore[reportImplicitRelativeImport]
+        POSTGRES_URI,
+    )
+
+    main(POSTGRES_URI)

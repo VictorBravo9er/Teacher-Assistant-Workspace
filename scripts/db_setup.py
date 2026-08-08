@@ -14,8 +14,6 @@ try:
 except ImportError:
     root_dir = Path(__file__).resolve().parent.parent
     venv_python = root_dir / "backend" / ".venv" / "bin" / "python"
-    print(f"setting root dir: {root_dir}")
-    print(f"setting python binary: {venv_python}")
 
     if venv_python.exists() and sys.executable != str(venv_python):
         print(f"🔄 Relaunching script using python binary: {venv_python}")
@@ -30,8 +28,6 @@ except ImportError:
 # Add scripts directory to sys.path to allow importing _env_helper
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _env_helper  # pyright: ignore[reportImplicitRelativeImport]
-
-exit(code=0)
 
 
 def run_sql_file(filepath: Path, conn: psycopg.Connection):
@@ -64,7 +60,11 @@ def main():
     with psycopg.connect(db_url, autocommit=True) as conn:
         # Define the exact sequence of files to execute
         schema_reset = root_dir / "schema" / "schema-reset.sql"
+
         schema_db = root_dir / "schema" / "schema-db.sql"
+        bucket_materials = root_dir / "schema" / "bucket-materials.sql"
+        bucket_submissions = root_dir / "schema" / "bucket-submissions.sql"
+
         schema_langgraph = root_dir / "schema" / "schema-langgraph.sql"
 
         print("=" * 60)
@@ -74,21 +74,22 @@ def main():
         # Step 1: Drop previous DB state
         run_sql_file(schema_reset, conn)
 
-        # Step 2: Main Database Schema
+        # Step 2: Main Database Schema & storage_bucket
         run_sql_file(schema_db, conn)
+        run_sql_file(bucket_materials, conn)
+        run_sql_file(bucket_submissions, conn)
 
         # Step 3: LangChain / LangGraph setup (creates schemas/tables using Python)
-        from setup_langchain_postgres import (  # pyright: ignore[reportImplicitRelativeImport]
+        from _setup_langchain_postgres import (  # pyright: ignore[reportImplicitRelativeImport]
             setup_database,
         )
-
         setup_database(db_langgraph_url)
 
         # Step 4: LangGraph RLS and Security constraints
         run_sql_file(schema_langgraph, conn)
 
         # Step 5: Generate TS and Python Types via Supabase CLI
-        from generate_types import (  # pyright: ignore[reportImplicitRelativeImport]
+        from _generate_types import (  # pyright: ignore[reportImplicitRelativeImport]
             main as generate_types,
         )
 
