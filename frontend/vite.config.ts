@@ -7,6 +7,24 @@ import {defineConfig} from 'vite';
 
 export default defineConfig({
   plugins: [
+    {
+      name: "ignore-dev-tools-dir-read",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (
+            req.url &&
+            (req.url === "/app" ||
+              req.url.startsWith("/app?") ||
+              req.url === "/app/")
+          ) {
+            res.statusCode = 204;
+            res.end();
+            return;
+          }
+          next();
+        });
+      },
+    },
     react(),
     tailwindcss(),
     // javascriptObfuscator({
@@ -26,13 +44,13 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   server: {
     proxy: {
       "/api": {
-        target: `http://${process.env.BACKEND_HOST || "localhost"}:${process.env.BACKEND_PORT || 8000}`,
+        target: `http://${process.env.BACKEND_HOST || "localhost"}:${process.env.BACKEND_PORT || 8090}`,
         changeOrigin: true,
       },
     },
