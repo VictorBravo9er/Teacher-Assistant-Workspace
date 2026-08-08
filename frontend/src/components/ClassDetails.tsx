@@ -25,6 +25,8 @@ import {
 interface ClassDetailsProps {
   classItem: ClassModel;
   isEditMode: boolean;
+  activeSubTab?: "profile" | "materials" | "prompts";
+  onSubTabChange?: (tab: "profile" | "materials" | "prompts") => void;
   onUpdateClass: (id: string, updatedFields: Partial<ClassModel>) => void;
   onAddMaterial: (
     classId: string,
@@ -42,15 +44,23 @@ interface ClassDetailsProps {
 export default function ClassDetails({
   classItem,
   isEditMode,
+  activeSubTab: controlledTab,
+  onSubTabChange,
   onUpdateClass,
   onAddMaterial,
   onDeleteMaterial,
   onAddInstruction,
   onDeleteInstruction,
 }: ClassDetailsProps) {
-  const [activeSubTab, setActiveSubTab] = useState<
+  const [internalTab, setInternalTab] = useState<
     "profile" | "materials" | "prompts"
   >("profile");
+
+  const activeSubTab = controlledTab ?? internalTab;
+  const setActiveSubTab = (tab: "profile" | "materials" | "prompts") => {
+    setInternalTab(tab);
+    onSubTabChange?.(tab);
+  };
 
   // Local form states for files/materials
   const [newFileName, setNewFileName] = useState("");
@@ -176,25 +186,70 @@ export default function ClassDetails({
       {/* Tab Contents Area */}
       <div className="flex-1 overflow-y-auto p-4">
         {/* Profile Tab */}
-        {activeSubTab === "profile" && (
-          <div className="space-y-4">
-            {/* Lead Class Metrics Cards */}
-            <div className="grid grid-cols-2 gap-3">
+        <div className={activeSubTab === "profile" ? "space-y-4" : "hidden"}>
+          {/* Lead Class Metrics Cards */}
+          <div className={`grid ${isEditMode ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
+            {!isEditMode && (
               <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
                 <span className="text-[10px] font-mono text-muted-text block uppercase">
-                  Curriculum Course
+                  Institution / School
                 </span>
+                <span
+                  className="text-xs font-semibold text-primary-text block mt-1 truncate"
+                  title={classItem.instituteName || "Independent"}
+                >
+                  {classItem.instituteName || "Independent"}
+                </span>
+                {classItem.instituteAddress && (
+                  <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
+                    {classItem.instituteAddress}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
+              <span className="text-[10px] font-mono text-muted-text block uppercase">
+                Curriculum Course
+              </span>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={classItem.subject}
+                  onChange={(e) => onUpdateClass(classItem.id, { subject: e.target.value })}
+                  className="w-full bg-transparent text-xs text-primary-text font-semibold focus:outline-none focus:border-b focus:border-primary/50 mt-1 pb-0.5"
+                />
+              ) : (
                 <span className="text-xs font-semibold text-primary-text block mt-1 truncate">
                   {classItem.subject}
                 </span>
-              </div>
-              <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
-                <span className="text-[10px] font-mono text-muted-text block uppercase">
-                  Academic Period
-                </span>
+              )}
+            </div>
+            <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
+              <span className="text-[10px] font-mono text-muted-text block uppercase">
+                Academic Period
+              </span>
+              {isEditMode ? (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    placeholder="Semester"
+                    value={classItem.semester}
+                    onChange={(e) => onUpdateClass(classItem.id, { semester: e.target.value })}
+                    className="w-full bg-transparent text-xs text-primary-text font-semibold focus:outline-none focus:border-b focus:border-primary/50 pb-0.5"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Year"
+                    value={classItem.academicYear}
+                    onChange={(e) => onUpdateClass(classItem.id, { academicYear: e.target.value })}
+                    className="w-full bg-transparent text-xs text-primary-text font-semibold focus:outline-none focus:border-b focus:border-primary/50 pb-0.5"
+                  />
+                </div>
+              ) : (
                 <span className="text-xs font-semibold text-primary-text block mt-1 truncate">
-                  {classItem.semester}, {classItem.academicYear}
+                    {classItem.semester}, {classItem.academicYear}
                 </span>
+              )}
               </div>
             </div>
 
@@ -285,12 +340,10 @@ export default function ClassDetails({
               </p>
             </div>
           </div>
-        )}
 
         {/* Materials Repository Tab */}
-        {activeSubTab === "materials" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <div className={activeSubTab === "materials" ? "space-y-4" : "hidden"}>
+          <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Classroom Document Repo
               </h4>
@@ -440,12 +493,10 @@ export default function ClassDetails({
               )}
             </div>
           </div>
-        )}
 
         {/* AI Custom Instructions Tab */}
-        {activeSubTab === "prompts" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <div className={activeSubTab === "prompts" ? "space-y-4" : "hidden"}>
+          <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Rule Prompt Templates
               </h4>
@@ -567,7 +618,6 @@ export default function ClassDetails({
               )}
             </div>
           </div>
-        )}
       </div>
 
       {/* Version History Modal Overlay (simulated overlay) */}

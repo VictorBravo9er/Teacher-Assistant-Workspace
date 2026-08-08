@@ -146,7 +146,7 @@ export default function StudentRegister({
         s.id === studentId ? { ...s, ...updatedFields } : s,
       );
       onUpdateClass(classItem.id, { students: updated });
-      
+
       // We only sync specific fields to backend in this mock
       if (updatedFields.performanceIndicator || updatedFields.grades) {
         const student = updated.find(s => s.id === studentId);
@@ -309,7 +309,7 @@ export default function StudentRegister({
                 key={stud.id}
                 id={`student-card-${stud.id}`}
                 onClick={() => handleSelectStudent(stud.id)}
-                className={`group min-w-[210px] max-w-[220px] shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
+                className={`group min-w-52.5 max-w-55 shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
                   isSelected
                     ? "border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20"
                     : "border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40"

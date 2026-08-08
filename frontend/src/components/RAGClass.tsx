@@ -336,7 +336,7 @@ export default function RAGClass({
 
                     {/* Dynamic SVG Visualizer widget */}
                     {isAssistant && msg.visualization && (
-                      <div className="bg-elevated border border-border-color rounded-2xl p-4 w-full md:min-w-[480px] hover:border-primary/50 transition-colors shadow-xl">
+                      <div className="bg-elevated border border-border-color rounded-2xl p-4 w-full md:min-w-120 hover:border-primary/50 transition-colors shadow-xl">
                         <div className="pb-3 border-b border-border-color mb-4">
                           <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-primary">
                             Class Visualizer

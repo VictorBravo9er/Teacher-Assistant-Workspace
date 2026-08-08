@@ -88,6 +88,8 @@ export interface RAGSession {
 export interface ClassModel {
   id: string;
   instituteId?: string;
+  instituteName?: string;
+  instituteAddress?: string;
   name: string;
   academicYear: string;
   semester: string;

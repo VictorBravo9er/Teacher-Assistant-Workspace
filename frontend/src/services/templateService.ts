@@ -62,6 +62,32 @@ export const templateService = {
     };
   },
 
+  async updateTemplate(id: string, payload: Partial<Template>): Promise<Template> {
+    const { data, error } = await supabase
+      .from('templates')
+      .update({
+        name: payload.name,
+        description: payload.description,
+        subject: payload.subject,
+        teaching_style: payload.teachingStyle,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description || '',
+      subject: data.subject || '',
+      teachingStyle: data.teaching_style || '',
+      instructions: payload.instructions || [],
+      materialsPreset: payload.materialsPreset || [],
+    };
+  },
+
   async deleteTemplate(id: string): Promise<void> {
     const { error } = await supabase
       .from('templates')
