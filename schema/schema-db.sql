@@ -19,10 +19,73 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto" with schema extensions;
 
 
 
+-- ==========================================
+-- Custom Enums
+-- ==========================================
+DO $$ BEGIN
+    CREATE TYPE public.material_category AS ENUM ('Study Material', 'Note', 'Assigned Book', 'Link', 'Practical', 'Assignment', 'Test', 'Exam');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.material_content_type AS ENUM ('File', 'URL', 'Text');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.submission_type AS ENUM ('Assignment Submission', 'Lab Work', 'Practical Completed', 'Exam Paper');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.submission_status AS ENUM ('Assigned', 'Pending', 'Submitted', 'Evaluated', 'Graded');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.attendance_status AS ENUM ('Present', 'Absent', 'Late', 'Excused');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.institute_type AS ENUM ('Primary School', 'Middle School', 'High School', 'K-12', 'College', 'University', 'Vocational School', 'Tutoring Center', 'Private Tutor', 'Freelancer', 'Training Agency', 'Online Academy', 'Homeschool Co-op', 'Other');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.instruction_type AS ENUM ('System Persona', 'Grading Rubric', 'Lesson Plan Guideline', 'Material Generation Rule', 'Student Interaction Rule', 'Assessment Creation Rule', 'Content Filtering Rule', 'General Policy');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.experience_level AS ENUM ('Beginner', 'Intermediate', 'Advanced', 'Mixed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.teaching_style AS ENUM ('Lecture', 'Socratic Method', 'Interactive', 'Project-Based', 'Flipped Classroom', 'Discussion-Based', 'Hands-On');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.assessment_preference AS ENUM ('Multiple Choice', 'Short Answer', 'Essays', 'Presentations', 'Single Project', 'Group Projects', 'Oral Exams', 'Peer Review');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.institutes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
-    type TEXT,
+    type public.institute_type,
     district TEXT,
     city TEXT,
     state TEXT,
@@ -159,11 +222,11 @@ CREATE TABLE IF NOT EXISTS public.classes (
     semester TEXT,
     subject TEXT,
     teacher_name TEXT,
-    teaching_style TEXT,
-    experience_level TEXT,
+    teaching_style public.teaching_style[],
+    experience_level public.experience_level,
     special_notes TEXT,
-    assessment_preferences TEXT,
-    archived BOOLEAN DEFAULT false,
+    assessment_preferences public.assessment_preference[],
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -188,9 +251,10 @@ CREATE TABLE IF NOT EXISTS public.templates (
     name TEXT NOT NULL,
     description TEXT,
     subject TEXT,
-    teaching_style TEXT,
-    materials_preset JSONB DEFAULT '[]'::jsonb,
-    instructions JSONB DEFAULT '[]'::jsonb,
+    teaching_style public.teaching_style[],
+    experience_level public.experience_level,
+    assessment_preferences public.assessment_preference[],
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -216,6 +280,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     learning_style TEXT, -- 'Visual', 'Auditory', 'Kinesthetic'
     strengths TEXT[],
     weaknesses TEXT[],
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -236,8 +301,6 @@ CREATE TABLE IF NOT EXISTS public.class_students (
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     performance_tier TEXT, -- 'High', 'Average', 'At Risk' (Class specific)
-    grades JSONB DEFAULT '[]'::jsonb,
-    attendance JSONB DEFAULT '{}'::jsonb,
     behavioral_notes TEXT,
     PRIMARY KEY (class_id, student_id)
 );
@@ -263,13 +326,14 @@ CREATE TABLE IF NOT EXISTS public.materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    category TEXT NOT NULL DEFAULT 'study_material', -- 'study_material', 'note', 'assigned_book', 'link', 'practical', 'assignment', 'test', 'exam'
-    content_type TEXT NOT NULL DEFAULT 'file', -- 'file', 'url', 'text'
+    category public.material_category NOT NULL DEFAULT 'Study Material',
+    content_type public.material_content_type NOT NULL DEFAULT 'File',
     storage_paths TEXT[],
     link_urls TEXT[],
     size TEXT,
     tags TEXT[],
     version_history JSONB DEFAULT '[]'::jsonb,
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -334,10 +398,10 @@ CREATE TABLE IF NOT EXISTS public.instructions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    type TEXT,
+    type public.instruction_type NOT NULL DEFAULT 'General Policy',
     content TEXT NOT NULL,
     when_to_apply TEXT,
-    is_active BOOLEAN DEFAULT true,
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -403,11 +467,11 @@ CREATE TABLE IF NOT EXISTS public.student_materials (
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     material_id UUID REFERENCES public.materials(id) ON DELETE CASCADE,
-    submission_type TEXT NOT NULL DEFAULT 'assignment_submission', -- 'assignment_submission', 'lab_work', 'practical_completed', 'exam_paper'
+    submission_type public.submission_type NOT NULL DEFAULT 'Assignment Submission',
     storage_paths TEXT[],
     submission_urls TEXT[],
     content TEXT,
-    status TEXT NOT NULL DEFAULT 'assigned', -- 'assigned', 'pending', 'submitted', 'evaluated', 'graded'
+    status public.submission_status NOT NULL DEFAULT 'Assigned',
     due_at TIMESTAMP WITH TIME ZONE,
     is_late BOOLEAN DEFAULT false,
     grade TEXT,
@@ -456,7 +520,7 @@ CREATE TABLE IF NOT EXISTS public.attendance_records (
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     date DATE NOT NULL,
-    status TEXT NOT NULL, -- e.g., 'present', 'absent', 'late'
+    status public.attendance_status NOT NULL,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -526,3 +590,78 @@ CREATE POLICY "Users can only delete their own chat sessions" ON public.chat_ses
 -- Chat System Indexes
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON public.chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_class_id ON public.chat_sessions(class_id);
+
+-- ==========================================
+-- 11. Schema Documentation (Comments)
+-- ==========================================
+
+-- Table Comments
+COMMENT ON TABLE public.institutes IS 'Represents educational organizations or individual teaching entities.';
+COMMENT ON TABLE public.classes IS 'Core entity representing a specific course or class taught by a user.';
+COMMENT ON TABLE public.templates IS 'Blueprints created by teachers to quickly scaffold new classes with preset configurations and materials.';
+COMMENT ON TABLE public.students IS 'Global roster of students managed by a teacher across all their classes.';
+COMMENT ON TABLE public.class_students IS 'Junction table linking students to specific classes, tracking class-specific performance and notes.';
+COMMENT ON TABLE public.materials IS 'Central repository of all teaching resources (files, links, tests) uploaded by the user.';
+COMMENT ON TABLE public.template_materials IS 'Junction linking materials to a template.';
+COMMENT ON TABLE public.class_materials IS 'Junction linking materials to a specific class.';
+COMMENT ON TABLE public.instructions IS 'Central repository of AI prompts, rubrics, and rules created by the teacher.';
+COMMENT ON TABLE public.template_instructions IS 'Junction linking AI instructions to a template.';
+COMMENT ON TABLE public.class_instructions IS 'Junction linking AI instructions to a specific class context.';
+COMMENT ON TABLE public.student_materials IS 'Tracks individual student assignments, submissions, grading status, and rubric breakdowns for a specific class.';
+COMMENT ON TABLE public.attendance_records IS 'Daily or session-based attendance logs for students in a class.';
+COMMENT ON TABLE public.chat_sessions IS 'Metadata for AI chat sessions. Note: Message history is stored in the langgraph schema.';
+
+-- Column Comments
+COMMENT ON COLUMN public.institutes.type IS 'Classifies the organization (e.g., High School, University).';
+COMMENT ON COLUMN public.institutes.district IS 'School district or regional administration name.';
+
+COMMENT ON COLUMN public.classes.academic_year IS 'The academic year (e.g., 2024-2025).';
+COMMENT ON COLUMN public.classes.semester IS 'The specific term (e.g., Fall, Spring).';
+COMMENT ON COLUMN public.classes.teaching_style IS 'Array of pedagogical approaches used in this class.';
+COMMENT ON COLUMN public.classes.experience_level IS 'The intended proficiency level of the students.';
+COMMENT ON COLUMN public.classes.assessment_preferences IS 'Array of preferred evaluation methods.';
+COMMENT ON COLUMN public.classes.is_archived IS 'Soft-delete flag to hide the class without losing historical data.';
+
+COMMENT ON COLUMN public.templates.is_archived IS 'Soft-delete flag to hide the template.';
+
+COMMENT ON COLUMN public.students.learning_style IS 'The students primary learning modality (e.g., Visual, Auditory).';
+COMMENT ON COLUMN public.students.strengths IS 'Free-form tags describing what the student excels at.';
+COMMENT ON COLUMN public.students.weaknesses IS 'Free-form tags describing areas where the student struggles.';
+COMMENT ON COLUMN public.students.is_archived IS 'Soft-delete flag for the global roster.';
+
+COMMENT ON COLUMN public.class_students.performance_tier IS 'Class-specific evaluation of the students performance (e.g., High Performing, At Risk).';
+COMMENT ON COLUMN public.class_students.behavioral_notes IS 'Class-specific notes on the students behavior.';
+
+COMMENT ON COLUMN public.materials.category IS 'Broad classification of the resource.';
+COMMENT ON COLUMN public.materials.content_type IS 'The physical medium (File, URL, Text).';
+COMMENT ON COLUMN public.materials.storage_paths IS 'Array of Supabase Storage bucket paths if files were uploaded.';
+COMMENT ON COLUMN public.materials.link_urls IS 'Array of external web links if applicable.';
+COMMENT ON COLUMN public.materials.version_history IS 'JSONB array tracking previous versions of the material.';
+COMMENT ON COLUMN public.materials.is_archived IS 'Soft-delete flag.';
+
+COMMENT ON COLUMN public.instructions.type IS 'Categorizes the prompt (e.g., Grading Rubric, System Persona).';
+COMMENT ON COLUMN public.instructions.when_to_apply IS 'Semantic hint used by the AI to determine when to trigger this instruction.';
+COMMENT ON COLUMN public.instructions.is_archived IS 'Soft-delete flag.';
+
+COMMENT ON COLUMN public.student_materials.submission_type IS 'The nature of the students submitted work.';
+COMMENT ON COLUMN public.student_materials.status IS 'Lifecycle state (Assigned, Pending, Submitted, Evaluated, Graded).';
+COMMENT ON COLUMN public.student_materials.rubric_breakdown IS 'JSONB object containing granular AI scoring against rubric criteria.';
+COMMENT ON COLUMN public.student_materials.feedback IS 'Public feedback visible to the student.';
+COMMENT ON COLUMN public.student_materials.private_teacher_notes IS 'Hidden notes only visible to the teacher.';
+
+COMMENT ON COLUMN public.attendance_records.status IS 'Daily attendance state (Present, Absent, etc.).';
+
+COMMENT ON COLUMN public.chat_sessions.title IS 'Auto-generated or custom title for the AI chat session.';
+COMMENT ON COLUMN public.chat_sessions.class_id IS 'Optional link to restrict the AI context to a specific class.';
+
+-- Enum Comments
+COMMENT ON TYPE public.material_category IS 'Broad classification of teaching materials.';
+COMMENT ON TYPE public.material_content_type IS 'The physical medium of the material (File upload, URL link, or raw Text).';
+COMMENT ON TYPE public.submission_type IS 'The nature of the work the student is submitting.';
+COMMENT ON TYPE public.submission_status IS 'Lifecycle state of a student submission.';
+COMMENT ON TYPE public.attendance_status IS 'Standard attendance states.';
+COMMENT ON TYPE public.institute_type IS 'The classification of the educational organization.';
+COMMENT ON TYPE public.instruction_type IS 'Categorizes the purpose of an AI prompt or rule.';
+COMMENT ON TYPE public.experience_level IS 'Target proficiency level of a class or template.';
+COMMENT ON TYPE public.teaching_style IS 'Pedagogical approaches utilized in a class.';
+COMMENT ON TYPE public.assessment_preference IS 'Preferred methods of evaluating students.';
