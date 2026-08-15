@@ -17,8 +17,9 @@ export const instructionService = {
       return {
         id: i.id,
         title: i.title,
-        type: (i.type || 'global') as any,
+        type: i.type,
         content: i.content,
+        whenToApply: i.when_to_apply,
       } as Instruction;
     });
   },
@@ -33,9 +34,9 @@ export const instructionService = {
       .insert({
         user_id: user.id,
         title: payload.title || 'Custom Instruction',
-        type: payload.type || 'global',
+        type: payload.type || 'System Persona', // Should match enum
         content: payload.content || '',
-        is_active: true,
+        when_to_apply: payload.whenToApply,
       })
       .select()
       .single();
@@ -55,8 +56,9 @@ export const instructionService = {
     return {
       id: instruction.id,
       title: instruction.title,
-      type: (instruction.type || 'global') as any,
+      type: instruction.type,
       content: instruction.content,
+      whenToApply: instruction.when_to_apply,
     };
   },
 
