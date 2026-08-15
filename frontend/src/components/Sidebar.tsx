@@ -622,10 +622,10 @@ export default function Sidebar({
           onCreateTemplate({
             name,
             description: "Custom template created from sidebar.",
-            subject: "General",
-            teachingStyle: "Structured",
+            subject: 'General',
+            teachingStyle: ['Interactive'],
+            assessmentPreferences: ['Multiple Choice'],
             instructions: [],
-            materialsPreset: [],
           });
           setIsTemplatePromptOpen(false);
         }}

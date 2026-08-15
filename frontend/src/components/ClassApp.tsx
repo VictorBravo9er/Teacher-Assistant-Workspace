@@ -22,6 +22,7 @@ import RAGClass from './RAGClass';
 import CommandPalette from './CommandPalette';
 import AccountModals from './AccountModals';
 import { getMockChatResponse } from '../mockChat';
+import { LoadingOverlay } from './CustomDialogs';
 import {
   Sparkles,
   X,
@@ -48,7 +49,7 @@ export default function ClassApp() {
   const { classes, templates, loading, error, mutateClasses, mutateTemplates, refresh } = useWorkspaceData();
 
   const [activeClassId, setActiveClassId] = useState<string>(() => {
-    const saved = secureStorage.getItem('edu_rag_active_ws');
+    const saved = secureStorage.getCachedItemWithTTL<string>('edu_rag_active_ws');
     if (saved && saved !== 'null') return saved;
     return '';
   });
@@ -73,6 +74,7 @@ export default function ClassApp() {
   >("profile");
   const [activeAccountModal, setActiveAccountModal] = useState<'profile' | 'preferences' | 'settings' | 'subscription' | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [processingMsg, setProcessingMsg] = useState<string | null>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [preEditClassSnapshot, setPreEditClassSnapshot] =
     useState<ClassModel | null>(null);
@@ -116,7 +118,7 @@ export default function ClassApp() {
   }, [theme]);
 
   useEffect(() => {
-    secureStorage.setItem('edu_rag_active_ws', activeClassId);
+    secureStorage.setCachedItemWithTTL('edu_rag_active_ws', activeClassId, 0); // 0 TTL for no expiration
   }, [activeClassId]);
 
   // Autohide toasts
@@ -154,6 +156,7 @@ export default function ClassApp() {
 
   const handleCreateClass = async (name: string, templateId?: string, instituteId?: string) => {
     try {
+      setProcessingMsg(`Creating class "${name}"...`);
       const matchedTemplate = templates.find(t => t.id === templateId);
 
       const newClass = await classService.createClass({
@@ -164,22 +167,36 @@ export default function ClassApp() {
           : "General Course Room",
         teachingStyle: matchedTemplate
           ? matchedTemplate.teachingStyle
-          : "Structured Inquiry-led",
-        experienceLevel: "Senior Instructor (12 Years)",
+          : ["Interactive"],
+        experienceLevel: "Advanced",
         specialNotes: matchedTemplate
           ? matchedTemplate.description
           : "Welcome to your brand new class cohort.",
-        materials: [], // We'd need to actually copy materials from preset to materials table in a real app
+        assessmentPreferences: matchedTemplate 
+          ? matchedTemplate.assessmentPreferences 
+          : ["Multiple Choice"],
+        materials: [],
         instructions: [],
       });
 
-      if (matchedTemplate && matchedTemplate.instructions.length > 0) {
-        const createdInstructions = await Promise.all(
-          matchedTemplate.instructions.map((inst) =>
-            instructionService.createInstruction(newClass.id, inst as any),
-          ),
-        );
-        newClass.instructions = createdInstructions;
+      if (matchedTemplate) {
+        if (matchedTemplate.instructions && matchedTemplate.instructions.length > 0) {
+          const createdInstructions = await Promise.all(
+            matchedTemplate.instructions.map((inst) =>
+              instructionService.createInstruction(newClass.id, inst as any),
+            ),
+          );
+          newClass.instructions = createdInstructions;
+        }
+
+        if (matchedTemplate.materialsPreset && matchedTemplate.materialsPreset.length > 0) {
+          const createdMaterials = await Promise.all(
+            matchedTemplate.materialsPreset.map((mat) =>
+              materialService.duplicateMaterial(newClass.id, mat as any),
+            ),
+          );
+          newClass.materials = createdMaterials;
+        }
       }
 
       setClasses([newClass, ...classes]);
@@ -191,6 +208,8 @@ export default function ClassApp() {
       triggerToast(`Created classroom: "${name}"`);
     } catch (err: any) {
       triggerToast(`Error creating class: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
@@ -209,6 +228,7 @@ export default function ClassApp() {
     if (!target) return;
 
     try {
+      setProcessingMsg(`Duplicating class "${target.name}"...`);
       const duplicated = await classService.createClass({
         ...target,
         name: `${target.name} (Copy)`,
@@ -233,6 +253,8 @@ export default function ClassApp() {
       triggerToast("Duplicated classroom context.");
     } catch (err: any) {
       triggerToast(`Failed to duplicate: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
@@ -301,7 +323,13 @@ export default function ClassApp() {
         subject: activeClass.subject,
         teachingStyle: activeClass.teachingStyle,
         instructions: activeClass.instructions.map(i => ({ title: i.title, type: i.type, content: i.content })),
-        materialsPreset: activeClass.materials.map(m => ({ name: m.name, type: m.type, size: m.size, tags: m.tags }))
+        materialsPreset: activeClass.materials.map(m => ({ 
+          name: m.name, 
+          category: m.category, 
+          content: m.content, 
+          size: m.size, 
+          tags: m.tags 
+        }))
       });
 
       setTemplates([newTpl, ...templates]);
@@ -324,18 +352,27 @@ export default function ClassApp() {
   // --- Nest Subitems ClassModel management (Materials) ---
   const handleAddMaterialInClass = async (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
     try {
-      let publicUrl = '';
+      setProcessingMsg(`Uploading material "${mat.name}"...`);
+      let newMat: Material;
       if (file) {
-        publicUrl = await materialService.uploadMaterialFile(wsId, file);
+        newMat = await materialService.uploadMaterial(wsId, file, {
+          name: mat.name,
+          category: mat.category,
+          tags: mat.tags,
+          dueAt: mat.dueAt,
+          maxScore: mat.maxScore,
+        });
+      } else {
+        const firstPath = mat.content && mat.content[0] ? mat.content[0].path : '';
+        newMat = await materialService.createLinkMaterial(wsId, {
+          name: mat.name,
+          url: firstPath || 'https://example.com',
+          category: mat.category,
+          tags: mat.tags,
+          dueAt: mat.dueAt,
+          maxScore: mat.maxScore,
+        });
       }
-
-      const newMat = await materialService.createMaterial(wsId, {
-        name: mat.name,
-        type: mat.type,
-        size: mat.size,
-        tags: mat.tags,
-        url: publicUrl,
-      });
 
       const updated = classes.map(w => {
         if (w.id === wsId) {
@@ -344,14 +381,18 @@ export default function ClassApp() {
         return w;
       });
       setClasses(updated);
-      triggerToast("Uploaded document simulation committed in classroom folders.");
+      triggerToast("Uploaded course material committed successfully.");
     } catch (err: any) {
+      console.error("handleAddMaterialInClass error:", err);
       triggerToast(`Failed to upload material: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
   const handleDeleteMaterialInClass = async (wsId: string, matId: string) => {
     try {
+      setProcessingMsg("Deleting material...");
       await materialService.deleteMaterial(matId);
       const updated = classes.map((w) =>
         w.id === wsId
@@ -362,6 +403,8 @@ export default function ClassApp() {
       triggerToast("Removed document card.");
     } catch (err: any) {
       triggerToast(`Failed to delete material: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
@@ -419,7 +462,11 @@ export default function ClassApp() {
           if (updatedFields.specialNotes !== undefined) update.description = updatedFields.specialNotes;
           if (updatedFields.materials !== undefined) {
             update.materialsPreset = updatedFields.materials.map(m => ({
-              name: m.name, type: m.type as any, size: m.size, tags: m.tags
+              name: m.name,
+              category: m.category || 'Study Material',
+              content: m.content || [],
+              size: m.size,
+              tags: m.tags
             }));
           }
           if (updatedFields.instructions !== undefined) {
@@ -434,13 +481,25 @@ export default function ClassApp() {
     }
   };
 
-  const handleAdapterAddMaterial = (id: string, mat: Omit<Material, 'id' | 'uploadDate'>) => {
+  const handleAdapterAddMaterial = (id: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
     if (viewMode === 'class') {
-      handleAddMaterialInClass(id, mat);
+      handleAddMaterialInClass(id, mat, file);
     } else {
       setTemplates(templates.map(t => {
         if (t.id === id) {
-          return { ...t, materialsPreset: [...t.materialsPreset, { name: mat.name, type: mat.type as any, size: mat.size, tags: mat.tags }] };
+          return {
+            ...t,
+            materialsPreset: [
+              ...(t.materialsPreset || []),
+              {
+                name: mat.name,
+                category: mat.category || 'Study Material',
+                content: mat.content || [],
+                size: mat.size,
+                tags: mat.tags,
+              },
+            ],
+          };
         }
         return t;
       }));
@@ -504,10 +563,11 @@ export default function ClassApp() {
         academicYear: 'N/A',
         semester: 'N/A',
         teacherName: 'Template',
+        assessmentPreferences: activeTemplate.assessmentPreferences || [],
         students: [],
         ragSessions: [],
-        materials: activeTemplate.materialsPreset.map((m, i) => ({ ...m, id: `mat-${i}`, uploadDate: 'N/A' })),
-        instructions: activeTemplate.instructions.map((inst, i) => ({ ...inst, id: `inst-${i}` })),
+        materials: (activeTemplate.materialsPreset || []).map((m, i) => ({ ...m, id: `mat-${i}`, uploadDate: 'N/A' })),
+        instructions: (activeTemplate.instructions || []).map((inst, i) => ({ ...inst, id: `inst-${i}` })),
       } : null);
 
   // --- Client-side Mock Chat execution ---
@@ -770,9 +830,9 @@ export default function ClassApp() {
                             activeClass.semester !== preEditClassSnapshot.semester ||
                             activeClass.academicYear !== preEditClassSnapshot.academicYear ||
                             activeClass.teacherName !== preEditClassSnapshot.teacherName ||
-                            activeClass.teachingStyle !== preEditClassSnapshot.teachingStyle ||
+                            JSON.stringify(activeClass.teachingStyle) !== JSON.stringify(preEditClassSnapshot.teachingStyle) ||
                             activeClass.experienceLevel !== preEditClassSnapshot.experienceLevel ||
-                            activeClass.assessmentPreferences !== preEditClassSnapshot.assessmentPreferences ||
+                            JSON.stringify(activeClass.assessmentPreferences) !== JSON.stringify(preEditClassSnapshot.assessmentPreferences) ||
                             activeClass.specialNotes !== preEditClassSnapshot.specialNotes;
 
                           if (hasChanges) {
@@ -799,7 +859,8 @@ export default function ClassApp() {
                             activeTemplate.name !== preEditTemplateSnapshot.name ||
                             activeTemplate.description !== preEditTemplateSnapshot.description ||
                             activeTemplate.subject !== preEditTemplateSnapshot.subject ||
-                            activeTemplate.teachingStyle !== preEditTemplateSnapshot.teachingStyle;
+                            JSON.stringify(activeTemplate.teachingStyle) !== JSON.stringify(preEditTemplateSnapshot.teachingStyle) ||
+                            JSON.stringify(activeTemplate.assessmentPreferences) !== JSON.stringify(preEditTemplateSnapshot.assessmentPreferences);
 
                           if (hasChanges) {
                             try {
@@ -810,6 +871,7 @@ export default function ClassApp() {
                                   description: activeTemplate.description,
                                   subject: activeTemplate.subject,
                                   teachingStyle: activeTemplate.teachingStyle,
+                                  assessmentPreferences: activeTemplate.assessmentPreferences,
                                 },
                               );
                               triggerToast("Template changes saved to database.");
@@ -941,6 +1003,7 @@ export default function ClassApp() {
                           <StudentRegister
                             classItem={adapterClassItem}
                             onUpdateClass={handleAdapterUpdate}
+                            onTriggerToast={triggerToast}
                           />
                         </div>
                       )}
@@ -957,6 +1020,7 @@ export default function ClassApp() {
                           onDeleteMaterial={handleAdapterDeleteMaterial}
                           onAddInstruction={handleAdapterAddInstruction}
                           onDeleteInstruction={handleAdapterDeleteInstruction}
+                          onTriggerToast={triggerToast}
                         />
                       </div>
                     </>
@@ -974,6 +1038,7 @@ export default function ClassApp() {
                           onDeleteMaterial={handleAdapterDeleteMaterial}
                           onAddInstruction={handleAdapterAddInstruction}
                           onDeleteInstruction={handleAdapterDeleteInstruction}
+                          onTriggerToast={triggerToast}
                         />
                       </div>
 
@@ -983,6 +1048,7 @@ export default function ClassApp() {
                           <StudentRegister
                             classItem={adapterClassItem}
                             onUpdateClass={handleAdapterUpdate}
+                            onTriggerToast={triggerToast}
                           />
                         )}
                       </div>
@@ -1028,6 +1094,8 @@ export default function ClassApp() {
         onClose={() => setActiveAccountModal(null)}
         onTriggerToast={triggerToast}
       />
+      
+      <LoadingOverlay isOpen={!!processingMsg} message={processingMsg || undefined} />
     </div>
   );
 }

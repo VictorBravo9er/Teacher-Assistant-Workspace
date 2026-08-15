@@ -25,6 +25,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"teacher" | "student">("teacher");
   
   
   
@@ -52,7 +53,8 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         
         const metadata: any = {
           full_name: fullName,
-          phone: phone
+          phone: phone,
+          role: role
         };
 
         const { error } = await supabase.auth.signUp({
@@ -179,6 +181,22 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                           required
                           className="w-full bg-elevated border border-border-color rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                         />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-text mb-1.5 uppercase tracking-wider">
+                        Role <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-4 p-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="role" value="teacher" checked={role === "teacher"} onChange={() => setRole("teacher")} className="accent-primary w-4 h-4" />
+                          <span className="text-sm font-medium">Teacher</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="role" value="student" checked={role === "student"} onChange={() => setRole("student")} className="accent-primary w-4 h-4" />
+                          <span className="text-sm font-medium">Student</span>
+                        </label>
                       </div>
                     </div>
                   </>

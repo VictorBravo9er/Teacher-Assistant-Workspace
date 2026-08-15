@@ -3,6 +3,7 @@ import { X, Building2, MapPin, Map, Globe, Shield, Sparkles, AlertCircle } from 
 import { supabase } from '../lib/supabase';
 import { InstituteAutocompleteField, Institute } from './InstituteAutocompleteField';
 import { FuzzyAutocompleteField } from './FuzzyAutocompleteField';
+import { Constants } from "../types/db";
 
 interface CreateClassModalProps {
   isOpen: boolean;
@@ -14,19 +15,21 @@ interface CreateClassModalProps {
 export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTriggerToast }: CreateClassModalProps) {
   const [className, setClassName] = useState('');
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
-  
+
   // Existing mode
   const [instituteSearch, setInstituteSearch] = useState('');
   const [selectedInstitute, setSelectedInstitute] = useState<Institute | null>(null);
 
   // New mode
   const [newInstName, setNewInstName] = useState('');
-  const [newInstType, setNewInstType] = useState('Public School');
+  const [newInstType, setNewInstType] = useState<string>(
+    Constants.public.Enums.institute_type[0],
+  );
   const [newInstDistrict, setNewInstDistrict] = useState('');
   const [newInstCity, setNewInstCity] = useState('');
   const [newInstState, setNewInstState] = useState('');
   const [newInstCountry, setNewInstCountry] = useState('India');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +89,7 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
 
       // Create class
       onCreateClass(className.trim(), undefined, finalInstituteId);
-      
+
       // Reset form
       setClassName('');
       setInstituteSearch('');
@@ -113,9 +116,11 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
             <div className="p-1.5 bg-primary/10 rounded-lg">
               <Sparkles className="w-4 h-4 text-primary" />
             </div>
-            <h2 className="font-display font-semibold text-primary-text">Create New Class</h2>
+            <h2 className="font-display font-semibold text-primary-text">
+              Create New Class
+            </h2>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-1.5 hover:bg-elevated rounded-lg text-muted-text hover:text-primary-text transition-colors cursor-pointer"
           >
@@ -132,8 +137,10 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
           )}
 
           <div>
-            <label className="block text-[10px] font-semibold text-muted-text mb-1.5 uppercase tracking-wider">Class Name</label>
-            <input 
+            <label className="block text-[10px] font-semibold text-muted-text mb-1.5 uppercase tracking-wider">
+              Class Name
+            </label>
+            <input
               id="create-class-name-input"
               type="text"
               value={className}
@@ -146,28 +153,36 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="block text-[10px] font-semibold text-muted-text uppercase tracking-wider">Institute Details</label>
+              <label className="block text-[10px] font-semibold text-muted-text uppercase tracking-wider">
+                Institute Details
+              </label>
               <div className="flex bg-elevated rounded-lg p-0.5 border border-border-color/45">
                 <button
                   id="create-class-mode-existing-button"
                   type="button"
-                  onClick={() => { setMode('existing'); setError(null); }}
-                  className={`px-3 py-1 text-[10px] font-semibold rounded-md transition-colors cursor-pointer ${mode === 'existing' ? 'bg-surface text-primary shadow-sm' : 'text-muted-text hover:text-primary-text'}`}
+                  onClick={() => {
+                    setMode("existing");
+                    setError(null);
+                  }}
+                  className={`px-3 py-1 text-[10px] font-semibold rounded-md transition-colors cursor-pointer ${mode === "existing" ? "bg-surface text-primary shadow-sm" : "text-muted-text hover:text-primary-text"}`}
                 >
                   Select Existing
                 </button>
                 <button
                   id="create-class-mode-new-button"
                   type="button"
-                  onClick={() => { setMode('new'); setError(null); }}
-                  className={`px-3 py-1 text-[10px] font-semibold rounded-md transition-colors cursor-pointer ${mode === 'new' ? 'bg-surface text-primary shadow-sm' : 'text-muted-text hover:text-primary-text'}`}
+                  onClick={() => {
+                    setMode("new");
+                    setError(null);
+                  }}
+                  className={`px-3 py-1 text-[10px] font-semibold rounded-md transition-colors cursor-pointer ${mode === "new" ? "bg-surface text-primary shadow-sm" : "text-muted-text hover:text-primary-text"}`}
                 >
                   Add New
                 </button>
               </div>
             </div>
 
-            {mode === 'existing' ? (
+            {mode === "existing" ? (
               <InstituteAutocompleteField
                 label="Search Institute"
                 icon={<Building2 className="w-full h-full" />}
@@ -179,10 +194,12 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
             ) : (
               <div className="space-y-4 bg-elevated/20 p-4 rounded-xl border border-border-color/50">
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider">Institute Name</label>
+                  <label className="block text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider">
+                    Institute Name
+                  </label>
                   <div className="relative">
                     <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text" />
-                    <input 
+                    <input
                       type="text"
                       value={newInstName}
                       onChange={(e) => setNewInstName(e.target.value)}
@@ -231,7 +248,9 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider">Type</label>
+                  <label className="block text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider">
+                    Type
+                  </label>
                   <div className="relative">
                     <Shield className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text" />
                     <select
@@ -239,11 +258,11 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
                       onChange={(e) => setNewInstType(e.target.value)}
                       className="w-full bg-surface border border-border-color rounded-lg py-2 pl-8 pr-3 text-xs focus:outline-none focus:border-primary transition-all appearance-none text-primary-text"
                     >
-                      <option>Public School</option>
-                      <option>Private School</option>
-                      <option>University</option>
-                      <option>Vocational</option>
-                      <option>Other</option>
+                      {Constants.public.Enums.institute_type.map((i_type) => (
+                        <option key={i_type} value={i_type}>
+                          {i_type}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -252,21 +271,21 @@ export default function CreateClassModal({ isOpen, onClose, onCreateClass, onTri
           </div>
 
           <div className="pt-4 flex items-center justify-end gap-2 border-t border-border-color">
-            <button 
+            <button
               id="create-class-cancel-button"
-              type="button" 
+              type="button"
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-muted-text hover:text-primary-text hover:bg-elevated rounded-lg transition-colors cursor-pointer"
             >
               Cancel
             </button>
-            <button 
+            <button
               id="create-class-submit-button"
-              type="submit" 
+              type="submit"
               disabled={isSubmitting}
               className="px-5 py-2 text-xs font-bold bg-success text-white rounded-lg hover:bg-success/90 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-md shadow-success/20"
             >
-              {isSubmitting ? 'Creating...' : 'Create Class'}
+              {isSubmitting ? "Creating..." : "Create Class"}
             </button>
           </div>
         </form>

@@ -1,16 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 20 100 60" fill="none">
-   <g id="logo">
-      <path
-         d="M 51.52 68.4 L 88.9 58.44 C 91.4 57.78 91.4 55.78 88.9 55.12 L 54.01 45.71 C 52.14 45.21 49.65 45.82 49.65 46.82 L 49.65 67.3 C 49.65 68.13 50.52 68.68 51.52 68.4 Z"
-         fill="#0d9488"
-      />
-      <path
-         d="M 48.69 67.78 L 11.11 58.09 C 8.6 57.44 8.6 55.51 11.11 54.86 L 46.18 45.71 C 48.06 45.22 50.57 45.81 50.57 46.78 L 50.57 66.71 C 50.57 67.51 49.69 68.05 48.69 67.78 Z"
-         fill="#64748b"
-      />
-      <path
-         d="M 48.29 31.32 L 82.61 40.98 C 85.16 41.7 85.4 43.27 83.07 44.0 L 51.67 53.65 C 50.51 54.02 48.07 54.02 46.8 53.65 L 17.35 44.0 C 14.8 43.27 14.57 41.7 16.89 40.98 Z"
-         fill="#10b981"
-      />
-   </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 170" fill="none">
+<title>Teach&amp;Learn Logo</title>
+<defs>
+<rect id="bg" x="0" y="0" width="240" height="170" fill="white"/>
+<rect
+id="base"
+x="-0.5" y="-0.5" width="1" height="1" rx="0.1"
+transform="translate(120, 70) scale(160, 64) rotate(45)"/>
+<mask id="cut-gap">
+<use href="#bg"/>
+<use href="#base" transform="translate(0,-20)" fill="black"/>
+</mask>
+<mask id="cut-r">
+<use href="#bg"/>
+<rect fill="black" width="10" height="20" x="-5" y="-5"
+transform="translate(86,86) rotate(-40) scale(1,8)"/>
+</mask>
+<mask id="cut-l">
+<use href="#bg"/>
+<rect fill="black" width="140" height="100" x="-5" y="-5"
+transform="translate(86,86) rotate(-40) scale(1,8)" />
+</mask>
+</defs>
+<g id="logo">
+<g mask="url(#cut-gap)" transform="translate(0,-10)">
+<use href="#base" fill="#10b981" transform="translate(0,-2)"/>
+</g>
+<g mask="url(#cut-gap)" transform="translate(0,20)">
+<use
+href="#base"
+fill="#0d9488"
+mask="url(#cut-r)"/>
+<use
+href="#base"
+fill="#64748b"
+mask="url(#cut-l)"/>
+</g>
+</g>
 </svg>

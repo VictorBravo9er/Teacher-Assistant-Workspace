@@ -1,5 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, HelpCircle, X, Check } from 'lucide-react';
+import { AlertCircle, HelpCircle, X, Check, Loader2 } from 'lucide-react';
+
+interface LoadingOverlayProps {
+  isOpen: boolean;
+  message?: string;
+}
+
+export function LoadingOverlay({ isOpen, message = "Processing..." }: LoadingOverlayProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-primary-text/20 backdrop-blur-[2px] flex items-center justify-center p-4 z-[9999] animate-fade-in transition-all duration-300">
+      <div className="bg-surface border border-border-color rounded-2xl py-4 px-6 shadow-2xl flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm font-medium text-primary-text">{message}</p>
+      </div>
+    </div>
+  );
+}
 
 interface ConfirmModalProps {
   isOpen: boolean;
