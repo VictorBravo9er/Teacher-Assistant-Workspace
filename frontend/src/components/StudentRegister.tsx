@@ -2,9 +2,8 @@ import React, { useState, useRef } from 'react';
 import {
   ClassModel,
   Student,
-  Grade,
   CustomField,
-  StudentUpload,
+  StudentSubmission,
 } from "../types/main";
 import { ConfirmModal, PromptModal } from './CustomDialogs';
 import { studentService } from '../services/studentService';
@@ -27,14 +26,24 @@ import {
 interface StudentRegisterProps {
   classItem: ClassModel;
   onUpdateClass: (id: string, updatedFields: Partial<ClassModel>) => void;
+  onTriggerToast?: (text: string) => void;
 }
 
 export default function StudentRegister({
   classItem,
-  onUpdateClass
+  onUpdateClass,
+  onTriggerToast,
 }: StudentRegisterProps) {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const notify = (msg: string) => {
+    if (onTriggerToast) {
+      onTriggerToast(msg);
+    } else {
+      console.log('Notification:', msg);
+    }
+  };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     // If scrolling vertically (deltaY != 0), translate it to horizontal scroll
@@ -101,30 +110,28 @@ export default function StudentRegister({
   };
 
   // Student list mutations
-  const handleAddNewStudent = async (name: string) => {
-    if (!name.trim()) return;
+  const handleAddNewStudent = async (payload: { name: string; email: string }) => {
+    if (!payload.name.trim() || !payload.email.trim()) return;
     const roll = `M10-0${classItem.students.length + 1}`;
 
     const newStudent: Student = {
       id: `stud-${Date.now()}`, // Temporary ID
-      name,
+      name: payload.name,
       rollNumber: roll,
-      email: `${name.toLowerCase().replace(/[^a-z]/g, '')}@school.edu`,
-      phone: '+1 (555) 000-1111',
-      address: 'Registered School District Campus',
-      parentName: 'Family Guardian',
-      parentContact: '+1 (555) 000-2222',
-      parentNotes: 'Primary home educator',
-      grades: [],
-      attendance: 100,
+      email: payload.email,
+      phone: '',
+      address: '',
+      parentName: '',
+      parentContact: '',
+      parentNotes: '',
       performanceIndicator: 'good',
       statusIndicator: 'active',
-      uploads: [],
+      submissions: [],
       customFields: [
         { id: `cf-${Date.now()}-1`, label: 'Tutoring Status', type: 'tag', value: 'None', visibility: true },
         { id: `cf-${Date.now()}-2`, label: 'IEP Accommodation', type: 'boolean', value: 'false', visibility: true }
       ],
-      avatarSeed: name.split(' ')[0] || 'Student'
+      avatarSeed: payload.name.split(' ')[0] || 'Student'
     };
 
     try {
@@ -133,9 +140,10 @@ export default function StudentRegister({
         students: [...classItem.students, newStudent]
       });
       handleSelectStudent(newStudent.id);
+      notify('Student invitation sent and enrolled in class!');
     } catch (e: any) {
       console.error(e);
-      alert(`Failed to add student: ${e.message}`);
+      notify(`Failed to add student: ${e.message}`);
     }
   };
 
@@ -146,9 +154,9 @@ export default function StudentRegister({
         s.id === studentId ? { ...s, ...updatedFields } : s,
       );
       onUpdateClass(classItem.id, { students: updated });
-      
+
       // We only sync specific fields to backend in this mock
-      if (updatedFields.performanceIndicator || updatedFields.grades) {
+      if (updatedFields.performanceIndicator || updatedFields.submissions) {
         const student = updated.find(s => s.id === studentId);
         if (student) {
           await studentService.updateStudentClassData(classItem.id, studentId, student);
@@ -164,20 +172,25 @@ export default function StudentRegister({
     e.preventDefault();
     if (!selectedStudent || !gradeForm.name.trim()) return;
 
-    const newGrade: Grade = {
+    const newGrade: StudentSubmission = {
       id: `g-${Date.now()}`,
-      assessmentName: gradeForm.name.trim(),
+      studentId: selectedStudent.id,
+      content: [{ type: 'File', value: gradeForm.name.trim() }],
       score: gradeForm.score,
-      maxScore: gradeForm.max,
-      date: new Date().toISOString().split('T')[0],
-      feedback: gradeForm.feedback.trim() || undefined
+      grade: gradeForm.max.toString(), // Using grade field to store max score for now
+      submittedAt: new Date().toISOString(),
+      feedback: gradeForm.feedback.trim() || undefined,
+      status: 'graded'
     };
 
-    const newGrades = [...selectedStudent.grades, newGrade];
+    const currentSubmissions = selectedStudent.submissions || [];
+    const newSubmissions = [...currentSubmissions, newGrade];
+    const evals = newSubmissions.filter(s => s.score !== undefined && s.score !== null);
+    
     const avgPercent =
-      newGrades.length > 0
-        ? (newGrades.reduce((acc, g) => acc + g.score / g.maxScore, 0) /
-            newGrades.length) *
+      evals.length > 0
+        ? (evals.reduce((acc, g) => acc + (g.score || 0) / parseFloat(g.grade || '100'), 0) /
+            evals.length) *
           100
         : 80;
 
@@ -188,7 +201,7 @@ export default function StudentRegister({
     else perf = 'critical';
 
     handleUpdateStudentDetails(selectedStudent.id, {
-      grades: newGrades,
+      submissions: newSubmissions,
       performanceIndicator: perf
     });
 
@@ -197,8 +210,8 @@ export default function StudentRegister({
 
   const handleDeleteGrade = (gradeId: string) => {
     if (!selectedStudent) return;
-    const filtered = selectedStudent.grades.filter(g => g.id !== gradeId);
-    handleUpdateStudentDetails(selectedStudent.id, { grades: filtered });
+    const filtered = (selectedStudent.submissions || []).filter(g => g.id !== gradeId);
+    handleUpdateStudentDetails(selectedStudent.id, { submissions: filtered });
   };
 
   // Custom contact-style attributes
@@ -232,16 +245,16 @@ export default function StudentRegister({
     e.preventDefault();
     if (!selectedStudent || !uploadForm.name.trim()) return;
 
-    const newUpload: StudentUpload = {
+    const newUpload: StudentSubmission = {
       id: `up-${Date.now()}`,
-      name: uploadForm.name.split('.').length > 1 ? uploadForm.name : `${uploadForm.name}.pdf`,
-      type: uploadForm.type,
-      date: new Date().toISOString().split('T')[0],
+      studentId: selectedStudent.id,
+      content: [{ type: (uploadForm.type === 'link' ? 'URL' : 'File') as any, value: uploadForm.name.split('.').length > 1 ? uploadForm.name : `${uploadForm.name}.pdf` }],
+      submittedAt: new Date().toISOString(),
       status: 'pending'
     };
 
     handleUpdateStudentDetails(selectedStudent.id, {
-      uploads: [...selectedStudent.uploads, newUpload]
+      submissions: [...(selectedStudent.submissions || []), newUpload]
     });
 
     setUploadForm({ name: '', type: 'Homework Submission', show: false });
@@ -249,8 +262,8 @@ export default function StudentRegister({
 
   const handleDeleteSubmission = (upId: string) => {
     if (!selectedStudent) return;
-    const filtered = selectedStudent.uploads.filter(u => u.id !== upId);
-    handleUpdateStudentDetails(selectedStudent.id, { uploads: filtered });
+    const filtered = (selectedStudent.submissions || []).filter(u => u.id !== upId);
+    handleUpdateStudentDetails(selectedStudent.id, { submissions: filtered });
   };
 
   const handleDeleteStudent = async (studId: string) => {
@@ -261,7 +274,7 @@ export default function StudentRegister({
       setSelectedStudentId(null);
     } catch (e: any) {
       console.error(e);
-      alert(`Failed to delete student: ${e.message}`);
+      notify(`Failed to delete student: ${e.message}`);
     }
   };
 
@@ -309,7 +322,7 @@ export default function StudentRegister({
                 key={stud.id}
                 id={`student-card-${stud.id}`}
                 onClick={() => handleSelectStudent(stud.id)}
-                className={`group min-w-[210px] max-w-[220px] shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
+                className={`group min-w-52.5 max-w-55 shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
                   isSelected
                     ? "border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20"
                     : "border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40"
@@ -648,7 +661,7 @@ export default function StudentRegister({
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-primary-text font-display flex items-center gap-1.5">
                       <GraduationCap className="w-4 h-4 text-primary" />
-                      Academic Scorecard ({selectedStudent.grades.length}{" "}
+                      Academic Scorecard ({(selectedStudent.submissions || []).filter(s => s.score !== undefined && s.score !== null).length}{" "}
                       Grades)
                     </h4>
                     <button
@@ -748,15 +761,16 @@ export default function StudentRegister({
                   )}
 
                   <div className="space-y-3">
-                    {selectedStudent.grades.length === 0 ? (
+                    {(selectedStudent.submissions || []).filter(s => s.score !== undefined && s.score !== null).length === 0 ? (
                       <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
-                        No evaluations logged. Record a score to establish
-                        performance trends.
+                        No graded evaluations yet. Grade a submission to populate this scorecard.
                       </div>
                     ) : (
-                      selectedStudent.grades.map((grade) => {
-                        const gradePercent =
-                          (grade.score / grade.maxScore) * 100;
+                      <div className="grid gap-3">
+                        {(selectedStudent.submissions || []).filter(s => s.score !== undefined && s.score !== null).map((grade) => {
+                        const score = grade.score || 0;
+                        const maxScore = parseFloat(grade.grade || '100');
+                        const gradePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
                         let gradeColor =
                           "text-success bg-success/10 border-success/20";
                         if (gradePercent < 60)
@@ -764,6 +778,7 @@ export default function StudentRegister({
                         else if (gradePercent < 75)
                           gradeColor =
                             "text-warning bg-warning/10 border-warning/20";
+                        const assessmentName = grade.content?.[0]?.value || 'Assessment';
 
                         return (
                           <div
@@ -772,13 +787,13 @@ export default function StudentRegister({
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium text-primary-text">
-                                {grade.assessmentName}
+                                {assessmentName}
                               </span>
                               <div className="flex items-center gap-3">
                                 <span
                                   className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${gradeColor}`}
                                 >
-                                  {grade.score} / {grade.maxScore} (
+                                  {score} / {maxScore} (
                                   {gradePercent.toFixed(0)}%)
                                 </span>
                                 <button
@@ -797,6 +812,8 @@ export default function StudentRegister({
                           </div>
                         );
                       })
+                      }
+                      </div>
                     )}
                   </div>
                 </div>
@@ -806,7 +823,7 @@ export default function StudentRegister({
                     <h4 className="text-xs font-bold text-primary-text font-display flex items-center gap-1.5">
                       <FileText className="w-4 h-4 text-success" />
                       Student Uploads & Homework Submissions (
-                      {selectedStudent.uploads?.length || 0} files)
+                      {(selectedStudent.submissions || []).filter(s => s.score === undefined || s.score === null).length} files)
                     </h4>
                     <button
                       onClick={() =>
@@ -885,13 +902,13 @@ export default function StudentRegister({
                   )}
 
                   <div className="space-y-2.5">
-                    {selectedStudent.uploads?.length === 0 ? (
+                    {(selectedStudent.submissions || []).filter(s => s.score === undefined || s.score === null).length === 0 ? (
                       <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
                         No written answer sheets registered. Add a file to let
                         AI analyze their calculations/handwriting structures.
                       </div>
                     ) : (
-                      selectedStudent.uploads?.map((up) => (
+                      (selectedStudent.submissions || []).filter(s => s.score === undefined || s.score === null).map((up) => (
                         <div
                           key={up.id}
                           className="group bg-elevated border border-border-color hover:border-success/30 rounded-xl p-3 flex items-center justify-between transition-colors shadow-sm"
@@ -902,15 +919,15 @@ export default function StudentRegister({
                             </div>
                             <div className="flex flex-col">
                               <span className="text-xs font-medium text-primary-text">
-                                {up.name}
+                                {up.content?.map(c => c.value.split('/').pop()).join(', ') || 'Unknown File'}
                               </span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-[9px] font-mono text-muted-text">
-                                  {up.date}
+                                  {up.submittedAt ? new Date(up.submittedAt).toISOString().split('T')[0] : ''}
                                 </span>
                                 <span className="w-1.2 h-1.2 rounded-full bg-border-color"></span>
                                 <span className="text-[9px] font-mono text-primary/80">
-                                  {up.type}
+                                  {up.content?.map(c => c.type).join(', ')}
                                 </span>
                               </div>
                             </div>
@@ -940,18 +957,46 @@ export default function StudentRegister({
         </div>
       )}
 
-      <PromptModal
-        isOpen={isAddStudentPromptOpen}
-        title="Add New Student"
-        message="Enter the full name of the student to register them in this class."
-        placeholder="e.g. Michael Chen"
-        submitText="Add Student"
-        onSubmit={(name) => {
-          handleAddNewStudent(name);
-          setIsAddStudentPromptOpen(false);
-        }}
-        onCancel={() => setIsAddStudentPromptOpen(false)}
-      />
+      {isAddStudentPromptOpen && (
+        <div className="fixed inset-0 bg-primary-text/40 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-surface border border-border-color rounded-2xl max-w-sm w-full p-5 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const name = formData.get('name') as string;
+              const email = formData.get('email') as string;
+              if (name && email) {
+                handleAddNewStudent({ name, email });
+                setIsAddStudentPromptOpen(false);
+              }
+            }}>
+              <div className="flex items-start gap-3 mb-4">
+                <div className="p-2 rounded-xl shrink-0 bg-primary/10 text-primary">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-primary-text font-display leading-tight">Add New Student</h3>
+                  <p className="text-xs text-secondary-text mt-1.5 leading-relaxed">Enter the student's name and email to invite and enroll them in this class.</p>
+                </div>
+              </div>
+              <div className="space-y-3 mt-4">
+                <div>
+                  <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">Full Name</label>
+                  <input required name="name" type="text" placeholder="e.g. Michael Chen" className="w-full bg-elevated border border-border-color rounded-lg px-3 py-2 text-xs text-primary-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all" autoFocus />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">Email Address</label>
+                  <input required name="email" type="email" placeholder="e.g. michael.c@school.edu" className="w-full bg-elevated border border-border-color rounded-lg px-3 py-2 text-xs text-primary-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all" />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 mt-6">
+                <button type="button" onClick={() => setIsAddStudentPromptOpen(false)} className="px-4 py-1.5 rounded-lg text-xs font-semibold text-secondary-text hover:text-primary-text hover:bg-elevated transition-colors cursor-pointer border border-transparent hover:border-border-color">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 shadow-[0_2px_8px_rgba(37,99,235,0.3)] transition-colors cursor-pointer">Invite Student</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={studentToDelete !== null}
@@ -965,6 +1010,7 @@ export default function StudentRegister({
         }}
         onCancel={() => setStudentToDelete(null)}
       />
+
     </div>
   );
 }

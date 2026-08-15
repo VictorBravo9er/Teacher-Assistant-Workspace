@@ -19,15 +19,17 @@ export const chatService = {
     return (data || []).map((row: any) => ({
       id: row.id,
       title: row.title || 'Untitled Chat',
-      type: 'general',
-      scopeType: 'class',
-      selectedIds: [],
-      messages: [],
+      type: row.type || 'general',
+      scopeType: row.scope_type || 'class',
+      selectedIds: row.selected_ids || [],
+      customInstructions: row.custom_instructions || '',
+      messages: row.messages || [],
       createdAt: row.created_at,
+      isArchived: row.is_archived || false,
     }));
   },
 
-  async createSession(classId: string, title: string = 'New Conversation'): Promise<RAGSession> {
+  async createSession(classId: string, payload: Partial<RAGSession>): Promise<RAGSession> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthenticated user");
 
@@ -36,7 +38,12 @@ export const chatService = {
       .insert({
         class_id: classId,
         user_id: user.id,
-        title,
+        title: payload.title || 'New Conversation',
+        type: payload.type || 'general',
+        scope_type: payload.scopeType || 'class',
+        selected_ids: payload.selectedIds || [],
+        custom_instructions: payload.customInstructions || '',
+        messages: payload.messages || [],
       })
       .select()
       .single();
@@ -46,11 +53,13 @@ export const chatService = {
     return {
       id: data.id,
       title: data.title,
-      type: 'general',
-      scopeType: 'class',
-      selectedIds: [],
-      messages: [],
+      type: data.type,
+      scopeType: data.scope_type,
+      selectedIds: data.selected_ids,
+      customInstructions: data.custom_instructions,
+      messages: data.messages,
       createdAt: data.created_at,
+      isArchived: data.is_archived,
     };
   },
 

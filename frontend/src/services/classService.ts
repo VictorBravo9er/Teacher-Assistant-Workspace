@@ -12,11 +12,12 @@ export const classService = {
       .from('classes')
       .select(`
         *,
+        institutes ( name, city, state, country ),
         class_materials ( materials (*) ),
         class_instructions ( instructions (*) )
       `)
       .eq('user_id', user.id)
-      .eq('archived', false);
+      .eq('is_archived', false);
 
     if (error) throw error;
 
@@ -33,26 +34,33 @@ export const classService = {
         return {
           id: c.id,
           instituteId: c.institute_id,
+          instituteName: c.institutes?.name,
+          instituteAddress: c.institutes ? [c.institutes.city, c.institutes.state, c.institutes.country].filter(Boolean).join(', ') : undefined,
           name: c.name,
           academicYear: c.academic_year || '',
           semester: c.semester || '',
           subject: c.subject || '',
           teacherName: c.teacher_name || '',
-          teachingStyle: c.teaching_style || '',
+          teachingStyle: c.teaching_style || [],
           experienceLevel: c.experience_level || '',
           specialNotes: c.special_notes || '',
-          assessmentPreferences: c.assessment_preferences || '',
-          archived: c.archived || false,
+          assessmentPreferences: c.assessment_preferences || [],
+          isArchived: c.is_archived || false,
           
           materials: (c.class_materials || []).map((cm: any) => {
             const m = cm.materials;
             return {
               id: m.id,
               name: m.name,
-              type: m.content_type === 'file' && m.name.endsWith('.pdf') ? 'pdf' : 'custom',
+              category: m.category,
+              content: m.content || [],
               uploadDate: m.created_at,
-              size: m.size || '0 MB',
+              size: m.size,
               tags: m.tags || [],
+              dueAt: m.due_at,
+              maxScore: m.max_score,
+              rubricCriteria: m.rubric_criteria,
+              versionHistory: m.version_history,
             } as Material;
           }),
 
@@ -61,8 +69,9 @@ export const classService = {
             return {
               id: i.id,
               title: i.title,
-              type: i.type || 'global',
+              type: i.type,
               content: i.content,
+              whenToApply: i.when_to_apply,
             } as Instruction;
           }),
 
@@ -83,6 +92,7 @@ export const classService = {
       .from('classes')
       .insert({
         user_id: user.id,
+        institute_id: payload.instituteId,
         name: payload.name,
         academic_year: payload.academicYear,
         semester: payload.semester,
@@ -93,7 +103,10 @@ export const classService = {
         special_notes: payload.specialNotes,
         assessment_preferences: payload.assessmentPreferences,
       })
-      .select()
+      .select(`
+        *,
+        institutes ( name, city, state, country )
+      `)
       .single();
 
     if (error) throw error;
@@ -101,16 +114,18 @@ export const classService = {
     return {
       id: c.id,
       instituteId: c.institute_id,
+      instituteName: c.institutes?.name,
+      instituteAddress: c.institutes ? [c.institutes.city, c.institutes.state, c.institutes.country].filter(Boolean).join(', ') : undefined,
       name: c.name,
       academicYear: c.academic_year || '',
       semester: c.semester || '',
       subject: c.subject || '',
       teacherName: c.teacher_name || '',
-      teachingStyle: c.teaching_style || '',
+      teachingStyle: c.teaching_style || [],
       experienceLevel: c.experience_level || '',
       specialNotes: c.special_notes || '',
-      assessmentPreferences: c.assessment_preferences || '',
-      archived: c.archived || false,
+      assessmentPreferences: c.assessment_preferences || [],
+      isArchived: c.is_archived || false,
       materials: payload.materials || [],
       instructions: payload.instructions || [],
       students: [],
@@ -119,20 +134,22 @@ export const classService = {
   },
 
   async updateClass(classId: string, updates: Partial<ClassModel>): Promise<void> {
+    const dbUpdates: Record<string, any> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.instituteId !== undefined) dbUpdates.institute_id = updates.instituteId;
+    if (updates.academicYear !== undefined) dbUpdates.academic_year = updates.academicYear;
+    if (updates.semester !== undefined) dbUpdates.semester = updates.semester;
+    if (updates.subject !== undefined) dbUpdates.subject = updates.subject;
+    if (updates.teacherName !== undefined) dbUpdates.teacher_name = updates.teacherName;
+    if (updates.teachingStyle !== undefined) dbUpdates.teaching_style = updates.teachingStyle;
+    if (updates.experienceLevel !== undefined) dbUpdates.experience_level = updates.experienceLevel;
+    if (updates.specialNotes !== undefined) dbUpdates.special_notes = updates.specialNotes;
+    if (updates.assessmentPreferences !== undefined) dbUpdates.assessment_preferences = updates.assessmentPreferences;
+    if (updates.isArchived !== undefined) dbUpdates.is_archived = updates.isArchived;
+
     const { error } = await supabase
       .from('classes')
-      .update({
-        name: updates.name,
-        academic_year: updates.academicYear,
-        semester: updates.semester,
-        subject: updates.subject,
-        teacher_name: updates.teacherName,
-        teaching_style: updates.teachingStyle,
-        experience_level: updates.experienceLevel,
-        special_notes: updates.specialNotes,
-        assessment_preferences: updates.assessmentPreferences,
-        archived: updates.archived,
-      })
+      .update(dbUpdates)
       .eq('id', classId);
 
     if (error) throw error;

@@ -14,6 +14,7 @@ import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { classService } from '../services/classService';
 import { templateService } from '../services/templateService';
 import { materialService } from '../services/materialService';
+import { instructionService } from "../services/instructionService";
 import Sidebar from './Sidebar';
 import ClassDetails from './ClassDetails';
 import StudentRegister from './StudentRegister';
@@ -21,6 +22,7 @@ import RAGClass from './RAGClass';
 import CommandPalette from './CommandPalette';
 import AccountModals from './AccountModals';
 import { getMockChatResponse } from '../mockChat';
+import { LoadingOverlay } from './CustomDialogs';
 import {
   Sparkles,
   X,
@@ -47,7 +49,7 @@ export default function ClassApp() {
   const { classes, templates, loading, error, mutateClasses, mutateTemplates, refresh } = useWorkspaceData();
 
   const [activeClassId, setActiveClassId] = useState<string>(() => {
-    const saved = secureStorage.getItem('edu_rag_active_ws');
+    const saved = secureStorage.getCachedItemWithTTL<string>('edu_rag_active_ws');
     if (saved && saved !== 'null') return saved;
     return '';
   });
@@ -67,9 +69,17 @@ export default function ClassApp() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [layoutMode, setLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('split');
   const [previousLayoutMode, setPreviousLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('split');
+  const [activeDetailsTab, setActiveDetailsTab] = useState<
+    "profile" | "materials" | "prompts"
+  >("profile");
   const [activeAccountModal, setActiveAccountModal] = useState<'profile' | 'preferences' | 'settings' | 'subscription' | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [processingMsg, setProcessingMsg] = useState<string | null>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [preEditClassSnapshot, setPreEditClassSnapshot] =
+    useState<ClassModel | null>(null);
+  const [preEditTemplateSnapshot, setPreEditTemplateSnapshot] =
+    useState<Template | null>(null);
 
   // Sync theme to document element
   useEffect(() => {
@@ -108,7 +118,7 @@ export default function ClassApp() {
   }, [theme]);
 
   useEffect(() => {
-    secureStorage.setItem('edu_rag_active_ws', activeClassId);
+    secureStorage.setCachedItemWithTTL('edu_rag_active_ws', activeClassId, 0); // 0 TTL for no expiration
   }, [activeClassId]);
 
   // Autohide toasts
@@ -146,18 +156,48 @@ export default function ClassApp() {
 
   const handleCreateClass = async (name: string, templateId?: string, instituteId?: string) => {
     try {
+      setProcessingMsg(`Creating class "${name}"...`);
       const matchedTemplate = templates.find(t => t.id === templateId);
 
       const newClass = await classService.createClass({
         name,
         instituteId,
-        subject: matchedTemplate ? matchedTemplate.subject : 'General Course Room',
-        teachingStyle: matchedTemplate ? matchedTemplate.teachingStyle : 'Structured Inquiry-led',
-        experienceLevel: 'Senior Instructor (12 Years)',
-        specialNotes: matchedTemplate ? matchedTemplate.description : 'Welcome to your brand new class cohort.',
-        materials: [], // We'd need to actually copy materials from preset to materials table in a real app
-        instructions: matchedTemplate ? (matchedTemplate.instructions as any) : [],
+        subject: matchedTemplate
+          ? matchedTemplate.subject
+          : "General Course Room",
+        teachingStyle: matchedTemplate
+          ? matchedTemplate.teachingStyle
+          : ["Interactive"],
+        experienceLevel: "Advanced",
+        specialNotes: matchedTemplate
+          ? matchedTemplate.description
+          : "Welcome to your brand new class cohort.",
+        assessmentPreferences: matchedTemplate 
+          ? matchedTemplate.assessmentPreferences 
+          : ["Multiple Choice"],
+        materials: [],
+        instructions: [],
       });
+
+      if (matchedTemplate) {
+        if (matchedTemplate.instructions && matchedTemplate.instructions.length > 0) {
+          const createdInstructions = await Promise.all(
+            matchedTemplate.instructions.map((inst) =>
+              instructionService.createInstruction(newClass.id, inst as any),
+            ),
+          );
+          newClass.instructions = createdInstructions;
+        }
+
+        if (matchedTemplate.materialsPreset && matchedTemplate.materialsPreset.length > 0) {
+          const createdMaterials = await Promise.all(
+            matchedTemplate.materialsPreset.map((mat) =>
+              materialService.duplicateMaterial(newClass.id, mat as any),
+            ),
+          );
+          newClass.materials = createdMaterials;
+        }
+      }
 
       setClasses([newClass, ...classes]);
       setActiveClassId(newClass.id);
@@ -168,6 +208,8 @@ export default function ClassApp() {
       triggerToast(`Created classroom: "${name}"`);
     } catch (err: any) {
       triggerToast(`Error creating class: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
@@ -186,16 +228,33 @@ export default function ClassApp() {
     if (!target) return;
 
     try {
+      setProcessingMsg(`Duplicating class "${target.name}"...`);
       const duplicated = await classService.createClass({
         ...target,
         name: `${target.name} (Copy)`,
+        instructions: [],
       });
+
+      if (target.instructions && target.instructions.length > 0) {
+        const duplicatedInstructions = await Promise.all(
+          target.instructions.map((inst) =>
+            instructionService.createInstruction(duplicated.id, {
+              title: inst.title,
+              type: inst.type,
+              content: inst.content,
+            }),
+          ),
+        );
+        duplicated.instructions = duplicatedInstructions;
+      }
 
       setClasses([duplicated, ...classes]);
       setActiveClassId(duplicated.id);
       triggerToast("Duplicated classroom context.");
     } catch (err: any) {
       triggerToast(`Failed to duplicate: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
@@ -226,6 +285,12 @@ export default function ClassApp() {
   };
 
   const handleUpdateClass = async (id: string, updatedFields: Partial<ClassModel>) => {
+    if (isEditMode) {
+      setClasses(
+        classes.map((w) => (w.id === id ? { ...w, ...updatedFields } : w)),
+      );
+      return;
+    }
     try {
       await classService.updateClass(id, updatedFields);
       setClasses(classes.map(w => w.id === id ? { ...w, ...updatedFields } : w));
@@ -258,7 +323,13 @@ export default function ClassApp() {
         subject: activeClass.subject,
         teachingStyle: activeClass.teachingStyle,
         instructions: activeClass.instructions.map(i => ({ title: i.title, type: i.type, content: i.content })),
-        materialsPreset: activeClass.materials.map(m => ({ name: m.name, type: m.type, size: m.size, tags: m.tags }))
+        materialsPreset: activeClass.materials.map(m => ({ 
+          name: m.name, 
+          category: m.category, 
+          content: m.content, 
+          size: m.size, 
+          tags: m.tags 
+        }))
       });
 
       setTemplates([newTpl, ...templates]);
@@ -281,18 +352,27 @@ export default function ClassApp() {
   // --- Nest Subitems ClassModel management (Materials) ---
   const handleAddMaterialInClass = async (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
     try {
-      let publicUrl = '';
+      setProcessingMsg(`Uploading material "${mat.name}"...`);
+      let newMat: Material;
       if (file) {
-        publicUrl = await materialService.uploadMaterialFile(wsId, file);
+        newMat = await materialService.uploadMaterial(wsId, file, {
+          name: mat.name,
+          category: mat.category,
+          tags: mat.tags,
+          dueAt: mat.dueAt,
+          maxScore: mat.maxScore,
+        });
+      } else {
+        const firstPath = mat.content && mat.content[0] ? mat.content[0].path : '';
+        newMat = await materialService.createLinkMaterial(wsId, {
+          name: mat.name,
+          url: firstPath || 'https://example.com',
+          category: mat.category,
+          tags: mat.tags,
+          dueAt: mat.dueAt,
+          maxScore: mat.maxScore,
+        });
       }
-      
-      const newMat = await materialService.createMaterial(wsId, {
-        name: mat.name,
-        type: mat.type,
-        size: mat.size,
-        tags: mat.tags,
-        url: publicUrl,
-      });
 
       const updated = classes.map(w => {
         if (w.id === wsId) {
@@ -301,14 +381,18 @@ export default function ClassApp() {
         return w;
       });
       setClasses(updated);
-      triggerToast("Uploaded document simulation committed in classroom folders.");
+      triggerToast("Uploaded course material committed successfully.");
     } catch (err: any) {
+      console.error("handleAddMaterialInClass error:", err);
       triggerToast(`Failed to upload material: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
   const handleDeleteMaterialInClass = async (wsId: string, matId: string) => {
     try {
+      setProcessingMsg("Deleting material...");
       await materialService.deleteMaterial(matId);
       const updated = classes.map((w) =>
         w.id === wsId
@@ -319,33 +403,50 @@ export default function ClassApp() {
       triggerToast("Removed document card.");
     } catch (err: any) {
       triggerToast(`Failed to delete material: ${err.message}`);
+    } finally {
+      setProcessingMsg(null);
     }
   };
 
   // --- Prompts/Criteria nested operations ---
-  const handleAddInstructionInClass = (wsId: string, inst: Omit<Instruction, 'id'>) => {
-    const updated = classes.map(w => {
-      if (w.id === wsId) {
-        const newInst: Instruction = {
-          ...inst,
-          id: `inst-${Date.now()}`
-        };
-        return { ...w, instructions: [...w.instructions, newInst] };
-      }
-      return w;
-    });
-    setClasses(updated);
-    triggerToast("Saved custom prompting rubric.");
+  const handleAddInstructionInClass = async (
+    wsId: string,
+    inst: Omit<Instruction, "id">,
+  ) => {
+    try {
+      const newInst = await instructionService.createInstruction(wsId, inst);
+      const updated = classes.map((w) => {
+        if (w.id === wsId) {
+          return { ...w, instructions: [...w.instructions, newInst] };
+        }
+        return w;
+      });
+      setClasses(updated);
+      triggerToast("Saved custom prompting rubric.");
+    } catch (err: any) {
+      triggerToast(`Failed to add instruction: ${err.message}`);
+    }
   };
 
-  const handleDeleteInstructionInClass = (wsId: string, instId: string) => {
-    const updated = classes.map((w) =>
-      w.id === wsId
-        ? { ...w, instructions: w.instructions.filter((i) => i.id !== instId) }
-        : w,
-    );
-    setClasses(updated);
-    triggerToast("Removed custom prompting rubric.");
+  const handleDeleteInstructionInClass = async (
+    wsId: string,
+    instId: string,
+  ) => {
+    try {
+      await instructionService.deleteInstruction(wsId, instId);
+      const updated = classes.map((w) =>
+        w.id === wsId
+          ? {
+              ...w,
+              instructions: w.instructions.filter((i) => i.id !== instId),
+            }
+          : w,
+      );
+      setClasses(updated);
+      triggerToast("Removed custom prompting rubric.");
+    } catch (err: any) {
+      triggerToast(`Failed to delete instruction: ${err.message}`);
+    }
   };
 
   // --- Adapter mapping for ClassDetails ---
@@ -361,7 +462,11 @@ export default function ClassApp() {
           if (updatedFields.specialNotes !== undefined) update.description = updatedFields.specialNotes;
           if (updatedFields.materials !== undefined) {
             update.materialsPreset = updatedFields.materials.map(m => ({
-              name: m.name, type: m.type as any, size: m.size, tags: m.tags
+              name: m.name,
+              category: m.category || 'Study Material',
+              content: m.content || [],
+              size: m.size,
+              tags: m.tags
             }));
           }
           if (updatedFields.instructions !== undefined) {
@@ -376,13 +481,25 @@ export default function ClassApp() {
     }
   };
 
-  const handleAdapterAddMaterial = (id: string, mat: Omit<Material, 'id' | 'uploadDate'>) => {
+  const handleAdapterAddMaterial = (id: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
     if (viewMode === 'class') {
-      handleAddMaterialInClass(id, mat);
+      handleAddMaterialInClass(id, mat, file);
     } else {
       setTemplates(templates.map(t => {
         if (t.id === id) {
-          return { ...t, materialsPreset: [...t.materialsPreset, { name: mat.name, type: mat.type as any, size: mat.size, tags: mat.tags }] };
+          return {
+            ...t,
+            materialsPreset: [
+              ...(t.materialsPreset || []),
+              {
+                name: mat.name,
+                category: mat.category || 'Study Material',
+                content: mat.content || [],
+                size: mat.size,
+                tags: mat.tags,
+              },
+            ],
+          };
         }
         return t;
       }));
@@ -446,10 +563,11 @@ export default function ClassApp() {
         academicYear: 'N/A',
         semester: 'N/A',
         teacherName: 'Template',
+        assessmentPreferences: activeTemplate.assessmentPreferences || [],
         students: [],
         ragSessions: [],
-        materials: activeTemplate.materialsPreset.map((m, i) => ({ ...m, id: `mat-${i}`, uploadDate: 'N/A' })),
-        instructions: activeTemplate.instructions.map((inst, i) => ({ ...inst, id: `inst-${i}` })),
+        materials: (activeTemplate.materialsPreset || []).map((m, i) => ({ ...m, id: `mat-${i}`, uploadDate: 'N/A' })),
+        instructions: (activeTemplate.instructions || []).map((inst, i) => ({ ...inst, id: `inst-${i}` })),
       } : null);
 
   // --- Client-side Mock Chat execution ---
@@ -679,7 +797,7 @@ export default function ClassApp() {
                   ? "flex-1 min-h-0"
                   : layoutMode === "chat-only"
                     ? "shrink-0"
-                    : "h-[280px] shrink-0"
+                    : "h-70 shrink-0"
               }`}
             >
               {/* Upper section layout controls (ALWAYS VISIBLE) */}
@@ -704,7 +822,65 @@ export default function ClassApp() {
                   <>
                     <button
                       id="top-nav-save-button"
-                      onClick={() => {
+                      onClick={async () => {
+                        if (viewMode === "class" && activeClass && preEditClassSnapshot) {
+                          const hasChanges = 
+                            activeClass.name !== preEditClassSnapshot.name ||
+                            activeClass.subject !== preEditClassSnapshot.subject ||
+                            activeClass.semester !== preEditClassSnapshot.semester ||
+                            activeClass.academicYear !== preEditClassSnapshot.academicYear ||
+                            activeClass.teacherName !== preEditClassSnapshot.teacherName ||
+                            JSON.stringify(activeClass.teachingStyle) !== JSON.stringify(preEditClassSnapshot.teachingStyle) ||
+                            activeClass.experienceLevel !== preEditClassSnapshot.experienceLevel ||
+                            JSON.stringify(activeClass.assessmentPreferences) !== JSON.stringify(preEditClassSnapshot.assessmentPreferences) ||
+                            activeClass.specialNotes !== preEditClassSnapshot.specialNotes;
+
+                          if (hasChanges) {
+                            try {
+                              await classService.updateClass(activeClass.id, {
+                                name: activeClass.name,
+                                subject: activeClass.subject,
+                                semester: activeClass.semester,
+                                academicYear: activeClass.academicYear,
+                                teacherName: activeClass.teacherName,
+                                teachingStyle: activeClass.teachingStyle,
+                                experienceLevel: activeClass.experienceLevel,
+                                assessmentPreferences: activeClass.assessmentPreferences,
+                                specialNotes: activeClass.specialNotes,
+                              });
+                              triggerToast("Class changes saved to database.");
+                            } catch (err: any) {
+                              triggerToast(`Failed to save changes: ${err.message}`);
+                              return;
+                            }
+                          }
+                        } else if (viewMode === "template" && activeTemplate && preEditTemplateSnapshot) {
+                          const hasChanges = 
+                            activeTemplate.name !== preEditTemplateSnapshot.name ||
+                            activeTemplate.description !== preEditTemplateSnapshot.description ||
+                            activeTemplate.subject !== preEditTemplateSnapshot.subject ||
+                            JSON.stringify(activeTemplate.teachingStyle) !== JSON.stringify(preEditTemplateSnapshot.teachingStyle) ||
+                            JSON.stringify(activeTemplate.assessmentPreferences) !== JSON.stringify(preEditTemplateSnapshot.assessmentPreferences);
+
+                          if (hasChanges) {
+                            try {
+                              await templateService.updateTemplate(
+                                activeTemplate.id,
+                                {
+                                  name: activeTemplate.name,
+                                  description: activeTemplate.description,
+                                  subject: activeTemplate.subject,
+                                  teachingStyle: activeTemplate.teachingStyle,
+                                  assessmentPreferences: activeTemplate.assessmentPreferences,
+                                },
+                              );
+                              triggerToast("Template changes saved to database.");
+                            } catch (err: any) {
+                              triggerToast(`Failed to save template: ${err.message}`);
+                              return;
+                            }
+                          }
+                        }
                         setIsEditMode(false);
                         setLayoutMode(previousLayoutMode);
                       }}
@@ -716,8 +892,29 @@ export default function ClassApp() {
                     <button
                       id="top-nav-cancel-button"
                       onClick={() => {
+                        if (viewMode === "class" && preEditClassSnapshot) {
+                          setClasses(
+                            classes.map((c) =>
+                              c.id === preEditClassSnapshot.id
+                                ? preEditClassSnapshot
+                                : c,
+                            ),
+                          );
+                        } else if (
+                          viewMode === "template" &&
+                          preEditTemplateSnapshot
+                        ) {
+                          setTemplates(
+                            templates.map((t) =>
+                              t.id === preEditTemplateSnapshot.id
+                                ? preEditTemplateSnapshot
+                                : t,
+                            ),
+                          );
+                        }
                         setIsEditMode(false);
                         setLayoutMode(previousLayoutMode);
+                        triggerToast("Editing cancelled; reverted changes.");
                       }}
                       className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
                       title="Cancel Editing"
@@ -730,6 +927,15 @@ export default function ClassApp() {
                     id="top-nav-edit-button"
                     onClick={() => {
                       setPreviousLayoutMode(layoutMode);
+                      if (viewMode === "class" && activeClass) {
+                        setPreEditClassSnapshot(
+                          JSON.parse(JSON.stringify(activeClass)),
+                        );
+                      } else if (viewMode === "template" && activeTemplate) {
+                        setPreEditTemplateSnapshot(
+                          JSON.parse(JSON.stringify(activeTemplate)),
+                        );
+                      }
                       setIsEditMode(true);
                       setLayoutMode("details-only");
                     }}
@@ -797,6 +1003,7 @@ export default function ClassApp() {
                           <StudentRegister
                             classItem={adapterClassItem}
                             onUpdateClass={handleAdapterUpdate}
+                            onTriggerToast={triggerToast}
                           />
                         </div>
                       )}
@@ -806,11 +1013,14 @@ export default function ClassApp() {
                         <ClassDetails
                           classItem={adapterClassItem}
                           isEditMode={isEditMode}
+                          activeSubTab={activeDetailsTab}
+                          onSubTabChange={setActiveDetailsTab}
                           onUpdateClass={handleAdapterUpdate}
                           onAddMaterial={handleAdapterAddMaterial}
                           onDeleteMaterial={handleAdapterDeleteMaterial}
                           onAddInstruction={handleAdapterAddInstruction}
                           onDeleteInstruction={handleAdapterDeleteInstruction}
+                          onTriggerToast={triggerToast}
                         />
                       </div>
                     </>
@@ -821,11 +1031,14 @@ export default function ClassApp() {
                         <ClassDetails
                           classItem={adapterClassItem}
                           isEditMode={isEditMode}
+                          activeSubTab={activeDetailsTab}
+                          onSubTabChange={setActiveDetailsTab}
                           onUpdateClass={handleAdapterUpdate}
                           onAddMaterial={handleAdapterAddMaterial}
                           onDeleteMaterial={handleAdapterDeleteMaterial}
                           onAddInstruction={handleAdapterAddInstruction}
                           onDeleteInstruction={handleAdapterDeleteInstruction}
+                          onTriggerToast={triggerToast}
                         />
                       </div>
 
@@ -835,6 +1048,7 @@ export default function ClassApp() {
                           <StudentRegister
                             classItem={adapterClassItem}
                             onUpdateClass={handleAdapterUpdate}
+                            onTriggerToast={triggerToast}
                           />
                         )}
                       </div>
@@ -880,6 +1094,8 @@ export default function ClassApp() {
         onClose={() => setActiveAccountModal(null)}
         onTriggerToast={triggerToast}
       />
+      
+      <LoadingOverlay isOpen={!!processingMsg} message={processingMsg || undefined} />
     </div>
   );
 }

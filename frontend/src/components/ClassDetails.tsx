@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { ClassModel, Material, Instruction } from "../types/main";
-import { PromptModal } from './CustomDialogs';
+import { ClassModel, Material, Instruction, ContentCategory } from "../types/main";
+import { materialService } from "../services/materialService";
+import { ConfirmModal, PromptModal, LoadingOverlay } from "./CustomDialogs";
+import { MultiSelect } from './MultiSelect';
 import {
   Building2,
   BookMarked,
@@ -20,23 +22,28 @@ import {
   PlusCircle,
   FileCheck2,
   Info,
+  ExternalLink,
+  Download,
 } from "lucide-react";
 
 interface ClassDetailsProps {
   classItem: ClassModel;
   isEditMode: boolean;
-  onUpdateClass: (id: string, updatedFields: Partial<ClassModel>) => void;
+  onUpdateClass: (id: string, updates: Partial<ClassModel>) => void;
   onAddMaterial: (
-    classId: string,
-    material: Omit<Material, "id" | "uploadDate">,
-    file?: File
+    wsId: string,
+    mat: Omit<Material, "id" | "uploadDate">,
+    file?: File,
   ) => void;
-  onDeleteMaterial: (classId: string, materialId: string) => void;
+  onDeleteMaterial: (wsId: string, matId: string) => void;
   onAddInstruction: (
-    classId: string,
-    instruction: Omit<Instruction, "id">,
+    wsId: string,
+    prompt: Omit<Instruction, "id">,
   ) => void;
-  onDeleteInstruction: (classId: string, instructionId: string) => void;
+  onDeleteInstruction: (wsId: string, promptId: string) => void;
+  onTriggerToast: (text: string) => void;
+  activeSubTab?: "profile" | "materials" | "prompts";
+  onSubTabChange?: (tab: "profile" | "materials" | "prompts") => void;
 }
 
 export default function ClassDetails({
@@ -47,16 +54,28 @@ export default function ClassDetails({
   onDeleteMaterial,
   onAddInstruction,
   onDeleteInstruction,
+  onTriggerToast,
+  activeSubTab: externalSubTab,
+  onSubTabChange,
 }: ClassDetailsProps) {
-  const [activeSubTab, setActiveSubTab] = useState<
+  const [internalSubTab, setInternalSubTab] = useState<
     "profile" | "materials" | "prompts"
   >("profile");
 
+  const activeSubTab = externalSubTab !== undefined ? externalSubTab : internalSubTab;
+  const setActiveSubTab = (tab: "profile" | "materials" | "prompts") => {
+    if (onSubTabChange) onSubTabChange(tab);
+    setInternalSubTab(tab);
+  };
+
   // Local form states for files/materials
   const [newFileName, setNewFileName] = useState("");
-  const [newFileType, setNewFileType] = useState<Material["type"]>("pdf");
+  const [newCategory, setNewCategory] = useState<ContentCategory>("Study Material");
   const [newFileTags, setNewFileTags] = useState("");
   const [newFileObj, setNewFileObj] = useState<File | null>(null);
+  const [newUrlString, setNewUrlString] = useState("");
+  const [newDueDate, setNewDueDate] = useState("");
+  const [newMaxScore, setNewMaxScore] = useState<number>(100);
   const [showFileForm, setShowFileForm] = useState(false);
 
   // Local form states for reusable instructions
@@ -80,24 +99,46 @@ export default function ClassDetails({
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    onAddMaterial(classItem.id, {
-      name: newFileName.trim(),
-      type: newFileType,
-      size: newFileObj ? `${(newFileObj.size / (1024 * 1024)).toFixed(1)} MB` : `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
-      tags: tagsArr.length > 0 ? tagsArr : ["General"],
-      versionHistory: [
-        {
-          version: "v1.0",
-          date: new Date().toISOString().split("T")[0],
-          note: "Uploaded initial document",
-        },
-      ],
-    }, newFileObj || undefined);
+    const isScored = ['Assignment', 'Test', 'Exam', 'Practical'].includes(newCategory);
+
+    onAddMaterial(
+      classItem.id,
+      {
+        name: newFileName.trim(),
+        category: newCategory,
+        content: newFileObj
+          ? [{ id: crypto.randomUUID(), name: newFileName.trim(), type: 'File', path: '' }]
+          : [{ id: crypto.randomUUID(), name: newFileName.trim(), type: 'URL', path: newUrlString || 'https://example.com' }],
+        size: newFileObj ? `${(newFileObj.size / (1024 * 1024)).toFixed(1)} MB` : '0 MB',
+        tags: tagsArr.length > 0 ? tagsArr : ["General"],
+        dueAt: isScored || newDueDate ? (newDueDate || new Date(Date.now() + 7 * 86400000).toISOString()) : undefined,
+        maxScore: isScored ? newMaxScore : undefined,
+        toBeScored: isScored,
+      },
+      newFileObj || undefined,
+    );
 
     setNewFileName("");
     setNewFileTags("");
     setNewFileObj(null);
+    setNewUrlString("");
+    setNewDueDate("");
     setShowFileForm(false);
+  };
+
+  const [isDownloadingMsg, setIsDownloadingMsg] = useState<string | null>(null);
+
+  const handleDownloadFile = async (mat: Material) => {
+    try {
+      setIsDownloadingMsg(`Generating secure link for ${mat.name}...`);
+      const firstItem = mat.content && mat.content[0];
+      const url = await materialService.getMaterialDownloadUrl(mat.id, classItem.id, firstItem?.path);
+      window.open(url, '_blank');
+    } catch (err: any) {
+      onTriggerToast(`Could not open file: ${err.message}`);
+    } finally {
+      setIsDownloadingMsg(null);
+    }
   };
 
   const handleCreateInstruction = (e: React.FormEvent) => {
@@ -176,25 +217,70 @@ export default function ClassDetails({
       {/* Tab Contents Area */}
       <div className="flex-1 overflow-y-auto p-4">
         {/* Profile Tab */}
-        {activeSubTab === "profile" && (
-          <div className="space-y-4">
-            {/* Lead Class Metrics Cards */}
-            <div className="grid grid-cols-2 gap-3">
+        <div className={activeSubTab === "profile" ? "space-y-4" : "hidden"}>
+          {/* Lead Class Metrics Cards */}
+          <div className={`grid ${isEditMode ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
+            {!isEditMode && (
               <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
                 <span className="text-[10px] font-mono text-muted-text block uppercase">
-                  Curriculum Course
+                  Institution / School
                 </span>
+                <span
+                  className="text-xs font-semibold text-primary-text block mt-1 truncate"
+                  title={classItem.instituteName || "Independent"}
+                >
+                  {classItem.instituteName || "Independent"}
+                </span>
+                {classItem.instituteAddress && (
+                  <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
+                    {classItem.instituteAddress}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
+              <span className="text-[10px] font-mono text-muted-text block uppercase">
+                Curriculum Course
+              </span>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={classItem.subject}
+                  onChange={(e) => onUpdateClass(classItem.id, { subject: e.target.value })}
+                  className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all mt-1"
+                />
+              ) : (
                 <span className="text-xs font-semibold text-primary-text block mt-1 truncate">
                   {classItem.subject}
                 </span>
-              </div>
-              <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
-                <span className="text-[10px] font-mono text-muted-text block uppercase">
-                  Academic Period
-                </span>
+              )}
+            </div>
+            <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
+              <span className="text-[10px] font-mono text-muted-text block uppercase">
+                Academic Period
+              </span>
+              {isEditMode ? (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    placeholder="Semester"
+                    value={classItem.semester}
+                    onChange={(e) => onUpdateClass(classItem.id, { semester: e.target.value })}
+                    className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Year"
+                    value={classItem.academicYear}
+                    onChange={(e) => onUpdateClass(classItem.id, { academicYear: e.target.value })}
+                    className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+                  />
+                </div>
+              ) : (
                 <span className="text-xs font-semibold text-primary-text block mt-1 truncate">
-                  {classItem.semester}, {classItem.academicYear}
+                    {classItem.semester}, {classItem.academicYear}
                 </span>
+              )}
               </div>
             </div>
 
@@ -209,50 +295,64 @@ export default function ClassDetails({
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] uppercase font-mono text-muted-text">
+                  <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">
                     Instructor style
                   </label>
-                  <input
-                    id="class-profile-teaching-style-input"
-                    type="text"
-                    value={classItem.teachingStyle}
-                    disabled={!isEditMode}
-                    onChange={(e) =>
-                      onUpdateClass(classItem.id, {
-                        teachingStyle: e.target.value,
-                      })
-                    }
-                    className={`w-full bg-transparent text-xs text-primary-text font-semibold focus:outline-none focus:border-b focus:border-primary/50 pt-0.5 ${!isEditMode ? "opacity-75 cursor-not-allowed" : ""}`}
-                  />
+                  {isEditMode ? (
+                    <MultiSelect
+                      options={['Socratic', 'Lecture', 'Project-Based', 'Flipped Classroom', 'Discussion', 'Montessori', 'Direct Instruction']}
+                      selectedValues={classItem.teachingStyle}
+                      onChange={(values) => onUpdateClass(classItem.id, { teachingStyle: values })}
+                      placeholder="Select teaching styles"
+                    />
+                  ) : (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {classItem.teachingStyle.length > 0 ? (
+                        classItem.teachingStyle.map(ts => (
+                          <span key={ts} className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-full border border-primary/20">
+                            {ts}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-secondary-text">Not specified</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="text-[10px] uppercase font-mono text-muted-text">
+                <div className={isEditMode ? "opacity-75 cursor-not-allowed bg-surface/50 border border-border-color rounded-md p-1.5 mt-0.5" : ""}>
+                  <label className={`text-[10px] uppercase font-mono text-muted-text ${isEditMode ? "pointer-events-none" : ""}`}>
                     Experience scale
                   </label>
-                  <p className="text-xs font-medium text-secondary-text pt-0.5">
+                  <p className={`text-xs font-medium text-secondary-text pt-0.5 ${isEditMode ? "pointer-events-none" : ""}`}>
                     {classItem.experienceLevel}
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-mono text-muted-text">
+                  <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">
                     Assessment Preferences
                   </label>
-                  <textarea
-                    id="class-profile-assessment-preferences-input"
-                    value={
-                      classItem.assessmentPreferences ||
-                      "No specific preferences."
-                    }
-                    disabled={!isEditMode}
-                    onChange={(e) =>
-                      onUpdateClass(classItem.id, {
-                        assessmentPreferences: e.target.value,
-                      })
-                    }
-                    className={`w-full bg-transparent text-xs text-secondary-text h-10 resize-none focus:outline-none focus:border-b focus:border-primary/50 pt-0.5 ${!isEditMode ? "opacity-75 cursor-not-allowed" : ""}`}
-                  />
+                  {isEditMode ? (
+                    <MultiSelect
+                      options={['Formative', 'Summative', 'Peer Review', 'Self Assessment', 'Portfolio', 'Rubric-based', 'Multiple Choice']}
+                      selectedValues={classItem.assessmentPreferences}
+                      onChange={(values) => onUpdateClass(classItem.id, { assessmentPreferences: values })}
+                      placeholder="Select assessment preferences"
+                    />
+                  ) : (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {classItem.assessmentPreferences.length > 0 ? (
+                        classItem.assessmentPreferences.map(ap => (
+                          <span key={ap} className="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-semibold rounded-full border border-secondary/20">
+                            {ap}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-secondary-text">No specific preferences.</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -269,7 +369,7 @@ export default function ClassDetails({
                       })
                     }
                     placeholder="E.g. Focus on bridging Algebra basics before Geometry exams..."
-                    className={`w-full bg-surface border border-border-color rounded-lg p-2 text-xs text-secondary-text h-14 resize-none focus:outline-none focus:border-primary/50 shadow-sm ${!isEditMode ? "opacity-75 cursor-not-allowed" : ""}`}
+                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-14 resize-none focus:outline-none transition-all shadow-sm ${!isEditMode ? "bg-surface border border-border-color opacity-75 cursor-not-allowed" : "bg-primary/5 border border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/50"}`}
                   />
                 </div>
               </div>
@@ -285,12 +385,10 @@ export default function ClassDetails({
               </p>
             </div>
           </div>
-        )}
 
         {/* Materials Repository Tab */}
-        {activeSubTab === "materials" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <div className={activeSubTab === "materials" ? "space-y-4" : "hidden"}>
+          <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Classroom Document Repo
               </h4>
@@ -343,20 +441,23 @@ export default function ClassDetails({
                   </div>
                   <div>
                     <label className="text-[10px] font-mono text-muted-text block">
-                      DOCUMENT TYPE
+                      RESOURCE CATEGORY
                     </label>
                     <select
-                      value={newFileType}
+                      value={newCategory}
                       onChange={(e) =>
-                        setNewFileType(e.target.value as Material["type"])
+                        setNewCategory(e.target.value as ContentCategory)
                       }
                       className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
                     >
-                      <option value="pdf">PDF Document</option>
-                      <option value="doc">Word Doc</option>
-                      <option value="book">Reference Book</option>
-                      <option value="syllabus">Syllabus Standard</option>
-                      <option value="custom">General Form</option>
+                      <option value="Study Material">Study Material</option>
+                      <option value="Note">Class Note</option>
+                      <option value="Assigned Book">Assigned Book</option>
+                      <option value="Link">Web Link</option>
+                      <option value="Practical">Practical Lab</option>
+                      <option value="Assignment">Assignment</option>
+                      <option value="Test">Test Paper</option>
+                      <option value="Exam">Final Exam</option>
                     </select>
                   </div>
                   <div>
@@ -372,6 +473,49 @@ export default function ClassDetails({
                     />
                   </div>
                 </div>
+
+                {!newFileObj && (
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-text block">
+                      OR WEB LINK URL
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/syllabus.pdf"
+                      value={newUrlString}
+                      onChange={(e) => setNewUrlString(e.target.value)}
+                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                )}
+
+                {['Assignment', 'Test', 'Exam', 'Practical'].includes(newCategory) && (
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border-color/40">
+                    <div>
+                      <label className="text-[10px] font-mono text-muted-text block">
+                        DUE DATE
+                      </label>
+                      <input
+                        type="date"
+                        value={newDueDate}
+                        onChange={(e) => setNewDueDate(e.target.value)}
+                        className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono text-muted-text block">
+                        MAX SCORE
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newMaxScore}
+                        onChange={(e) => setNewMaxScore(parseInt(e.target.value) || 100)}
+                        className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -407,17 +551,24 @@ export default function ClassDetails({
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[9px] font-mono text-muted-text uppercase">
-                            {mat.type}
+                            {mat.category || 'Study Material'}
                           </span>
                           <span className="w-1 h-1 bg-border-color rounded-full"></span>
                           <span className="text-[9px] font-mono text-primary/80">
-                            {mat.size}
+                            {mat.size || 'File'}
                           </span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 transition-opacity">
+                      <button
+                        onClick={() => handleDownloadFile(mat)}
+                        title="Download / Open Material"
+                        className="p-1 hover:bg-background border border-transparent hover:border-border-color text-muted-text hover:text-primary rounded cursor-pointer transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => setSelectedMaterialHistory(mat)}
                         title="View File Version History"
@@ -440,12 +591,10 @@ export default function ClassDetails({
               )}
             </div>
           </div>
-        )}
 
         {/* AI Custom Instructions Tab */}
-        {activeSubTab === "prompts" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <div className={activeSubTab === "prompts" ? "space-y-4" : "hidden"}>
+          <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Rule Prompt Templates
               </h4>
@@ -567,7 +716,6 @@ export default function ClassDetails({
               )}
             </div>
           </div>
-        )}
       </div>
 
       {/* Version History Modal Overlay (simulated overlay) */}
@@ -672,6 +820,7 @@ export default function ClassDetails({
         }}
         onCancel={() => setIsVersionPromptOpen(false)}
       />
+      <LoadingOverlay isOpen={!!isDownloadingMsg} message={isDownloadingMsg || undefined} />
     </div>
   );
 }

@@ -8,8 +8,9 @@ export const studentService = {
       .from('class_students')
       .select(`
         performance_tier,
-        grades,
-        attendance,
+        current_score,
+        current_grade,
+        general_feedback,
         behavioral_notes,
         students (*)
       `)
@@ -17,25 +18,54 @@ export const studentService = {
 
     if (error) throw error;
 
+    // Fetch submissions separately for this class
+    const { data: submissionsData, error: subError } = await supabase
+      .from('student_submissions')
+      .select('*')
+      .eq('class_id', classId);
+
+    if (subError) throw subError;
+
     return data.map((row: any) => {
       const student = row.students;
+      
+      // Filter submissions for this specific student
+      const studentSubs = submissionsData.filter((sub: any) => sub.student_id === student.id);
       return {
         id: student.id,
         name: student.name,
-        rollNumber: student.id.substring(0, 8), // Mapped fallback
         email: student.email || '',
-        phone: '', // Needs mapping if we add phone
-        address: '',
-        parentName: '',
-        parentContact: '',
-        parentNotes: '',
-        grades: row.grades || [],
+        learningStyle: student.learning_style || '',
+        strengths: student.strengths || [],
+        weaknesses: student.weaknesses || [],
+        avatarUrl: student.avatar_url || '',
+        
+        currentScore: row.current_score,
+        currentGrade: row.current_grade,
+        generalFeedback: row.general_feedback,
+        performanceTier: (row.performance_tier || 'Average') as any,
+        behavioralNotes: row.behavioral_notes || '',
+        
         attendance: 100, // Derived ideally from attendance records
-        performanceIndicator: (row.performance_tier?.toLowerCase() || 'average') as any,
         statusIndicator: 'active',
-        uploads: [], // Fetch separately or join student_materials
+        submissions: studentSubs.map((sub: any) => ({
+          id: sub.id,
+          materialId: sub.material_id,
+          studentId: sub.student_id,
+          content: sub.content || [],
+          status: sub.status,
+          dueAt: sub.due_at,
+          isLate: sub.is_late,
+          grade: sub.grade,
+          score: sub.score,
+          rubricBreakdown: sub.rubric_breakdown,
+          feedback: sub.feedback,
+          privateTeacherNotes: sub.private_teacher_notes,
+          submittedAt: sub.submitted_at,
+          reviewedAt: sub.reviewed_at,
+        })),
         customFields: [],
-        avatarSeed: student.name,
+        isArchived: student.is_archived || false,
       };
     });
   },
@@ -44,31 +74,26 @@ export const studentService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthenticated user");
 
-    // Insert student globally
-    const { data: student, error: studentError } = await supabase
-      .from('students')
-      .insert({
-        user_id: user.id,
-        name: payload.name,
+    // Invoke the edge function to invite and add the student
+    const { data, error: invokeError } = await supabase.functions.invoke('invite-student', {
+      body: {
         email: payload.email,
-      })
-      .select()
-      .single();
-
-    if (studentError) throw studentError;
-
-    // Link to class
-    const { error: linkError } = await supabase
-      .from('class_students')
-      .insert({
+        name: payload.name,
         class_id: classId,
-        student_id: student.id,
-        performance_tier: payload.performanceIndicator || 'average',
-        grades: payload.grades || [],
-      });
+        user_id: user.id,
+        learning_style: payload.learningStyle ?? null,
+        strengths: payload.strengths ?? [],
+        weaknesses: payload.weaknesses ?? [],
+        performance_tier: payload.performanceTier ?? 'Average',
+        current_score: payload.currentScore ?? null,
+        current_grade: payload.currentGrade ?? null,
+        general_feedback: payload.generalFeedback ?? '',
+        behavioral_notes: payload.behavioralNotes ?? '',
+      }
+    });
 
-
-    if (linkError) throw linkError;
+    if (invokeError) throw invokeError;
+    if (data?.error) throw new Error(data.error);
   },
 
   async updateAttendance(classId: string, studentId: string, date: string, status: string, notes?: string): Promise<void> {
@@ -85,16 +110,17 @@ export const studentService = {
     if (error) throw error;
   },
 
-  async updateGrade(studentMaterialId: string, score: number, feedback: string): Promise<void> {
+  async updateGrade(studentSubmissionId: string, score: number, feedback: string, grade: string): Promise<void> {
     const { error } = await supabase
-      .from('student_materials')
+      .from('student_submissions')
       .update({
         score,
+        grade,
         feedback,
-        status: 'graded',
-        graded_at: new Date().toISOString(),
+        status: 'Graded',
+        reviewed_at: new Date().toISOString(),
       })
-      .eq('id', studentMaterialId);
+      .eq('id', studentSubmissionId);
 
     if (error) throw error;
   },
@@ -103,8 +129,11 @@ export const studentService = {
     const { error } = await supabase
       .from('class_students')
       .update({
-        performance_tier: updates.performanceIndicator,
-        grades: updates.grades,
+        performance_tier: updates.performanceTier,
+        current_score: updates.currentScore,
+        current_grade: updates.currentGrade,
+        general_feedback: updates.generalFeedback,
+        behavioral_notes: updates.behavioralNotes,
       })
       .eq('class_id', classId)
       .eq('student_id', studentId);
