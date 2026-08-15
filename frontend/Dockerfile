@@ -1,7 +1,7 @@
 # 1. Base stage
-FROM busybox:1.37.0-musl AS busybox
+FROM busybox:1.37.0-musl@sha256:fc6dddc4c44b1bfe37f41cae8e67d1693828e8f42a91862816d7953e2c9d3f23 AS busybox
 
-FROM node:24-slim AS base
+FROM node:24-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS base
 
 WORKDIR /app
 

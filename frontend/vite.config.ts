@@ -48,6 +48,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: 8080,
+    host: '0.0.0.0',
     proxy: {
       "/api": {
         target: `http://${process.env.BACKEND_HOST || "localhost"}:${process.env.BACKEND_PORT || 8090}`,
@@ -86,20 +88,18 @@ export default defineConfig({
         // Vendor splitting: split heavy dependencies into their own chunks
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            // Group React and related packages together
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "react-vendor";
-            }
-            // Separate heavy icon libraries
             if (id.includes("lucide-react")) {
               return "ui-icons";
             }
-            // Separate Supabase SDK as it can be large and updates independently
             if (id.includes("@supabase")) {
               return "supabase-vendor";
             }
-            // Catch-all for remaining dependencies
-            return "vendor";
+            if (
+              id.includes("/node_modules/react/") ||
+              id.includes("/node_modules/react-dom/")
+            ) {
+              return "react-vendor";
+            }
           }
         },
       },

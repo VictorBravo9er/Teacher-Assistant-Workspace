@@ -1,9 +1,9 @@
 # 1. prepare required binaries source
-FROM busybox:1.37.0-musl AS busybox
-FROM ghcr.io/astral-sh/uv:0.12 AS uv
+FROM busybox:1.37.0-musl@sha256:fc6dddc4c44b1bfe37f41cae8e67d1693828e8f42a91862816d7953e2c9d3f23 AS busybox
+FROM astral/uv:0.12.3@sha256:2d890623d310b57771ce840f0da5eed5fc6d657da05ffaa45d82797b53fa3abc AS uv
 
 
-FROM python:3.13-slim AS base
+FROM python:3.13.15-slim-trixie@sha256:ffb752e139c0a19692a43af8d8523b274222dd68eebad5d583b45c2201c6e30a AS base
 
 WORKDIR /app
 
@@ -31,10 +31,10 @@ FROM prep AS build
 
 # 4. copy project deps files.
 COPY  pyproject.toml uv.lock ./
-RUN  uv export --frozen --no-dev --format requirements.txt \
-  |  uv pip install --system --no-cache -r /dev/stdin \
-  && uv pip install --system --no-cache "uvicorn>=0.28.0" \
-  && rm -rf "$UV_CACHE_DIR"
+RUN --mount=type=cache,target=/tmp/uv-cache \
+    uv export --frozen --no-dev --format requirements.txt \
+  |  uv pip install --system -r /dev/stdin \
+  && uv pip install --system "uvicorn>=0.28.0"
 
 FROM base AS dev
 
