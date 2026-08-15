@@ -1,6 +1,6 @@
-# EduRAG Database Schema Documentation
+# Teach&Learn Database Schema Documentation
 
-This document provides a plain-English explanation of the EduRAG application database structure. It outlines what each table tracks, the meaning behind the various enumerations (ENUMs), and how the data relates.
+This document provides a plain-English explanation of the Teach&Learn application database structure. It outlines what each table tracks, the meaning behind the various enumerations (ENUMs), and how the data relates.
 
 *Note: The LangGraph-related tables responsible for storing the granular AI chat message history and checkpointing are excluded from this overview, as they are managed automatically by the LangGraph framework.*
 
@@ -11,14 +11,12 @@ This document provides a plain-English explanation of the EduRAG application dat
 To ensure strict data integrity, the database uses predefined lists of values (ENUMs) for various categories and statuses.
 
 ### Material & Content Types
-- **`material_category`**: Broadly classifies the teaching resources uploaded by a teacher. 
+- **`content_category`**: Broadly classifies the teaching resources uploaded by a teacher. 
   - *Values*: `Study Material`, `Note`, `Assigned Book`, `Link`, `Practical`, `Assignment`, `Test`, `Exam`
-- **`material_content_type`**: Describes the physical medium of the material.
+- **`content_type`**: Describes the physical medium of the material.
   - *Values*: `File` (uploaded document), `URL` (web link), `Text` (raw text content)
 
 ### Student Submissions & Attendance
-- **`submission_type`**: The nature of the work the student is turning in.
-  - *Values*: `Assignment Submission`, `Lab Work`, `Practical Completed`, `Exam Paper`
 - **`submission_status`**: Tracks the lifecycle of a student's submission.
   - *Values*: `Assigned` (not yet started), `Pending` (submitted but awaiting grade), `Submitted` (turned in), `Evaluated` (auto-graded by AI), `Graded` (finalized by teacher)
 - **`attendance_status`**: Standard daily attendance states.
@@ -61,7 +59,7 @@ A global roster of all students managed by a specific teacher across all their c
 
 ### `materials`
 A centralized repository of all teaching resources (PDFs, URLs, test papers) uploaded by the user.
-- **Key Columns**: `name`, `category`, `content_type`, `storage_paths` (links to Supabase storage), `link_urls`.
+- **Key Columns**: `name`, `category`, `content` (JSONB array of objects handling mixed media, e.g., `[{id: "123", name: "syllabus.pdf", type: "File", path: "storage/path", description: "Syllabus PDF"}]`), `due_at` (acting as a default template deadline), `max_score`, `rubric_criteria` (JSON object defining the grading criteria for this specific material).
 
 ### `instructions`
 A centralized repository of AI prompts, rubrics, and behavioral rules created by the teacher. These tell the AI Assistant how to grade papers, design lesson plans, or act like a specific persona.
@@ -72,7 +70,7 @@ A centralized repository of AI prompts, rubrics, and behavioral rules created by
 ## 🔗 Junction Tables (Relationships)
 Because a Material or Instruction might be used in multiple Classes or Templates, we use junction tables to link them together without duplicating data.
 
-- **`class_students`**: Links a Student to a Class. Tracks course-specific data like `performance_tier` ('High', 'Average', 'At Risk') and `behavioral_notes` for that specific class.
+- **`class_students`**: Links a Student to a Class. Tracks course-specific data like `current_score`, `current_grade`, `general_feedback`, `performance_tier` ('High', 'Average', 'At Risk'), and `behavioral_notes` for that specific class.
 - **`class_materials` & `template_materials`**: Links Materials to specific Classes or Templates.
 - **`class_instructions` & `template_instructions`**: Links AI Instructions to specific Classes or Templates, ensuring the AI knows which rubrics to apply to which class.
 
@@ -80,20 +78,38 @@ Because a Material or Instruction might be used in multiple Classes or Templates
 
 ## 📝 Tracking & Logs
 
-### `student_materials`
+### `student_submissions`
 Tracks individual student assignments, submissions, grading statuses, and AI rubric breakdowns for a specific class. 
 - **Key Columns**: 
-  - `submission_type` & `status`
-  - `storage_paths` / `submission_urls`: Where the student's work is stored.
-  - `score` & `max_score`
+  - `content`: JSONB array of mixed media uploaded by the student.
+  - `status`: Lifecycle of the work (Assigned, Submitted, Graded).
+  - `due_at`: Deadline for the submission (overrides the default `due_at` set in `materials`).
+  - `score`: The points awarded (compared against the `max_score` in the linked material).
   - `rubric_breakdown`: A JSON object where the AI can provide granular scoring across different rubric criteria.
   - `feedback`: Public feedback for the student.
   - `private_teacher_notes`: Hidden notes only the teacher sees.
+  - `reviewed_at`: Timestamp for when the teacher or AI finalized the review.
 
 ### `attendance_records`
 Daily or session-based attendance logs for students in a class.
 - **Key Columns**: `date`, `status` (attendance_status), `notes`.
 
 ### `chat_sessions`
-Stores the metadata (like the `title` and associated `class_id`) for AI chat conversations between the teacher and the EduRAG Assistant. 
+Stores the metadata (like the `title` and associated `class_id`) for AI chat conversations between the teacher and the Teach&Learn Assistant. 
 - *Note: This table only populates the sidebar UI. The actual back-and-forth messages are stored inside the LangGraph checkpointing tables.*
+
+---
+
+## 📦 Storage Buckets (File Uploads)
+
+*Note: Storage bucket creation and strict Row Level Security policies (including 50MB file size limits and MIME type restrictions) are handled in the dedicated `bucket-materials.sql` and `bucket-submissions.sql` files.*
+
+### `class-materials`
+A private Supabase Storage bucket used to securely store all physical file uploads for teaching resources (PDFs, images, presentations, etc.).
+- Materials are stored at the path: `/{class id}/{material_id}/{file id}.{ext}`
+- The path to the file inside this bucket is what gets saved into the `"path"` field of the `content` JSONB array in the `materials` table.
+
+### `student-submissions`
+A private Supabase Storage bucket dedicated entirely to files uploaded by students when submitting their assignments and tests.
+- Submissions are stored at the path: `/{class id}/{student id}/{material id}/{file id}.{ext}`
+- The path to the file inside this bucket is what gets saved into the `"path"` field of the `content` JSONB array in the `student_submissions` table.

@@ -159,20 +159,38 @@ export type Database = {
         Row: {
           behavioral_notes: string | null
           class_id: string
+          current_grade: string | null
+          current_score: number | null
+          general_feedback: string | null
+          learning_style: string | null
           performance_tier: string | null
+          strengths: string[] | null
           student_id: string
+          weaknesses: string[] | null
         }
         Insert: {
           behavioral_notes?: string | null
           class_id: string
+          current_grade?: string | null
+          current_score?: number | null
+          general_feedback?: string | null
+          learning_style?: string | null
           performance_tier?: string | null
+          strengths?: string[] | null
           student_id: string
+          weaknesses?: string[] | null
         }
         Update: {
           behavioral_notes?: string | null
           class_id?: string
+          current_grade?: string | null
+          current_score?: number | null
+          general_feedback?: string | null
+          learning_style?: string | null
           performance_tier?: string | null
+          strengths?: string[] | null
           student_id?: string
+          weaknesses?: string[] | null
         }
         Relationships: [
           {
@@ -337,133 +355,121 @@ export type Database = {
       }
       materials: {
         Row: {
-          category: Database["public"]["Enums"]["material_category"]
-          content_type: Database["public"]["Enums"]["material_content_type"]
+          category: Database["public"]["Enums"]["content_category"]
+          content: Json | null
           created_at: string
+          due_at: string | null
           id: string
           is_archived: boolean | null
-          link_urls: string[] | null
+          max_score: number | null
           name: string
-          size: string | null
-          storage_paths: string[] | null
+          rubric_criteria: Json | null
           tags: string[] | null
+          to_be_scored: boolean | null
           user_id: string
-          version_history: Json | null
         }
         Insert: {
-          category?: Database["public"]["Enums"]["material_category"]
-          content_type?: Database["public"]["Enums"]["material_content_type"]
+          category?: Database["public"]["Enums"]["content_category"]
+          content?: Json | null
           created_at?: string
+          due_at?: string | null
           id?: string
           is_archived?: boolean | null
-          link_urls?: string[] | null
+          max_score?: number | null
           name: string
-          size?: string | null
-          storage_paths?: string[] | null
+          rubric_criteria?: Json | null
           tags?: string[] | null
+          to_be_scored?: boolean | null
           user_id: string
-          version_history?: Json | null
         }
         Update: {
-          category?: Database["public"]["Enums"]["material_category"]
-          content_type?: Database["public"]["Enums"]["material_content_type"]
+          category?: Database["public"]["Enums"]["content_category"]
+          content?: Json | null
           created_at?: string
+          due_at?: string | null
           id?: string
           is_archived?: boolean | null
-          link_urls?: string[] | null
+          max_score?: number | null
           name?: string
-          size?: string | null
-          storage_paths?: string[] | null
+          rubric_criteria?: Json | null
           tags?: string[] | null
+          to_be_scored?: boolean | null
           user_id?: string
-          version_history?: Json | null
         }
         Relationships: []
       }
-      student_materials: {
+      student_submissions: {
         Row: {
           class_id: string
-          content: string | null
+          content: Json | null
           created_at: string
           due_at: string | null
           feedback: string | null
           grade: string | null
-          graded_at: string | null
           id: string
           is_late: boolean | null
           material_id: string | null
-          max_score: number | null
           private_teacher_notes: string | null
+          reviewed_at: string | null
           rubric_breakdown: Json | null
           score: number | null
           status: Database["public"]["Enums"]["submission_status"]
-          storage_paths: string[] | null
           student_id: string
-          submission_type: Database["public"]["Enums"]["submission_type"]
-          submission_urls: string[] | null
           submitted_at: string | null
         }
         Insert: {
           class_id: string
-          content?: string | null
+          content?: Json | null
           created_at?: string
           due_at?: string | null
           feedback?: string | null
           grade?: string | null
-          graded_at?: string | null
           id?: string
           is_late?: boolean | null
           material_id?: string | null
-          max_score?: number | null
           private_teacher_notes?: string | null
+          reviewed_at?: string | null
           rubric_breakdown?: Json | null
           score?: number | null
           status?: Database["public"]["Enums"]["submission_status"]
-          storage_paths?: string[] | null
           student_id: string
-          submission_type?: Database["public"]["Enums"]["submission_type"]
-          submission_urls?: string[] | null
           submitted_at?: string | null
         }
         Update: {
           class_id?: string
-          content?: string | null
+          content?: Json | null
           created_at?: string
           due_at?: string | null
           feedback?: string | null
           grade?: string | null
-          graded_at?: string | null
           id?: string
           is_late?: boolean | null
           material_id?: string | null
-          max_score?: number | null
           private_teacher_notes?: string | null
+          reviewed_at?: string | null
           rubric_breakdown?: Json | null
           score?: number | null
           status?: Database["public"]["Enums"]["submission_status"]
-          storage_paths?: string[] | null
           student_id?: string
-          submission_type?: Database["public"]["Enums"]["submission_type"]
-          submission_urls?: string[] | null
           submitted_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "student_materials_class_id_fkey"
+            foreignKeyName: "student_submissions_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_materials_material_id_fkey"
+            foreignKeyName: "student_submissions_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_materials_student_id_fkey"
+            foreignKeyName: "student_submissions_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
@@ -478,23 +484,15 @@ export type Database = {
           email: string | null
           id: string
           is_archived: boolean | null
-          learning_style: string | null
           name: string
-          strengths: string[] | null
-          user_id: string
-          weaknesses: string[] | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
-          id?: string
+          id: string
           is_archived?: boolean | null
-          learning_style?: string | null
           name: string
-          strengths?: string[] | null
-          user_id: string
-          weaknesses?: string[] | null
         }
         Update: {
           avatar_url?: string | null
@@ -502,11 +500,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_archived?: boolean | null
-          learning_style?: string | null
           name?: string
-          strengths?: string[] | null
-          user_id?: string
-          weaknesses?: string[] | null
         }
         Relationships: []
       }
@@ -647,6 +641,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_student_to_class: {
+        Args: {
+          p_behavioral_notes: string
+          p_class_id: string
+          p_current_grade: string
+          p_current_score: number
+          p_general_feedback: string
+          p_learning_style: string
+          p_performance_tier: string
+          p_strengths: string[]
+          p_student_id: string
+          p_weaknesses: string[]
+        }
+        Returns: string
+      }
+      delete_material: { Args: { p_material_id: string }; Returns: string[] }
       search_cities: {
         Args: { search_term: string }
         Returns: {
@@ -690,6 +700,11 @@ export type Database = {
           result: string
         }[]
       }
+      update_material_contents: {
+        Args: { p_diff_array: Json; p_record_id: string; p_table_name: string }
+        Returns: string[]
+      }
+      validate_content_array: { Args: { arr: Json }; Returns: boolean }
     }
     Enums: {
       assessment_preference:
@@ -702,6 +717,16 @@ export type Database = {
         | "Oral Exams"
         | "Peer Review"
       attendance_status: "Present" | "Absent" | "Late" | "Excused"
+      content_category:
+        | "Study Material"
+        | "Note"
+        | "Assigned Book"
+        | "Link"
+        | "Practical"
+        | "Assignment"
+        | "Test"
+        | "Exam"
+      content_type: "File" | "URL"
       experience_level: "Beginner" | "Intermediate" | "Advanced" | "Mixed"
       institute_type:
         | "Primary School"
@@ -727,27 +752,12 @@ export type Database = {
         | "Assessment Creation Rule"
         | "Content Filtering Rule"
         | "General Policy"
-      material_category:
-        | "Study Material"
-        | "Note"
-        | "Assigned Book"
-        | "Link"
-        | "Practical"
-        | "Assignment"
-        | "Test"
-        | "Exam"
-      material_content_type: "File" | "URL" | "Text"
       submission_status:
         | "Assigned"
         | "Pending"
         | "Submitted"
         | "Evaluated"
         | "Graded"
-      submission_type:
-        | "Assignment Submission"
-        | "Lab Work"
-        | "Practical Completed"
-        | "Exam Paper"
       teaching_style:
         | "Lecture"
         | "Socratic Method"
@@ -894,6 +904,17 @@ export const Constants = {
         "Peer Review",
       ],
       attendance_status: ["Present", "Absent", "Late", "Excused"],
+      content_category: [
+        "Study Material",
+        "Note",
+        "Assigned Book",
+        "Link",
+        "Practical",
+        "Assignment",
+        "Test",
+        "Exam",
+      ],
+      content_type: ["File", "URL"],
       experience_level: ["Beginner", "Intermediate", "Advanced", "Mixed"],
       institute_type: [
         "Primary School",
@@ -921,29 +942,12 @@ export const Constants = {
         "Content Filtering Rule",
         "General Policy",
       ],
-      material_category: [
-        "Study Material",
-        "Note",
-        "Assigned Book",
-        "Link",
-        "Practical",
-        "Assignment",
-        "Test",
-        "Exam",
-      ],
-      material_content_type: ["File", "URL", "Text"],
       submission_status: [
         "Assigned",
         "Pending",
         "Submitted",
         "Evaluated",
         "Graded",
-      ],
-      submission_type: [
-        "Assignment Submission",
-        "Lab Work",
-        "Practical Completed",
-        "Exam Paper",
       ],
       teaching_style: [
         "Lecture",

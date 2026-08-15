@@ -39,11 +39,9 @@ RealtimeAction: TypeAlias = Literal["INSERT", "UPDATE", "DELETE", "TRUNCATE", "E
 
 StorageBuckettype: TypeAlias = Literal["STANDARD", "ANALYTICS", "VECTOR"]
 
-PublicMaterialCategory: TypeAlias = Literal["Study Material", "Note", "Assigned Book", "Link", "Practical", "Assignment", "Test", "Exam"]
+PublicContentCategory: TypeAlias = Literal["Study Material", "Note", "Assigned Book", "Link", "Practical", "Assignment", "Test", "Exam"]
 
-PublicMaterialContentType: TypeAlias = Literal["File", "URL", "Text"]
-
-PublicSubmissionType: TypeAlias = Literal["Assignment Submission", "Lab Work", "Practical Completed", "Exam Paper"]
+PublicContentType: TypeAlias = Literal["File", "URL"]
 
 PublicSubmissionStatus: TypeAlias = Literal["Assigned", "Pending", "Submitted", "Evaluated", "Graded"]
 
@@ -185,23 +183,15 @@ class PublicStudents(BaseModel):
     email: Optional[str] = Field(alias="email")
     id: uuid.UUID = Field(alias="id")
     is_archived: Optional[bool] = Field(alias="is_archived")
-    learning_style: Optional[str] = Field(alias="learning_style")
     name: str = Field(alias="name")
-    strengths: Optional[List[str]] = Field(alias="strengths")
-    user_id: uuid.UUID = Field(alias="user_id")
-    weaknesses: Optional[List[str]] = Field(alias="weaknesses")
 
 class PublicStudentsInsert(TypedDict):
     avatar_url: NotRequired[Annotated[Optional[str], Field(alias="avatar_url")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     email: NotRequired[Annotated[Optional[str], Field(alias="email")]]
-    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    id: Annotated[uuid.UUID, Field(alias="id")]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
-    learning_style: NotRequired[Annotated[Optional[str], Field(alias="learning_style")]]
     name: Annotated[str, Field(alias="name")]
-    strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
-    user_id: Annotated[uuid.UUID, Field(alias="user_id")]
-    weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicStudentsUpdate(TypedDict):
     avatar_url: NotRequired[Annotated[Optional[str], Field(alias="avatar_url")]]
@@ -209,71 +199,85 @@ class PublicStudentsUpdate(TypedDict):
     email: NotRequired[Annotated[Optional[str], Field(alias="email")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
-    learning_style: NotRequired[Annotated[Optional[str], Field(alias="learning_style")]]
     name: NotRequired[Annotated[str, Field(alias="name")]]
-    strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
-    user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]
-    weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicClassStudents(BaseModel):
     behavioral_notes: Optional[str] = Field(alias="behavioral_notes")
     class_id: uuid.UUID = Field(alias="class_id")
+    current_grade: Optional[str] = Field(alias="current_grade")
+    current_score: Optional[float] = Field(alias="current_score")
+    general_feedback: Optional[str] = Field(alias="general_feedback")
+    learning_style: Optional[str] = Field(alias="learning_style")
     performance_tier: Optional[str] = Field(alias="performance_tier")
+    strengths: Optional[List[str]] = Field(alias="strengths")
     student_id: uuid.UUID = Field(alias="student_id")
+    weaknesses: Optional[List[str]] = Field(alias="weaknesses")
 
 class PublicClassStudentsInsert(TypedDict):
     behavioral_notes: NotRequired[Annotated[Optional[str], Field(alias="behavioral_notes")]]
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
+    current_grade: NotRequired[Annotated[Optional[str], Field(alias="current_grade")]]
+    current_score: NotRequired[Annotated[Optional[float], Field(alias="current_score")]]
+    general_feedback: NotRequired[Annotated[Optional[str], Field(alias="general_feedback")]]
+    learning_style: NotRequired[Annotated[Optional[str], Field(alias="learning_style")]]
     performance_tier: NotRequired[Annotated[Optional[str], Field(alias="performance_tier")]]
+    strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
     student_id: Annotated[uuid.UUID, Field(alias="student_id")]
+    weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicClassStudentsUpdate(TypedDict):
     behavioral_notes: NotRequired[Annotated[Optional[str], Field(alias="behavioral_notes")]]
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
+    current_grade: NotRequired[Annotated[Optional[str], Field(alias="current_grade")]]
+    current_score: NotRequired[Annotated[Optional[float], Field(alias="current_score")]]
+    general_feedback: NotRequired[Annotated[Optional[str], Field(alias="general_feedback")]]
+    learning_style: NotRequired[Annotated[Optional[str], Field(alias="learning_style")]]
     performance_tier: NotRequired[Annotated[Optional[str], Field(alias="performance_tier")]]
+    strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
+    weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicMaterials(BaseModel):
-    category: PublicMaterialCategory = Field(alias="category")
-    content_type: PublicMaterialContentType = Field(alias="content_type")
+    category: PublicContentCategory = Field(alias="category")
+    content: Optional[Json[Any]] = Field(alias="content")
     created_at: datetime.datetime = Field(alias="created_at")
+    due_at: Optional[datetime.datetime] = Field(alias="due_at")
     id: uuid.UUID = Field(alias="id")
     is_archived: Optional[bool] = Field(alias="is_archived")
-    link_urls: Optional[List[str]] = Field(alias="link_urls")
+    max_score: Optional[float] = Field(alias="max_score")
     name: str = Field(alias="name")
-    size: Optional[str] = Field(alias="size")
-    storage_paths: Optional[List[str]] = Field(alias="storage_paths")
+    rubric_criteria: Optional[Json[Any]] = Field(alias="rubric_criteria")
     tags: Optional[List[str]] = Field(alias="tags")
+    to_be_scored: Optional[bool] = Field(alias="to_be_scored")
     user_id: uuid.UUID = Field(alias="user_id")
-    version_history: Optional[Json[Any]] = Field(alias="version_history")
 
 class PublicMaterialsInsert(TypedDict):
-    category: NotRequired[Annotated[PublicMaterialCategory, Field(alias="category")]]
-    content_type: NotRequired[Annotated[PublicMaterialContentType, Field(alias="content_type")]]
+    category: NotRequired[Annotated[PublicContentCategory, Field(alias="category")]]
+    content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="content")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    due_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="due_at")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
-    link_urls: NotRequired[Annotated[Optional[List[str]], Field(alias="link_urls")]]
+    max_score: NotRequired[Annotated[Optional[float], Field(alias="max_score")]]
     name: Annotated[str, Field(alias="name")]
-    size: NotRequired[Annotated[Optional[str], Field(alias="size")]]
-    storage_paths: NotRequired[Annotated[Optional[List[str]], Field(alias="storage_paths")]]
+    rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="rubric_criteria")]]
     tags: NotRequired[Annotated[Optional[List[str]], Field(alias="tags")]]
+    to_be_scored: NotRequired[Annotated[Optional[bool], Field(alias="to_be_scored")]]
     user_id: Annotated[uuid.UUID, Field(alias="user_id")]
-    version_history: NotRequired[Annotated[Optional[Json[Any]], Field(alias="version_history")]]
 
 class PublicMaterialsUpdate(TypedDict):
-    category: NotRequired[Annotated[PublicMaterialCategory, Field(alias="category")]]
-    content_type: NotRequired[Annotated[PublicMaterialContentType, Field(alias="content_type")]]
+    category: NotRequired[Annotated[PublicContentCategory, Field(alias="category")]]
+    content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="content")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    due_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="due_at")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
-    link_urls: NotRequired[Annotated[Optional[List[str]], Field(alias="link_urls")]]
+    max_score: NotRequired[Annotated[Optional[float], Field(alias="max_score")]]
     name: NotRequired[Annotated[str, Field(alias="name")]]
-    size: NotRequired[Annotated[Optional[str], Field(alias="size")]]
-    storage_paths: NotRequired[Annotated[Optional[List[str]], Field(alias="storage_paths")]]
+    rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="rubric_criteria")]]
     tags: NotRequired[Annotated[Optional[List[str]], Field(alias="tags")]]
+    to_be_scored: NotRequired[Annotated[Optional[bool], Field(alias="to_be_scored")]]
     user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]
-    version_history: NotRequired[Annotated[Optional[Json[Any]], Field(alias="version_history")]]
 
 class PublicTemplateMaterials(BaseModel):
     created_at: datetime.datetime = Field(alias="created_at")
@@ -365,70 +369,58 @@ class PublicClassInstructionsUpdate(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     instruction_id: NotRequired[Annotated[uuid.UUID, Field(alias="instruction_id")]]
 
-class PublicStudentMaterials(BaseModel):
+class PublicStudentSubmissions(BaseModel):
     class_id: uuid.UUID = Field(alias="class_id")
-    content: Optional[str] = Field(alias="content")
+    content: Optional[Json[Any]] = Field(alias="content")
     created_at: datetime.datetime = Field(alias="created_at")
     due_at: Optional[datetime.datetime] = Field(alias="due_at")
     feedback: Optional[str] = Field(alias="feedback")
     grade: Optional[str] = Field(alias="grade")
-    graded_at: Optional[datetime.datetime] = Field(alias="graded_at")
     id: uuid.UUID = Field(alias="id")
     is_late: Optional[bool] = Field(alias="is_late")
     material_id: Optional[uuid.UUID] = Field(alias="material_id")
-    max_score: Optional[float] = Field(alias="max_score")
     private_teacher_notes: Optional[str] = Field(alias="private_teacher_notes")
+    reviewed_at: Optional[datetime.datetime] = Field(alias="reviewed_at")
     rubric_breakdown: Optional[Json[Any]] = Field(alias="rubric_breakdown")
     score: Optional[float] = Field(alias="score")
     status: PublicSubmissionStatus = Field(alias="status")
-    storage_paths: Optional[List[str]] = Field(alias="storage_paths")
     student_id: uuid.UUID = Field(alias="student_id")
-    submission_type: PublicSubmissionType = Field(alias="submission_type")
-    submission_urls: Optional[List[str]] = Field(alias="submission_urls")
     submitted_at: Optional[datetime.datetime] = Field(alias="submitted_at")
 
-class PublicStudentMaterialsInsert(TypedDict):
+class PublicStudentSubmissionsInsert(TypedDict):
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
-    content: NotRequired[Annotated[Optional[str], Field(alias="content")]]
+    content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="content")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     due_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="due_at")]]
     feedback: NotRequired[Annotated[Optional[str], Field(alias="feedback")]]
     grade: NotRequired[Annotated[Optional[str], Field(alias="grade")]]
-    graded_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="graded_at")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_late: NotRequired[Annotated[Optional[bool], Field(alias="is_late")]]
     material_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="material_id")]]
-    max_score: NotRequired[Annotated[Optional[float], Field(alias="max_score")]]
     private_teacher_notes: NotRequired[Annotated[Optional[str], Field(alias="private_teacher_notes")]]
+    reviewed_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="reviewed_at")]]
     rubric_breakdown: NotRequired[Annotated[Optional[Json[Any]], Field(alias="rubric_breakdown")]]
     score: NotRequired[Annotated[Optional[float], Field(alias="score")]]
     status: NotRequired[Annotated[PublicSubmissionStatus, Field(alias="status")]]
-    storage_paths: NotRequired[Annotated[Optional[List[str]], Field(alias="storage_paths")]]
     student_id: Annotated[uuid.UUID, Field(alias="student_id")]
-    submission_type: NotRequired[Annotated[PublicSubmissionType, Field(alias="submission_type")]]
-    submission_urls: NotRequired[Annotated[Optional[List[str]], Field(alias="submission_urls")]]
     submitted_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="submitted_at")]]
 
-class PublicStudentMaterialsUpdate(TypedDict):
+class PublicStudentSubmissionsUpdate(TypedDict):
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
-    content: NotRequired[Annotated[Optional[str], Field(alias="content")]]
+    content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="content")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     due_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="due_at")]]
     feedback: NotRequired[Annotated[Optional[str], Field(alias="feedback")]]
     grade: NotRequired[Annotated[Optional[str], Field(alias="grade")]]
-    graded_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="graded_at")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_late: NotRequired[Annotated[Optional[bool], Field(alias="is_late")]]
     material_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="material_id")]]
-    max_score: NotRequired[Annotated[Optional[float], Field(alias="max_score")]]
     private_teacher_notes: NotRequired[Annotated[Optional[str], Field(alias="private_teacher_notes")]]
+    reviewed_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="reviewed_at")]]
     rubric_breakdown: NotRequired[Annotated[Optional[Json[Any]], Field(alias="rubric_breakdown")]]
     score: NotRequired[Annotated[Optional[float], Field(alias="score")]]
     status: NotRequired[Annotated[PublicSubmissionStatus, Field(alias="status")]]
-    storage_paths: NotRequired[Annotated[Optional[List[str]], Field(alias="storage_paths")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
-    submission_type: NotRequired[Annotated[PublicSubmissionType, Field(alias="submission_type")]]
-    submission_urls: NotRequired[Annotated[Optional[List[str]], Field(alias="submission_urls")]]
     submitted_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="submitted_at")]]
 
 class PublicAttendanceRecords(BaseModel):
