@@ -4,7 +4,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 1. Main Navigation & Sidebar (`Sidebar.tsx`)
+## 1. Main Navigation & Sidebar (`components/layout/Sidebar.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -34,7 +34,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 2. Top Header & Layout Controls (`ClassApp.tsx`)
+## 2. Top Header & Layout Controls (`views/ClassApp.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -52,7 +52,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 3. Class Details & Configuration (`ClassDetails.tsx`)
+## 3. Class Details & Configuration (`features/classroom/ClassDetails.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -69,7 +69,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 4. RAG AI Diagnostics & Chat (`RAGClass.tsx`)
+## 4. RAG AI Diagnostics & Chat (`features/ai-assistant/RAGClass.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -86,7 +86,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 5. Roster & Student Management (`StudentRegister.tsx`)
+## 5. Roster & Student Management (`features/students/StudentRegister.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |

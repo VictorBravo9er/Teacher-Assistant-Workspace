@@ -1,7 +1,7 @@
-import { supabase } from '../lib/supabase';
-import { ClassModel, Material, Instruction, Student, RAGSession } from '../types/main';
-import { studentService } from './studentService';
-import { chatService } from './chatService';
+import { supabase } from '@/lib/supabase';
+import { ClassModel, Material, Instruction, Student, RAGSession } from '@/types/main';
+import { studentService } from '@/services/studentService';
+import { chatService } from '@/services/chatService';
 
 export const classService = {
   async fetchClasses(): Promise<ClassModel[]> {
@@ -13,7 +13,7 @@ export const classService = {
       .select(`
         *,
         institutes ( name, city, state, country ),
-        class_materials ( materials (*) ),
+        class_materials ( custom_content, custom_rubric_criteria, materials (*) ),
         class_instructions ( instructions (*) )
       `)
       .eq('user_id', user.id)
@@ -49,20 +49,33 @@ export const classService = {
           
           materials: (c.class_materials || []).map((cm: any) => {
             const m = cm.materials;
+            if (!m) return null;
+            const canonicalContent = (m.content || []).map((ci: any) => ({ ...ci, isShared: true }));
+            const customContent = (cm.custom_content || []).map((ci: any) => ({ ...ci, isPrivate: true }));
+            const mergedContent = [...canonicalContent, ...customContent];
+
+            const canonicalRubric = (m.rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: false }));
+            const customRubric = (cm.custom_rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: true }));
+            const augmentedRubric = [...canonicalRubric, ...customRubric];
+
             return {
               id: m.id,
               name: m.name,
               category: m.category,
-              content: m.content || [],
+              content: mergedContent,
+              customContent: cm.custom_content || [],
               uploadDate: m.created_at,
               size: m.size,
               tags: m.tags || [],
               dueAt: m.due_at,
               maxScore: m.max_score,
-              rubricCriteria: m.rubric_criteria,
+              toBeScored: m.to_be_scored || false,
+              rubricCriteria: augmentedRubric,
+              customRubricCriteria: cm.custom_rubric_criteria || [],
               versionHistory: m.version_history,
+              isShared: true,
             } as Material;
-          }),
+          }).filter(Boolean) as Material[],
 
           instructions: (c.class_instructions || []).map((ci: any) => {
             const i = ci.instructions;
