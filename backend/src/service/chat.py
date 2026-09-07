@@ -1,5 +1,4 @@
 import os
-from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.lib.formatter import (
@@ -16,7 +15,7 @@ class ChatService:
     """Service to coordinate data context formatting, prompt templating, and LLM call operations."""
 
     @staticmethod
-    async def process_chat_message(payload: ChatPayload, model: str) -> dict[str, Any]:
+    async def process_chat_message(payload: ChatPayload, model: str) -> dict[str, object]:
         logger.info(
             "Processing chat message: model=%s, message_count=%d, student_count=%d",
             model,

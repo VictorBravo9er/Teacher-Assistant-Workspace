@@ -7,4 +7,5 @@
 .git/
 .gitignore
 .env*
-README.md
+code.DESC.md
+code.ARCH.md
