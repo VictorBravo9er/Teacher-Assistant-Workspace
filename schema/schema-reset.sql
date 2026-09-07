@@ -20,3 +20,10 @@ DROP SCHEMA langgraph CASCADE;
 
 -- 6. Recreate a fresh langgraph schema
 CREATE SCHEMA langgraph;
+
+-- 7. Drop the ai schema and everything inside it (embeddings, ontology, evaluations)
+DROP SCHEMA IF EXISTS ai CASCADE;
+
+-- 8. Recreate a fresh ai schema
+CREATE SCHEMA ai;
+
