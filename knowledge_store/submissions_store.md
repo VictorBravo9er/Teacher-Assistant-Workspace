@@ -26,7 +26,6 @@ flowchart TD
         RubricEval --> MisconceptionMatcher["Misconception Matcher (ai.ontology_misconceptions)"]
         RubricEval --> MasteryUpdater["Concept Mastery Matrix Updater (ai.student_concept_mastery)"]
         RubricEval --> SubEvalRecord[("ai.submission_evaluations")]
-        RubricEval --> SubVectorStore[("ai.submission_embeddings")]
     end
 
     subgraph TeacherReview["4. Teacher Review & Gradebook Sync"]

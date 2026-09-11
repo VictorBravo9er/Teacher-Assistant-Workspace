@@ -20,19 +20,19 @@ flowchart TD
         DocParser --> PageCheck{"Page Count ≥ 20?"}
     end
 
-    subgraph IndexingRoutes["3. Multi-Tier Indexing Engine"]
+    subgraph IndexingRoutes["3. Multi-Tier Routing & Storage Engine"]
         PageCheck -->|Yes: Long Document| TreeBuilder["PageIndex Tree Indexing Engine"]
-        PageCheck -->|No: Short Document| ChunkBuilder["Semantic Window Chunking (512-1024 Tokens)"]
+        PageCheck -->|No: Standard Document| DirectStorage["Direct Full-Text & Markdown Storage (public.materials.content)"]
         
         TreeBuilder -->|Hierarchical JSONB Structure| MatTreeTable[("ai.material_trees")]
-        ChunkBuilder -->|Dense Embeddings (1536-dim)| MatEmbedTable[("ai.material_embeddings")]
+        DirectStorage -->|Direct Context Ready| PublicMatTable[("public.materials")]
     end
 
     subgraph OntologicalSynthesis["4. Ontological Compilation Phase"]
         DocParser --> LLMCompiler["LLM Knowledge Compiler (Backend Service)"]
         LLMCompiler -->|Extract Concepts & Bloom Levels| ConceptsTable[("ai.ontology_concepts")]
         LLMCompiler -->|Map Prerequisite Edges| RelTable[("ai.ontology_relationships")]
-        LLMCompiler -->|Map Material Chunks to Concepts| MapTable[("ai.material_concept_mappings")]
+        LLMCompiler -->|Map Sections & Excerpts to Concepts| MapTable[("ai.material_concept_mappings")]
         LLMCompiler -->|Pedagogical Insights & Gaps| InsightsTable[("ai.material_insights")]
     end
 ```
@@ -109,24 +109,21 @@ CREATE INDEX IF NOT EXISTS idx_ai_mat_trees_material_id ON ai.material_trees(mat
 
 ---
 
-## 4. Dense Vector Semantic Indexing (`ai.material_embeddings`)
+## 4. Direct Context Ingestion & Lightweight Full-Text Search (FTS)
 
-For fast similarity retrieval, granular chunks are embedded into 1536-dimensional vectors using OpenAI `text-embedding-3-small` (or Gemini embedding equivalents):
+Standard educational materials in Teach&Learn (such as 2- to 15-page syllabi, assignment prompts, and lab handouts) average 1,500 to 8,000 tokens. Modern frontier models (Gemini 2.5 Flash / Claude 3.5 Sonnet) operate with **200k to 1M+ token context windows**, rendering 500-token vector chunking obsolete for standard classroom documents:
+
+1. **Context Integrity**: By bypassing chunk slicing, the model sees the entire document structure, complete rubric criteria tables, and grading policies with zero boundary loss.
+2. **Zero Overhead**: Eliminates external embedding API calls, rate limits, 1536-dimensional float storage, and `pgvector` memory consumption.
+3. **Optional Native Full-Text Search (FTS)**: For keyword filtering across large historical material archives, PostgreSQL's native `tsvector` provides instant, indexed keyword search without requiring vector extensions:
 
 ```sql
-CREATE TABLE IF NOT EXISTS ai.material_embeddings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
-    chunk_index INTEGER NOT NULL,
-    chunk_content TEXT NOT NULL,
-    token_count INTEGER,
-    embedding extensions.vector(1536),
-    metadata JSONB DEFAULT '{}'::jsonb, -- e.g. { "page": 4, "section": "1.2", "has_table": true }
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
-);
+-- Optional: Lightweight Native Keyword Search (Zero Vector DB Overhead)
+ALTER TABLE public.materials 
+ADD COLUMN IF NOT EXISTS fts_tokens tsvector 
+GENERATED ALWAYS AS (to_tsvector('english', coalesce(name, '') || ' ' || coalesce(category, ''))) STORED;
 
-CREATE INDEX IF NOT EXISTS idx_ai_mat_embed_hnsw 
-ON ai.material_embeddings USING hnsw (embedding extensions.vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_materials_fts ON public.materials USING gin(fts_tokens);
 ```
 
 ---
@@ -150,13 +147,13 @@ erDiagram
    - Directed knowledge edges (`source_concept_id`, `target_concept_id`, `relationship_type`, `weight`).
    - Types: `'prerequisite_of'`, `'subconcept_of'`, `'reinforces'`, `'related_to'`.
 3. **`ai.material_concept_mappings`**:
-   - Explicit bridge linking material text chunks to ontological concepts with a confidence score and evidence excerpt:
+   - Explicit bridge linking materials and hierarchical sections to ontological concepts with a confidence score and evidence excerpt:
    ```sql
    CREATE TABLE IF NOT EXISTS ai.material_concept_mappings (
        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
        material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
        concept_id UUID NOT NULL REFERENCES ai.ontology_concepts(id) ON DELETE CASCADE,
-       chunk_id UUID REFERENCES ai.material_embeddings(id) ON DELETE SET NULL,
+       section_path TEXT,                            -- e.g. 'Unit 2 > Section 2.1' or tree node ID
        relationship TEXT NOT NULL DEFAULT 'teaches', -- 'teaches', 'assesses', 'prerequisite_for'
        relevance_score NUMERIC DEFAULT 1.0,
        evidence_excerpt TEXT,
@@ -165,3 +162,4 @@ erDiagram
    ```
 4. **`ai.material_insights`**:
    - Stores automated syllabus alignment scores, detected prerequisite knowledge gaps, and generated multi-choice practice questions.
+

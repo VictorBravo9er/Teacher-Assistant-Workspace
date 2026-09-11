@@ -5,9 +5,9 @@
 The `knowledge_store/` directory contains system design specifications, data models, algorithm definitions, and implementation guides for the **Teach&Learn Knowledge Store Subsystem**.
 
 It serves as the technical blueprint for:
-1. **Curriculum & Materials Store**: Structural tree representation, vector chunking, and ontological concept mapping of educational materials.
+1. **Curriculum & Materials Store**: Structural tree representation (`ai.material_trees`), direct full-text ingestion, and ontological concept mapping of educational materials.
 2. **Student Submissions & Mastery Store**: Normalization, rubric criteria auto-evaluation, error taxonomy mapping, and running mastery matrices for student submissions.
-3. **Hybrid RAG & Retrieval Engine**: Tree traversal (PageIndex-style), dense vector retrieval (`pgvector`), and ontological graph querying (GraphRAG-style) for conversational and diagnostic assistant tools.
+3. **Dual-Engine Retrieval & RAG Assistant**: Top-down tree traversal (PageIndex-style), recursive ontological graph querying (GraphRAG-style), and scoped classroom context assembly for conversational and diagnostic assistant tools.
 
 ---
 

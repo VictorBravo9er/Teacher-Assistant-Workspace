@@ -20,8 +20,8 @@ gantt
     section Phase 3: Evaluator & Mastery Sync
     Backend /api/grade Error Taxonomy Linking :2026-09-20, 3d
     Dynamic Mastery Updater Integration       :2026-09-23, 3d
-    section Phase 4: Hybrid RAG & Visualizer
-    /api/chat Multi-Plane Search Integration  :2026-09-26, 4d
+    section Phase 4: Dual-Engine RAG & Visualizer
+    /api/chat Dual-Engine Search Integration  :2026-09-26, 4d
     Visualizer.tsx Widget Enhancements        :2026-09-30, 3d
 ```
 
@@ -32,7 +32,7 @@ gantt
 ### Phase 1: Database DDL & Schema Enhancements (`schema/schema-ai.sql`)
 - [ ] Add `ai.material_trees` table with recursive JSONB node definitions and B-Tree indexes.
 - [ ] Update `ai.student_concept_mastery` trigger routines for exponential moving average updates.
-- [ ] Verify `pgvector` HNSW index configurations and query parameters (`ef_search = 40`).
+- [ ] Verify recursive CTE query performance for prerequisite graph traversal on `ai.ontology_relationships`.
 - [ ] Implement secure public RPC gateways:
   - `get_material_tree(p_material_id UUID)`
   - `get_student_concept_mastery_matrix(p_class_id UUID)`
@@ -52,9 +52,9 @@ gantt
 - [ ] Update `ai.student_concept_mastery` records upon teacher approval in `AIDiagnosticDiffModal.tsx`.
 - [ ] Synchronize running class GPA and performance tiers in `public.class_students`.
 
-### Phase 4: Unified Hybrid RAG Assistant & Frontend Widgets
-- [ ] Refactor `ChatService` to perform hybrid search (Tree Traversal + `pgvector` + Graph Expansion).
-- [ ] Implement Reciprocal Rank Fusion (RRF) and prompt context budget allocator.
+### Phase 4: Dual-Engine Pedagogical Assistant & Frontend Widgets
+- [ ] Refactor `ChatService` to coordinate dual-engine retrieval (Tree Traversal + Recursive Graph Expansion + Scoped Context Injection).
+- [ ] Implement deterministic prompt context budget allocator (~4,300 token ceiling).
 - [ ] Upgrade `Visualizer.tsx` in frontend to render interactive concept mastery heatmaps and student gap leaderboards.
 - [ ] Implement SSE (Server-Sent Events) streaming for real-time token-by-token chat responses.
 
@@ -69,7 +69,7 @@ gantt
 2. **Backend Unit & Integration Tests**:
    - `pytest tests/test_evaluator.py`: Verify rubric scoring mathematical invariants (scores never exceed `max_score`).
    - `pytest tests/test_tree_indexer.py`: Test hierarchical tree generation on 50+ page mock syllabus PDFs.
-   - `pytest tests/test_chat_rag.py`: Validate structured JSON parser and visualization payload schema conformance.
+   - `pytest tests/test_chat_rag.py`: Validate structured JSON parser, context budgeting, and visualization payload schema conformance.
 3. **Frontend Component & Typecheck**:
    - `npm run build`: Strict TypeScript verification with zero `any` types.
    - Verify modal interactions in `AIDiagnosticDiffModal.tsx` and `MaterialPreviewModal.tsx`.

@@ -4,27 +4,27 @@ The **Unified Retrieval, Reasoning & RAG Engine** coordinates multi-modal search
 
 ---
 
-## 1. Multi-Plane Hybrid Retrieval Architecture
+## 1. Dual-Engine Pedagogical Retrieval & Context Assembly
 
-To answer diverse pedagogical queries (ranging from specific formula lookups to multi-student longitudinal gap analyses), the retrieval engine executes a **Three-Plane Hybrid Search Strategy**:
+To answer diverse pedagogical queries (ranging from specific textbook unit breakdowns to multi-student longitudinal gap analyses), the retrieval engine executes a **Dual-Engine Search & Context Strategy** that completely bypasses vector database latency and token bloat:
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
     UserQuery["Teacher / Student Query in /api/chat"]
 
-    subgraph QueryClassifier["1. Query Intent Classification"]
+    subgraph QueryClassifier["1. Query Intent Classification & Scope Filter"]
         IntentRouter{"Analyze Scope & Intent"}
     end
 
-    subgraph SearchPlanes["2. Multi-Plane Search Execution"]
-        TreeSearch["Plane A: Hierarchical Tree Navigation (ai.material_trees)"]
-        VectorSearch["Plane B: Dense Vector Similarity (pgvector HNSW)"]
-        GraphSearch["Plane C: Ontological Graph Traversal (ai.ontology_concepts & mastery)"]
+    subgraph SearchEngines["2. Dual-Engine Search & Context Pull"]
+        TreeSearch["Engine A: Hierarchical Tree Navigation (ai.material_trees)"]
+        GraphSearch["Engine B: Ontological Graph Traversal (ai.ontology_relationships)"]
+        RosterContext["Direct Context: Live Class Roster & Rubrics (get-class-agent-context)"]
     end
 
-    subgraph ContextFusion["3. Pedagogical Context Fusion & Ranking"]
-        FusionEngine["Reciprocal Rank Fusion (RRF) & Token Budget Allocator"]
+    subgraph ContextFusion["3. Pedagogical Context Fusion & Token Budget Allocator"]
+        FusionEngine["Deterministic Priority Assembly (~4,300 Token Ceiling)"]
     end
 
     subgraph AssistantInference["4. Model Inference & Structured Response"]
@@ -35,13 +35,13 @@ flowchart TD
     end
 
     UserQuery --> IntentRouter
-    IntentRouter -->|Broad / Document Summary| TreeSearch
-    IntentRouter -->|Specific Excerpt / Semantic Match| VectorSearch
-    IntentRouter -->|Curriculum Prerequisite / Student Gap| GraphSearch
+    IntentRouter -->|Long Document / Unit Deep-Dive| TreeSearch
+    IntentRouter -->|Curriculum Prerequisite / Learning Gap| GraphSearch
+    IntentRouter -->|Student Gradebook / Assignment Review| RosterContext
 
     TreeSearch --> FusionEngine
-    VectorSearch --> FusionEngine
     GraphSearch --> FusionEngine
+    RosterContext --> FusionEngine
 
     FusionEngine --> PromptBuilder
     PromptBuilder --> LLM
@@ -54,37 +54,18 @@ flowchart TD
 ## 2. Retrieval Algorithms in Detail
 
 ### Algorithm 1: Hierarchical Tree Navigation (PageIndex-Style)
-Used when querying long educational documents (e.g. textbooks, comprehensive syllabi):
-1. **Root Query Match**: Check query keywords and intent against the root syllabus summary in `ai.material_trees`.
-2. **Branch Pruning**: Identify top-2 most relevant chapters/units and exclude unrelated branches.
-3. **Section Traversal**: Reason through the sub-tree nodes to find the exact target sections and extract the associated leaf chunks.
-4. **Benefit**: Avoids pulling 30 fragmented vector chunks and guarantees that surrounding context and heading paths are preserved.
+Used when querying long educational documents (e.g. 50+ page textbooks, comprehensive state syllabi):
+1. **Root Query Match**: Match query keywords and intent against the root syllabus summary in `ai.material_trees`.
+2. **Branch Pruning**: Prune unrelated chapters/units and identify the top target sections.
+3. **Section Extraction**: Navigate the sub-tree directly to the exact target section and extract the leaf paragraph (~300–500 tokens).
+4. **Token Advantage**: Injects only the precise 300–500 token subsection with parent breadcrumbs, rather than 5,000 tokens of noisy vector chunks or 50,000 tokens of raw PDF text.
 
 ---
 
-### Algorithm 2: Dense Semantic Vector Search (`pgvector`)
-Used for targeted semantic searches across materials and student submissions:
-```sql
--- Semantic Search against Material Chunks
-SELECT 
-    m.name AS material_name,
-    me.chunk_index,
-    me.chunk_content,
-    1 - (me.embedding <=> p_query_embedding) AS similarity_score
-FROM ai.material_embeddings me
-JOIN public.materials m ON m.id = me.material_id
-JOIN public.class_materials cm ON cm.material_id = m.id
-WHERE cm.class_id = p_class_id
-ORDER BY me.embedding <=> p_query_embedding ASC
-LIMIT p_top_k;
-```
-
----
-
-### Algorithm 3: Ontological Graph Expansion (GraphRAG-Style)
+### Algorithm 2: Ontological Graph Expansion (GraphRAG-Style)
 Used for pedagogical gap analyses, prerequisite checks, and mastery questions:
 ```sql
--- Fetch Missing Prerequisites for a Target Concept
+-- Fetch Missing Prerequisites for a Target Concept (Native SQL Graph Traversal)
 WITH RECURSIVE prerequisite_chain AS (
     SELECT 
         c.id, c.name, c.bloom_level, r.relationship_type, 1 AS depth
@@ -106,19 +87,31 @@ SELECT * FROM prerequisite_chain;
 
 ---
 
-## 3. Reciprocal Rank Fusion (RRF) & Context Assembly
+### Algorithm 3: Relational SQL Aggregation for Class & Student Diagnostics
+Rather than dumping raw student submissions into prompt context, PostgreSQL pre-aggregates diagnostic statistics directly inside the database via public RPC gateways:
+- `get_class_concept_matrix(p_class_id)`: Calculates average mastery percentages, counts students with gaps, and groups by Bloom level in SQL.
+- `get_student_concept_gaps(p_class_id, p_student_id)`: Traverses student evaluation records and attaches targeted remediation strategies from `ai.ontology_misconceptions`.
+- **Token Advantage**: Delivers compact JSON diagnostic summaries (~250–400 tokens) instead of tens of thousands of raw submission tokens.
 
-When multiple retrieval planes are active, results are combined using Reciprocal Rank Fusion:
-$$RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
-where $k = 60$, $M = \{\text{Tree}, \text{Vector}, \text{Graph}\}$, and $r_m(d)$ is the rank of document $d$ in search plane $m$.
+---
 
-### Prompt Context Budgeting:
-The assembled prompt enforces a strict token budget to guarantee low latency and zero context truncation:
+## 3. Pedagogical Context Assembly & Token Budgeting
+
+Rather than fuzzy reciprocal ranking across random chunks, context is fused using a deterministic priority hierarchy:
+
+1. **Active Directives & Teacher Profile** (Highest Priority)
+2. **Targeted Material / Tree Leaf Excerpt** (Scoped by active assignment or tree navigation)
+3. **Pre-Aggregated Student / Class Diagnostic Metrics** (From PostgreSQL RPCs)
+4. **Recent Conversation Turns** (Sliding window of last 4–5 turns)
+
+### Prompt Context Budget Allocation:
+The assembled prompt enforces a strict token budget to guarantee rapid inference, zero context truncation, and minimal operational costs:
 - **System Instructions & Teacher Persona**: ~500 tokens.
 - **Classroom Profile & Active Directives**: ~300 tokens.
-- **Retrieved Curriculum Excerpts (Tree + Vector)**: ~2,500 tokens.
-- **Student Mastery & Performance Statistics**: ~1,200 tokens.
-- **Conversation History (Last 5 Turns)**: ~1,500 tokens.
+- **Retrieved Curriculum Excerpt (Tree Leaf / Section)**: ~1,500 tokens.
+- **Pre-Aggregated Student Mastery Statistics**: ~800 tokens.
+- **Conversation History (Last 5 Turns)**: ~1,200 tokens.
+- **Total Prompt Ceiling**: **~4,300 tokens** (leaving ample headroom for structured JSON response generation).
 
 ---
 

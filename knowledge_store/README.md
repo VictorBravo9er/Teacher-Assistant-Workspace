@@ -11,7 +11,7 @@ Traditional RAG systems suffer from three major shortcomings in educational envi
 2. **Ephemerality & Rediscovery**: Standard RAG rediscovers context from scratch on every question instead of maintaining a compounding understanding of a student's learning trajectory.
 3. **Absence of Pedagogical Grounding**: Without an explicit ontology (Bloom's Taxonomy levels, concept prerequisite trees, error taxonomies), generic vector search cannot detect whether a student is missing foundational prerequisite concepts.
 
-The **Teach&Learn Knowledge Store** bridges this gap using a **Dual-Plane Knowledge Architecture**:
+The **Teach&Learn Knowledge Store** bridges this gap using a **Lean Dual-Plane Knowledge Architecture** (Hierarchical Tree Index + Relational Ontological Graph, completely eliminating vector database overhead):
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -23,20 +23,20 @@ flowchart TB
     end
 
     subgraph Plane1["Plane 1: Curriculum & Materials Knowledge Store"]
-        TreeIndex["Hierarchical Tree Index (PageIndex / RAPTOR)"]
-        MatVectors["Dense Semantic Embeddings (ai.material_embeddings)"]
+        TreeIndex["Hierarchical Tree Index (ai.material_trees / PageIndex)"]
+        FullText["Direct Text & Section Store (public.materials.content)"]
         OntologyGraph["Ontological Knowledge Graph (ai.ontology_concepts & relationships)"]
     end
 
     subgraph Plane2["Plane 2: Student Submissions & Mastery Portfolio Store"]
-        SubVectors["Submission Chunk Vectors (ai.submission_embeddings)"]
+        SubText["Direct Submission Content (raw text / storage blob)"]
         AutoEval["Rubric Auto-Grading & Diagnostic Engine (/api/grade)"]
         MasteryMatrix["Student Concept Mastery Matrix (ai.student_concept_mastery)"]
         Misconceptions["Error & Misconception Taxonomy (ai.ontology_misconceptions)"]
     end
 
     subgraph RuntimeSurfaces["3. Runtime AI Assistants & Frontends"]
-        ChatRAG["Interactive RAG Assistant (/api/chat)"]
+        ChatRAG["Interactive Assistant (/api/chat + In-Prompt RAG)"]
         DiffModal["AI Diagnostic Review Modal (AIDiagnosticDiffModal.tsx)"]
         MatrixView["Gradebook & Mastery Matrix (GradebookMatrix.tsx)"]
         ReportCards["Parent Briefing & Report Cards (ReportCardModal.tsx)"]
@@ -45,13 +45,13 @@ flowchart TB
     MatFiles --> Parser
     SubFiles --> Parser
     Parser --> TreeIndex
-    Parser --> MatVectors
-    Parser --> SubVectors
+    Parser --> FullText
+    Parser --> SubText
 
     TreeIndex --> OntologyGraph
-    MatVectors --> OntologyGraph
+    FullText --> OntologyGraph
 
-    SubVectors --> AutoEval
+    SubText --> AutoEval
     AutoEval --> MasteryMatrix
     AutoEval --> Misconceptions
 
@@ -69,7 +69,7 @@ flowchart TB
 
 | Dimension | Standard Chunk-Based RAG | OpenKB (Compiled LLM Wiki) | PageIndex / RAPTOR | **Teach&Learn Knowledge Store (Our Implementation)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Data Structure** | Flat vector index (`vector(1536)`) | Interlinked Markdown files (`[[wikilinks]]`) | Recursive Tree of Abstracts / TOC Trees | **Hybrid: PostgreSQL Private `ai` Schema + HNSW Vectors + Hierarchical Tree JSONB + Relational Graph** |
+| **Primary Data Structure** | Flat vector index (`vector(1536)`) | Interlinked Markdown files (`[[wikilinks]]`) | Recursive Tree of Abstracts / TOC Trees | **Lean Dual-Engine: PostgreSQL Private `ai` Schema + Hierarchical Tree JSONB + Relational Graph (Zero Vector DB Overhead)** |
 | **Long Document Handling** | Fixed-size chunking with overlaps | PageIndex tree index + LLM reading | Multi-layer summarization tree | **Dual-route: Direct full-text (<20 pages) vs. Hierarchical Tree Index (≥20 pages) in `ai.material_trees`** |
 | **Knowledge Evolution** | Static chunks; no cross-doc synthesis | Incremental wiki compilation on `add` | Re-clustering on corpus changes | **Trigger-based incremental compilation: `trg_material_ai_analysis` & `trg_submission_ai_eval`** |
 | **Student Longitudinal Modeling** | Not supported (treats submissions as text) | Not supported (general-purpose KB) | Not supported | **Dedicated `ai.student_concept_mastery` tracking scores, confidence, and Bloom levels over time** |
@@ -86,18 +86,18 @@ The Knowledge Store is organized across 4 detailed design documents:
    - File normalization & multi-modal parsing (`markitdown` + Edge Functions).
    - Hierarchical Tree Indexing algorithm (TOC extraction $\to$ node summarization $\to$ leaf binding).
    - Ontological concept extraction and prerequisite relationship generation.
-   - Vector chunking, token budgeting, and HNSW cosine index configurations.
+   - Direct text ingestion, token budgeting, and section breadcrumb mapping (no vector chunks).
 2. **[`submissions_store.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/submissions_store.md)**:
    - Student work ingestion from `student-submissions` storage bucket.
    - Autonomous rubric auto-grading pipeline and structured JSON scoring contracts.
    - Error detection matching against `ai.ontology_misconceptions`.
    - Longitudinal student concept mastery updates and gradebook synchronization.
 3. **[`retrieval_and_rag.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/retrieval_and_rag.md)**:
-   - Hybrid Multi-Layer Retrieval Algorithm (Reasoning-based tree traversal + Vector search + Graph expansion).
+   - Dual-Engine Retrieval Algorithm (Reasoning-based tree traversal + Recursive graph expansion).
    - Context packaging and token density optimizations for `/api/chat`.
    - Interactive visualizer widget generation (heatmaps, distributions, rankings).
 4. **[`implementation_roadmap.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/implementation_roadmap.md)**:
-   - Incremental execution phases aligning with `TODO.md` (Phases 5, 6, and 7).
+   - Incremental execution phases for tree indexing, graph ontology, and prompt assembly.
    - Database schema DDL additions and SQL trigger definitions.
    - Backend FastAPI endpoints and Deno Edge Function implementations.
 
@@ -125,7 +125,7 @@ flowchart LR
     Backend -->|Async DB Pool| DB
 ```
 
-- **Database & Storage Subsystem** ([`systems/database_and_storage.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/database_and_storage.md)): Stores raw entities in `public`, vectors and graphs in `ai`, and checkpoints in `langgraph`.
+- **Database & Storage Subsystem** ([`systems/database_and_storage.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/database_and_storage.md)): Stores raw entities in `public`, hierarchical trees and knowledge graphs in `ai`, and checkpoints in `langgraph`.
 - **AI & Ontology Subsystem** ([`systems/ai_and_ontology_subsystem.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/ai_and_ontology_subsystem.md)): Houses the evaluation engines and prompt serialization logic.
 - **Backend Service Subsystem** ([`systems/backend_service.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/backend_service.md)): Exposes `/api/chat`, `/api/grade`, and `/api/materials/analyze`.
 - **Edge Functions Subsystem** ([`systems/edge_functions.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/edge_functions.md)): Manages file parsing, signed URLs, and async webhook relays.
