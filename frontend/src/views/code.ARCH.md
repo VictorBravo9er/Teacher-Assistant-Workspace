@@ -11,9 +11,9 @@ This document details the screen transition lifecycle, view mode layout manageme
 flowchart TD
     Mode{"ViewMode State"}
     
-    Mode -- "details-only" --> FullDetails["Full Width: ClassDetails.tsx / StudentRegister.tsx / Gradebook"]
-    Mode -- "split" --> SplitGrid["Split Grid (50% ClassDetails / 50% RAGClass AI Chat)"]
-    Mode -- "chat-only" --> FullChat["Full Width: RAGClass.tsx AI Assistant"]
+    Mode -- "details-only (Active)" --> FullDetails["Full Width: ClassDetails.tsx / StudentRegister.tsx / Gradebook"]
+    Mode -. "split (TODO: Reintegrate)" .-> SplitGrid["Split Grid (ClassDetails / RAGClass AI Chat)"]
+    Mode -. "chat-only (TODO: Reintegrate)" .-> FullChat["Full Width: RAGClass.tsx AI Assistant"]
 ```
 
 ---

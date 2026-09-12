@@ -510,6 +510,9 @@ $$;
 -- ============================================================================
 -- 7. Event Triggers & pg_net Dispatchers (Step 6.2 Automation)
 -- ============================================================================
+-- NOTE: Automatic triggers on materials and submissions are commented out to decouple
+-- the LMS upload workflow from AI background processing for independent development.
+-- TODO: Uncomment triggers when AI / RAG services are reintegrated.
 
 -- 7.1 Submission Evaluation Trigger Handler
 CREATE OR REPLACE FUNCTION public.handle_submission_ai_eval_trigger()
@@ -564,10 +567,11 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_submission_ai_eval ON public.student_submissions;
-CREATE TRIGGER trg_submission_ai_eval
-AFTER INSERT OR UPDATE OF status, content
-ON public.student_submissions
-FOR EACH ROW EXECUTE FUNCTION public.handle_submission_ai_eval_trigger();
+-- TODO: Uncomment when AI / RAG services are reintegrated
+-- CREATE TRIGGER trg_submission_ai_eval
+-- AFTER INSERT OR UPDATE OF status, content
+-- ON public.student_submissions
+-- FOR EACH ROW EXECUTE FUNCTION public.handle_submission_ai_eval_trigger();
 
 
 -- 7.2 Material Ingestion Trigger Handler
@@ -620,10 +624,11 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_material_ai_analysis ON public.materials;
-CREATE TRIGGER trg_material_ai_analysis
-AFTER INSERT OR UPDATE OF content, rubric_criteria
-ON public.materials
-FOR EACH ROW EXECUTE FUNCTION public.handle_material_ai_analysis_trigger();
+-- TODO: Uncomment when AI / RAG services are reintegrated
+-- CREATE TRIGGER trg_material_ai_analysis
+-- AFTER INSERT OR UPDATE OF content, rubric_criteria
+-- ON public.materials
+-- FOR EACH ROW EXECUTE FUNCTION public.handle_material_ai_analysis_trigger();
 
 
 -- 7.3 Class-Private Material Ingestion Trigger Handler
@@ -673,10 +678,11 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_class_material_ai_analysis ON public.class_materials;
-CREATE TRIGGER trg_class_material_ai_analysis
-AFTER INSERT OR UPDATE OF custom_content, custom_rubric_criteria
-ON public.class_materials
-FOR EACH ROW EXECUTE FUNCTION public.handle_class_material_ai_analysis_trigger();
+-- TODO: Uncomment when AI / RAG services are reintegrated
+-- CREATE TRIGGER trg_class_material_ai_analysis
+-- AFTER INSERT OR UPDATE OF custom_content, custom_rubric_criteria
+-- ON public.class_materials
+-- FOR EACH ROW EXECUTE FUNCTION public.handle_class_material_ai_analysis_trigger();
 
 
 

@@ -4,14 +4,16 @@ import { Template } from '@/types/main';
 import { useWorkspaceData } from '@/hooks/useWorkspaceData';
 import { useTheme } from '@/hooks/useTheme';
 import { useClassOperations } from '@/hooks/useClassOperations';
-import { useAIChat } from '@/hooks/useAIChat';
+// TODO: Uncomment when AI / RAG services are reintegrated
+// import { useAIChat } from '@/hooks/useAIChat';
 import { classService } from '@/services/classService';
 import { templateService } from '@/services/templateService';
 
 import Sidebar from '@/components/layout/Sidebar';
 import ClassDetails from '@/features/classroom/ClassDetails';
 import StudentRegister from '@/features/students/StudentRegister';
-import RAGClass from '@/features/ai-assistant/RAGClass';
+// TODO: Uncomment when AI / RAG services are reintegrated
+// import RAGClass from '@/features/ai-assistant/RAGClass';
 import CommandPalette from '@/components/layout/CommandPalette';
 import AccountModals from '@/features/account/AccountModals';
 import GradebookMatrix from '@/features/classroom/GradebookMatrix';
@@ -55,8 +57,9 @@ export default function ClassApp() {
   const [viewMode, setViewMode] = useState<'class' | 'template'>('class');
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('split');
-  const [previousLayoutMode, setPreviousLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('split');
+  // Decoupled LMS: Default to full details-only layout
+  const [layoutMode, setLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('details-only');
+  const [previousLayoutMode, setPreviousLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('details-only');
   const [mainViewTab, setMainViewTab] = useState<'classroom' | 'gradebook'>('classroom');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'materials' | 'prompts'>('profile');
@@ -120,12 +123,12 @@ export default function ClassApp() {
     triggerToast,
   });
 
-  // Chat Hook
-  const { isGeneratingAI, sendChatMessage } = useAIChat({
-    classes,
-    setClasses: mutateClasses,
-    triggerToast,
-  });
+  // TODO: Uncomment when AI / RAG services are reintegrated
+  // const { isGeneratingAI, sendChatMessage } = useAIChat({
+  //   classes,
+  //   setClasses: mutateClasses,
+  //   triggerToast,
+  // });
 
   const handleSaveEditChanges = async () => {
     if (viewMode === 'class' && activeClass && preEditClassSnapshot) {
@@ -331,7 +334,7 @@ export default function ClassApp() {
               )}
 
               <span className="hidden md:inline-block text-[10px] font-mono text-muted-text bg-elevated border border-border-color px-2.5 py-1 rounded-lg">
-                Ctrl + K to query
+                Ctrl + K to search
               </span>
             </div>
           </div>
@@ -402,7 +405,8 @@ export default function ClassApp() {
                       <Edit3 className="w-4 h-4" />
                     </button>
                   )}
-                  {viewMode === 'class' && (
+                  {/* TODO: Uncomment when AI / RAG services are reintegrated */}
+                  {/* {viewMode === 'class' && (
                     <div
                       id="top-nav-view-mode-group"
                       className={`flex items-center bg-elevated/40 border border-border-color rounded-lg p-0.5 ${isEditMode ? 'opacity-50 pointer-events-none' : ''}`}
@@ -444,7 +448,7 @@ export default function ClassApp() {
                         <Square className="w-4 h-4" />
                       </button>
                     </div>
-                  )}
+                  )} */}
                 </div>
 
                 {/* Top Row Content */}
@@ -515,8 +519,8 @@ export default function ClassApp() {
                 )}
               </div>
 
-              {/* Bottom Row / Chat classItem */}
-              {layoutMode !== 'details-only' && viewMode === 'class' && (
+              {/* TODO: Uncomment when AI / RAG services are reintegrated */}
+              {/* {layoutMode !== 'details-only' && viewMode === 'class' && (
                 <div className="flex-1 min-h-0 relative">
                   <RAGClass
                     classItem={adapterClassItem}
@@ -527,7 +531,7 @@ export default function ClassApp() {
                     isGeneratingAI={isGeneratingAI}
                   />
                 </div>
-              )}
+              )} */}
             </div>
           )}
         </main>

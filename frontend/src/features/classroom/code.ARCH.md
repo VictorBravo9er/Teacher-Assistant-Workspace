@@ -14,7 +14,7 @@ flowchart TD
     subgraph Tabs["Active Tab State"]
         Profile["Profile Tab (Editing & Metadata)"]
         Materials["Materials Tab (Repository List)"]
-        Instructions["Instructions Tab (AI Prompts)"]
+        Instructions["Guidelines Tab (Class Guidelines & Rubric Rules)"]
     end
 
     ClassDetails --> Tabs

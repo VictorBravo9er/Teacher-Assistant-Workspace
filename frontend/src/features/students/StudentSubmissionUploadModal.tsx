@@ -249,7 +249,7 @@ export default function StudentSubmissionUploadModal({
               <Textarea
                 rows={4}
                 required
-                placeholder="Paste or transcribe student answer text here for AI rubrics and evaluation..."
+                placeholder="Paste or transcribe student answer text here for teacher review and grading..."
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
               />

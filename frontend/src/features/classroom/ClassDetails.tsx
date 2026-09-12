@@ -229,7 +229,7 @@ export default function ClassDetails({
           }`}
         >
           <Award className="w-3.5 h-3.5" />
-          AI Instructions
+          Class Guidelines
           {classItem.instructions.length > 0 && (
             <span className="ml-1 px-1.5 py-0.2 bg-secondary/15 text-secondary text-[10px] rounded-full font-mono border border-secondary/25 font-bold">
               {classItem.instructions.length}
@@ -399,15 +399,15 @@ export default function ClassDetails({
               </div>
             </div>
 
-            {/* Instructional helper warning */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex gap-2.5">
+            {/* TODO: Uncomment when AI / RAG services are reintegrated */}
+            {/* <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex gap-2.5">
               <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-primary/80 leading-normal">
                 Changes in this dossier automatically sync into the RAG
                 Assistant scope. Chat searches will retrieve this context
                 automatically.
               </p>
-            </div>
+            </div> */}
           </div>
 
         {/* Materials Repository Tab */}
@@ -650,7 +650,7 @@ export default function ClassDetails({
         <div className={activeSubTab === "prompts" ? "space-y-4" : "hidden"}>
           <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-primary-text font-display">
-                Rule Prompt Templates
+                Class Guidelines & Rubric Rules
               </h4>
               {isEditMode && (
                 <Button
@@ -707,10 +707,10 @@ export default function ClassDetails({
 
                 <div>
                   <label className="text-[10px] font-mono text-muted-text block">
-                    AI INSTRUCTIONS CONTENT
+                    GUIDELINE CONTENT
                   </label>
                   <textarea
-                    placeholder="Direct the AI assistant to search for structural gaps rather than mathematical arithmetic omissions..."
+                    placeholder="Specify instructional guidelines, rubric criteria, or classroom marking preferences..."
                     value={newPromptContent}
                     onChange={(e) => setNewPromptContent(e.target.value)}
                     className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text h-20 resize-none focus:outline-none focus:border-secondary"
@@ -731,8 +731,7 @@ export default function ClassDetails({
             <div className="space-y-3">
               {classItem.instructions.length === 0 ? (
                 <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
-                  No criteria instructions flagged. Assistant is using default
-                  grading rules.
+                  No criteria instructions flagged. Using standard grading rules.
                 </div>
               ) : (
                 classItem.instructions.map((inst) => (

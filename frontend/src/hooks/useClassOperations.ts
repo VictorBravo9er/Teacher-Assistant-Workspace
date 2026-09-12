@@ -65,8 +65,10 @@ export function useClassOperations({
       setActiveClassId(id);
       setViewMode('class');
       setIsEditMode(false);
-      setLayoutMode('split');
-      setPreviousLayoutMode('split');
+      // Decoupled LMS: Default to 'details-only' layout
+      // TODO: Uncomment 'split' when AI / RAG services are reintegrated
+      setLayoutMode('details-only');
+      setPreviousLayoutMode('details-only');
     },
     [setActiveClassId, setViewMode, setIsEditMode, setLayoutMode, setPreviousLayoutMode]
   );
@@ -126,8 +128,10 @@ export function useClassOperations({
         setActiveClassId(newClass.id);
         setViewMode('class');
         setIsEditMode(false);
-        setLayoutMode('split');
-        setPreviousLayoutMode('split');
+        // Decoupled LMS: Default to 'details-only' layout
+        // TODO: Uncomment 'split' when AI / RAG services are reintegrated
+        setLayoutMode('details-only');
+        setPreviousLayoutMode('details-only');
         triggerToast(`Created classroom: "${name}"`);
       } catch (err: any) {
         triggerToast(`Error creating class: ${err.message}`);
