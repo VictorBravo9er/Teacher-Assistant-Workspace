@@ -48,8 +48,9 @@ def main(db_url: str | None = None):
     result_ts = subprocess.run(cmd_ts, capture_output=True, text=True)
 
     if result_ts.returncode == 0:
+        ts_header = "// @ts-nocheck\n/* eslint-disable */\n/* prettier-ignore */\n"
         with open(ts_file, "w", encoding="utf-8") as f:
-            _ = f.write(result_ts.stdout)
+            _ = f.write(ts_header + result_ts.stdout)
         print(f"   ✅ TypeScript types saved to {ts_file.relative_to(root_dir)}")
     else:
         print(
@@ -74,8 +75,13 @@ def main(db_url: str | None = None):
     result_py = subprocess.run(cmd_py, capture_output=True, text=True)
 
     if result_py.returncode == 0:
+        py_header = (
+            "# ruff: noqa\n"
+            "# pyright: reportGeneralTypeIssues=false, reportDeprecated=false, reportExplicitAny=false\n"
+            "# type: ignore\n"
+        )
         with open(py_file, "w", encoding="utf-8") as f:
-            _ = f.write(result_py.stdout)
+            _ = f.write(py_header + result_py.stdout)
         print(f"   ✅ Python types saved to {py_file.relative_to(root_dir)}")
     else:
         print(

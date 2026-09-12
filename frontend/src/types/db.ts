@@ -1,3 +1,6 @@
+// @ts-nocheck
+/* eslint-disable */
+/* prettier-ignore */
 export type Json =
   | string
   | number
@@ -58,24 +61,42 @@ export type Database = {
         Row: {
           class_id: string | null
           created_at: string
+          custom_instructions: string | null
           id: string
+          is_archived: boolean | null
+          messages: Json | null
+          scope_type: string | null
+          selected_ids: string[] | null
           title: string
+          type: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           class_id?: string | null
           created_at?: string
+          custom_instructions?: string | null
           id?: string
+          is_archived?: boolean | null
+          messages?: Json | null
+          scope_type?: string | null
+          selected_ids?: string[] | null
           title?: string
+          type?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           class_id?: string | null
           created_at?: string
+          custom_instructions?: string | null
           id?: string
+          is_archived?: boolean | null
+          messages?: Json | null
+          scope_type?: string | null
+          selected_ids?: string[] | null
           title?: string
+          type?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -126,16 +147,22 @@ export type Database = {
         Row: {
           class_id: string
           created_at: string
+          custom_content: Json | null
+          custom_rubric_criteria: Json | null
           material_id: string
         }
         Insert: {
           class_id: string
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id: string
         }
         Update: {
           class_id?: string
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id?: string
         }
         Relationships: [
@@ -540,16 +567,22 @@ export type Database = {
       template_materials: {
         Row: {
           created_at: string
+          custom_content: Json | null
+          custom_rubric_criteria: Json | null
           material_id: string
           template_id: string
         }
         Insert: {
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id: string
           template_id: string
         }
         Update: {
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id?: string
           template_id?: string
         }
@@ -656,7 +689,12 @@ export type Database = {
         }
         Returns: string
       }
+      archive_material: { Args: { p_material_id: string }; Returns: boolean }
       delete_material: { Args: { p_material_id: string }; Returns: string[] }
+      delete_submission_atomic: {
+        Args: { p_submission_id: string }
+        Returns: string[]
+      }
       search_cities: {
         Args: { search_term: string }
         Returns: {
@@ -699,6 +737,10 @@ export type Database = {
         Returns: {
           result: string
         }[]
+      }
+      unlink_material_from_class: {
+        Args: { p_class_id: string; p_material_id: string }
+        Returns: boolean
       }
       update_material_contents: {
         Args: { p_diff_array: Json; p_record_id: string; p_table_name: string }

@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.lib.logger import logger
 from src.server.router import router
 
-load_dotenv()
+from collections.abc import Awaitable, Callable
+from starlette.responses import Response
+
+_ = load_dotenv()
 
 app = FastAPI(
     title="Teacher Assistant RAG API",
@@ -27,11 +30,13 @@ app.add_middleware(
 
 # Request logging middleware
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def log_requests(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     start_time = time.time()
     logger.info("--> %s %s", request.method, request.url.path)
     try:
-        response = await call_next(request)
+        response: Response = await call_next(request)
         duration = time.time() - start_time
         logger.info(
             "<-- %s %s | status=%d | duration=%.3fs",

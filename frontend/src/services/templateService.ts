@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import { Template, Instruction, Material } from '../types/main';
+import { supabase } from '@/lib/supabase';
+import { Template, Instruction, Material } from '@/types/main';
 
 export const templateService = {
   async fetchTemplates(): Promise<Template[]> {
@@ -108,7 +108,6 @@ export const templateService = {
             name: mat.name || 'Untitled Document',
             category: mat.category || 'Study Material',
             content: mat.content || [],
-            size: mat.size || '0 MB',
             tags: mat.tags || [],
             due_at: mat.dueAt,
             max_score: mat.maxScore,

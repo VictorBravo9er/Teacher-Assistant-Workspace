@@ -1,6 +1,11 @@
 -- ============================================================================
 -- Supabase Storage Setup for Class Materials
 -- ============================================================================
+-- Canonical Storage Path: /{teacher_user_id}/{material_id}/{content_item_id}
+-- - {teacher_user_id}: auth.uid() of the teacher owner (folder name [1])
+-- - {material_id}: UUID matching public.materials(id)
+-- - {content_item_id}: UUID matching the 'id' field in materials.content JSONB array
+-- ============================================================================
 
 -- 1. Create the 'class-materials' storage bucket (private by default)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

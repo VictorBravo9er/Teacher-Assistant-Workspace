@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import { Material, ContentCategory, ContentItem } from '../types/main';
+import { supabase } from '@/lib/supabase';
+import { Material, ContentCategory, ContentItem } from '@/types/main';
 
 const BUCKET_NAME = 'class-materials';
 
@@ -16,6 +16,7 @@ export const materialService = {
       tags?: string[];
       dueAt?: string;
       maxScore?: number;
+      rubricCriteria?: any[];
     }
   ): Promise<Material> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,8 +24,7 @@ export const materialService = {
 
     const materialId = crypto.randomUUID();
     const itemId = crypto.randomUUID();
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
-    const storagePath = `${user.id}/materials/${materialId}/${Date.now()}_${sanitizedFileName}`;
+    const storagePath = `${user.id}/${materialId}/${itemId}`;
 
     // 1. Upload to Supabase Storage Bucket 'class-materials'
     const { error: uploadError } = await supabase.storage
@@ -46,6 +46,8 @@ export const materialService = {
         name: file.name,
         type: 'File',
         path: storagePath,
+        size_bytes: file.size,
+        mime_type: file.type || 'application/octet-stream',
         description: `Uploaded document for ${options?.name || file.name}`
       }
     ];
@@ -59,7 +61,7 @@ export const materialService = {
       content: contentItems,
       to_be_scored: toBeScored,
       tags: options?.tags || ['General'],
-      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+      rubric_criteria: options?.rubricCriteria || null,
     };
 
     if (toBeScored) {
@@ -102,11 +104,12 @@ export const materialService = {
       category: insertedMat.category as ContentCategory,
       content: insertedMat.content as ContentItem[],
       uploadDate: insertedMat.created_at,
-      size: insertedMat.size || `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
       tags: insertedMat.tags || [],
       dueAt: insertedMat.due_at || undefined,
       maxScore: insertedMat.max_score || undefined,
       toBeScored: insertedMat.to_be_scored || false,
+      rubricCriteria: insertedMat.rubric_criteria || undefined,
     };
   },
 
@@ -151,7 +154,6 @@ export const materialService = {
       content: contentItems,
       to_be_scored: toBeScored,
       tags: payload.tags || ['Web Link'],
-      size: '0 MB',
     };
 
     if (toBeScored) {
@@ -194,18 +196,172 @@ export const materialService = {
       dueAt: insertedMat.due_at || undefined,
       maxScore: insertedMat.max_score || undefined,
       toBeScored: insertedMat.to_be_scored || false,
+      rubricCriteria: insertedMat.rubric_criteria || undefined,
     };
+  },
+
+  /**
+   * Check if a material is shared across multiple classes or templates.
+   */
+  async checkMaterialSharing(materialId: string): Promise<{ isShared: boolean; classCount: number; templateCount: number }> {
+    const [{ count: classCount }, { count: templateCount }] = await Promise.all([
+      supabase.from('class_materials').select('*', { count: 'exact', head: true }).eq('material_id', materialId),
+      supabase.from('template_materials').select('*', { count: 'exact', head: true }).eq('material_id', materialId),
+    ]);
+
+    const total = (classCount || 0) + (templateCount || 0);
+    return {
+      isShared: total > 1,
+      classCount: classCount || 0,
+      templateCount: templateCount || 0,
+    };
+  },
+
+  /**
+   * Update or attach a Rubric to an existing Material, supporting Public (Base) vs Class-Private augmentation.
+   */
+  async updateMaterialRubric(
+    materialId: string,
+    criteria: RubricCriterion[],
+    maxScore?: number,
+    classId?: string
+  ): Promise<void> {
+    const publicCriteria = criteria.filter((c) => !c.isPrivate);
+    const privateCriteria = criteria.filter((c) => c.isPrivate);
+
+    // 1. Update public/base criteria in canonical materials table
+    const payload: any = {
+      rubric_criteria: publicCriteria.length > 0 ? publicCriteria : (privateCriteria.length > 0 ? [] : null),
+    };
+    if (maxScore !== undefined) {
+      payload.max_score = maxScore;
+    }
+
+    const { error: matError } = await supabase
+      .from('materials')
+      .update(payload)
+      .eq('id', materialId);
+
+    if (matError) {
+      console.error("Database error updating material rubric:", matError);
+      throw matError;
+    }
+
+    // 2. If classId provided, update custom_rubric_criteria in class_materials
+    if (classId) {
+      const { error: linkError } = await supabase
+        .from('class_materials')
+        .update({
+          custom_rubric_criteria: privateCriteria.length > 0 ? privateCriteria : null,
+        })
+        .eq('class_id', classId)
+        .eq('material_id', materialId);
+
+      if (linkError) {
+        console.error("Database error updating class custom rubric:", linkError);
+        throw linkError;
+      }
+    }
+  },
+
+  /**
+   * Add a content item to a material, optionally routing to class_materials.custom_content if private.
+   */
+  async addMaterialContent(
+    materialId: string,
+    item: { name: string; url?: string; file?: File },
+    options: { classId?: string; isClassPrivate?: boolean }
+  ): Promise<ContentItem> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthenticated user");
+
+    const itemId = crypto.randomUUID();
+    let storagePath: string | undefined = undefined;
+
+    if (item.file) {
+      storagePath = `${user.id}/${materialId}/${itemId}`;
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(storagePath, item.file);
+
+      if (uploadError) throw new Error(`Storage upload error: ${uploadError.message}`);
+    }
+
+    const newItem: ContentItem = {
+      id: itemId,
+      name: item.name.trim(),
+      type: item.file ? 'File' : 'URL',
+      path: item.file ? storagePath : (item.url || 'https://example.com'),
+      size_bytes: item.file?.size,
+      mime_type: item.file?.type || (item.file ? 'application/octet-stream' : undefined),
+      description: item.file ? `Uploaded file for ${item.name}` : `Web resource: ${item.url}`,
+      isPrivate: options.isClassPrivate || false,
+      isShared: !options.isClassPrivate,
+    };
+
+    if (options.isClassPrivate && options.classId) {
+      // Fetch current custom_content
+      const { data: linkData } = await supabase
+        .from('class_materials')
+        .select('custom_content')
+        .eq('class_id', options.classId)
+        .eq('material_id', materialId)
+        .single();
+
+      const existingCustom: ContentItem[] = Array.isArray(linkData?.custom_content) ? linkData.custom_content : [];
+      const updatedCustom = [...existingCustom, newItem];
+
+      const { error: updateLinkErr } = await supabase
+        .from('class_materials')
+        .update({ custom_content: updatedCustom })
+        .eq('class_id', options.classId)
+        .eq('material_id', materialId);
+
+      if (updateLinkErr) throw updateLinkErr;
+    } else {
+      // Fetch current canonical content
+      const { data: matData } = await supabase
+        .from('materials')
+        .select('content')
+        .eq('id', materialId)
+        .single();
+
+      const existingCanonical: ContentItem[] = Array.isArray(matData?.content) ? matData.content : [];
+      const updatedCanonical = [...existingCanonical, newItem];
+
+      const { error: updateMatErr } = await supabase
+        .from('materials')
+        .update({ content: updatedCanonical })
+        .eq('id', materialId);
+
+      if (updateMatErr) throw updateMatErr;
+    }
+
+    return newItem;
   },
 
   /**
    * Fetch signed download URLs for a material via Edge Function or client SDK fallback.
    */
-  async getMaterialDownloadUrl(materialId: string, classId?: string, storagePath?: string): Promise<string> {
+  async getMaterialDownloadUrl(
+    materialId: string,
+    classId?: string,
+    storagePath?: string,
+    contentItemId?: string
+  ): Promise<string> {
     if (classId) {
       try {
         const { data, error } = await supabase.functions.invoke('get-material-url', {
-          body: { material_id: materialId, class_id: classId },
+          body: {
+            material_id: materialId,
+            class_id: classId,
+            content_item_id: contentItemId,
+          },
         });
+
+        if (!error && data?.signedUrl) {
+          return data.signedUrl;
+        }
 
         const items = data?.items || data?.urls;
         if (!error && items && items.length > 0) {
@@ -221,6 +377,9 @@ export const materialService = {
 
     // Direct fallback for teacher client if path provided
     if (storagePath) {
+      if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
+        return storagePath;
+      }
       const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
         .createSignedUrl(storagePath, 60 * 60);
@@ -231,6 +390,43 @@ export const materialService = {
     }
 
     throw new Error("Could not generate signed download URL for material");
+  },
+
+  /**
+   * Unlink a material from a specific class without deleting the material globally.
+   */
+  async unlinkMaterialFromClass(classId: string, materialId: string): Promise<void> {
+    const { error } = await supabase.rpc('unlink_material_from_class', {
+      p_class_id: classId,
+      p_material_id: materialId,
+    });
+
+    if (error) {
+      // Fallback to direct DELETE on class_materials
+      const { error: directErr } = await supabase
+        .from('class_materials')
+        .delete()
+        .eq('class_id', classId)
+        .eq('material_id', materialId);
+
+      if (directErr) {
+        throw new Error(`Failed to unlink material: ${directErr.message}`);
+      }
+    }
+  },
+
+  /**
+   * Soft-archive a material so it is hidden but historical submissions are preserved.
+   */
+  async archiveMaterial(materialId: string): Promise<void> {
+    const { error } = await supabase
+      .from('materials')
+      .update({ is_archived: true })
+      .eq('id', materialId);
+
+    if (error) {
+      throw new Error(`Failed to archive material: ${error.message}`);
+    }
   },
 
   /**
@@ -259,9 +455,69 @@ export const materialService = {
   },
 
   /**
-   * Duplicate material for a new class by inserting a link into class_materials.
+   * Fork material for a new class by creating an independent material record (reusing storage files).
    */
-  async duplicateMaterial(classId: string, material: Material): Promise<Material> {
+  async forkMaterial(classId: string, material: Material): Promise<Material> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthenticated user");
+
+    const newMaterialId = crypto.randomUUID();
+    const materialInsertPayload: any = {
+      id: newMaterialId,
+      user_id: user.id,
+      name: material.name,
+      category: material.category || 'Study Material',
+      content: material.content || [],
+      tags: material.tags || ['General'],
+      due_at: material.dueAt || null,
+      max_score: material.maxScore ?? 100,
+      to_be_scored: material.toBeScored ?? false,
+      rubric_criteria: material.rubricCriteria || null,
+    };
+
+    const { data: insertedMat, error: insertError } = await supabase
+      .from('materials')
+      .insert(materialInsertPayload)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Fork material insert failed:", insertError);
+      throw new Error(`Failed to fork material: ${insertError.message}`);
+    }
+
+    // Link new independent material to target class
+    const { error: linkError } = await supabase
+      .from('class_materials')
+      .insert({
+        class_id: classId,
+        material_id: newMaterialId,
+      });
+
+    if (linkError) {
+      console.error("Class link error on fork:", linkError);
+      throw new Error(`Failed to link forked material: ${linkError.message}`);
+    }
+
+    return {
+      id: insertedMat.id,
+      name: insertedMat.name,
+      category: insertedMat.category as ContentCategory,
+      content: insertedMat.content as ContentItem[],
+      uploadDate: insertedMat.created_at,
+      size: material.size || '0 MB',
+      tags: insertedMat.tags || [],
+      dueAt: insertedMat.due_at || undefined,
+      maxScore: insertedMat.max_score || undefined,
+      toBeScored: insertedMat.to_be_scored || false,
+      rubricCriteria: insertedMat.rubric_criteria || undefined,
+    };
+  },
+
+  /**
+   * Link an existing material directly to a class as a shared reference.
+   */
+  async linkSharedMaterial(classId: string, material: Material): Promise<Material> {
     const { error: linkError } = await supabase
       .from('class_materials')
       .insert({
@@ -270,9 +526,19 @@ export const materialService = {
       });
 
     if (linkError) {
-      console.warn("Class link error on duplicate:", linkError);
+      console.warn("Class link error on shared link:", linkError);
     }
 
     return { ...material };
+  },
+
+  /**
+   * Duplicate material (defaults to forking for complete class-level rubric isolation).
+   */
+  async duplicateMaterial(classId: string, material: Material, fork: boolean = true): Promise<Material> {
+    if (fork) {
+      return this.forkMaterial(classId, material);
+    }
+    return this.linkSharedMaterial(classId, material);
   }
 };

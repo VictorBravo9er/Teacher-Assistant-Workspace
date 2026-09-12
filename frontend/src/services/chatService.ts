@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import { RAGSession, Message } from '../types/main';
+import { supabase } from '@/lib/supabase';
+import { RAGSession, Message } from '@/types/main';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -67,6 +67,25 @@ export const chatService = {
     const { error } = await supabase
       .from('chat_sessions')
       .delete()
+      .eq('id', sessionId);
+
+    if (error) throw error;
+  },
+
+  async updateSession(sessionId: string, updates: Partial<RAGSession>): Promise<void> {
+    const dbUpdates: Record<string, any> = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.scopeType !== undefined) dbUpdates.scope_type = updates.scopeType;
+    if (updates.selectedIds !== undefined) dbUpdates.selected_ids = updates.selectedIds;
+    if (updates.customInstructions !== undefined) dbUpdates.custom_instructions = updates.customInstructions;
+    if (updates.messages !== undefined) dbUpdates.messages = updates.messages;
+    if (updates.isArchived !== undefined) dbUpdates.is_archived = updates.isArchived;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('chat_sessions')
+      .update(dbUpdates)
       .eq('id', sessionId);
 
     if (error) throw error;

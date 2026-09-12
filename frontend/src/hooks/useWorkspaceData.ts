@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { classService } from '../services/classService';
-import { templateService } from '../services/templateService';
-import { ClassModel, Template } from '../types/main';
-import { secureStorage } from '../lib/storage';
-import { useAuth } from '../contexts/AuthContext';
+import { classService } from '@/services/classService';
+import { templateService } from '@/services/templateService';
+import { ClassModel, Template } from '@/types/main';
+import { secureStorage } from '@/lib/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CACHE_KEY_CLASSES = 'edu_rag_classes_cache';
 const CACHE_KEY_TEMPLATES = 'edu_rag_templates_cache';

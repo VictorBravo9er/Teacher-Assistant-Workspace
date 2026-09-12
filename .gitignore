@@ -49,6 +49,7 @@ service-account.json
 .prettiercache
 .turbo/
 .temp
+.scratch/
 .supabase
 # Version control leftovers
 *.orig

@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import { Instruction } from '../types/main';
+import { supabase } from '@/lib/supabase';
+import { Instruction } from '@/types/main';
 
 export const instructionService = {
   async fetchInstructionsForClass(classId: string): Promise<Instruction[]> {

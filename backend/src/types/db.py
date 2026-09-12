@@ -1,3 +1,6 @@
+# ruff: noqa
+# pyright: reportGeneralTypeIssues=false, reportDeprecated=false, reportExplicitAny=false
+# type: ignore
 from __future__ import annotations
 
 import datetime
@@ -281,32 +284,44 @@ class PublicMaterialsUpdate(TypedDict):
 
 class PublicTemplateMaterials(BaseModel):
     created_at: datetime.datetime = Field(alias="created_at")
+    custom_content: Optional[Json[Any]] = Field(alias="custom_content")
+    custom_rubric_criteria: Optional[Json[Any]] = Field(alias="custom_rubric_criteria")
     material_id: uuid.UUID = Field(alias="material_id")
     template_id: uuid.UUID = Field(alias="template_id")
 
 class PublicTemplateMaterialsInsert(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    custom_content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_content")]]
+    custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: Annotated[uuid.UUID, Field(alias="material_id")]
     template_id: Annotated[uuid.UUID, Field(alias="template_id")]
 
 class PublicTemplateMaterialsUpdate(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    custom_content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_content")]]
+    custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: NotRequired[Annotated[uuid.UUID, Field(alias="material_id")]]
     template_id: NotRequired[Annotated[uuid.UUID, Field(alias="template_id")]]
 
 class PublicClassMaterials(BaseModel):
     class_id: uuid.UUID = Field(alias="class_id")
     created_at: datetime.datetime = Field(alias="created_at")
+    custom_content: Optional[Json[Any]] = Field(alias="custom_content")
+    custom_rubric_criteria: Optional[Json[Any]] = Field(alias="custom_rubric_criteria")
     material_id: uuid.UUID = Field(alias="material_id")
 
 class PublicClassMaterialsInsert(TypedDict):
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    custom_content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_content")]]
+    custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: Annotated[uuid.UUID, Field(alias="material_id")]
 
 class PublicClassMaterialsUpdate(TypedDict):
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    custom_content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_content")]]
+    custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: NotRequired[Annotated[uuid.UUID, Field(alias="material_id")]]
 
 class PublicInstructions(BaseModel):
@@ -453,23 +468,41 @@ class PublicAttendanceRecordsUpdate(TypedDict):
 class PublicChatSessions(BaseModel):
     class_id: Optional[uuid.UUID] = Field(alias="class_id")
     created_at: datetime.datetime = Field(alias="created_at")
+    custom_instructions: Optional[str] = Field(alias="custom_instructions")
     id: uuid.UUID = Field(alias="id")
+    is_archived: Optional[bool] = Field(alias="is_archived")
+    messages: Optional[Json[Any]] = Field(alias="messages")
+    scope_type: Optional[str] = Field(alias="scope_type")
+    selected_ids: Optional[List[str]] = Field(alias="selected_ids")
     title: str = Field(alias="title")
+    type: Optional[str] = Field(alias="type")
     updated_at: datetime.datetime = Field(alias="updated_at")
     user_id: uuid.UUID = Field(alias="user_id")
 
 class PublicChatSessionsInsert(TypedDict):
     class_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="class_id")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    custom_instructions: NotRequired[Annotated[Optional[str], Field(alias="custom_instructions")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
+    messages: NotRequired[Annotated[Optional[Json[Any]], Field(alias="messages")]]
+    scope_type: NotRequired[Annotated[Optional[str], Field(alias="scope_type")]]
+    selected_ids: NotRequired[Annotated[Optional[List[str]], Field(alias="selected_ids")]]
     title: NotRequired[Annotated[str, Field(alias="title")]]
+    type: NotRequired[Annotated[Optional[str], Field(alias="type")]]
     updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: Annotated[uuid.UUID, Field(alias="user_id")]
 
 class PublicChatSessionsUpdate(TypedDict):
     class_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="class_id")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    custom_instructions: NotRequired[Annotated[Optional[str], Field(alias="custom_instructions")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
+    messages: NotRequired[Annotated[Optional[Json[Any]], Field(alias="messages")]]
+    scope_type: NotRequired[Annotated[Optional[str], Field(alias="scope_type")]]
+    selected_ids: NotRequired[Annotated[Optional[List[str]], Field(alias="selected_ids")]]
     title: NotRequired[Annotated[str, Field(alias="title")]]
+    type: NotRequired[Annotated[Optional[str], Field(alias="type")]]
     updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]

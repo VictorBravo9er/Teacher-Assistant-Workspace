@@ -142,15 +142,21 @@ CREATE TABLE IF NOT EXISTS public.materials (
 CREATE TABLE IF NOT EXISTS public.template_materials (
     template_id UUID NOT NULL REFERENCES public.templates(id) ON DELETE CASCADE,
     material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+    custom_content JSONB DEFAULT NULL,
+    custom_rubric_criteria JSONB DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    PRIMARY KEY (template_id, material_id)
+    PRIMARY KEY (template_id, material_id),
+    CONSTRAINT valid_tpl_custom_content_shape CHECK (custom_content IS NULL OR validate_content_array(custom_content))
 );
 
 CREATE TABLE IF NOT EXISTS public.class_materials (
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+    custom_content JSONB DEFAULT NULL,
+    custom_rubric_criteria JSONB DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    PRIMARY KEY (class_id, material_id)
+    PRIMARY KEY (class_id, material_id),
+    CONSTRAINT valid_class_custom_content_shape CHECK (custom_content IS NULL OR validate_content_array(custom_content))
 );
 
 CREATE TABLE IF NOT EXISTS public.instructions (
@@ -205,7 +211,8 @@ CREATE TABLE IF NOT EXISTS public.attendance_records (
     date DATE NOT NULL,
     status public.attendance_status NOT NULL,
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_class_student_date UNIQUE (class_id, student_id, date)
 );
 
 CREATE TABLE IF NOT EXISTS public.chat_sessions (
@@ -213,6 +220,12 @@ CREATE TABLE IF NOT EXISTS public.chat_sessions (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL DEFAULT 'New Chat',
     class_id UUID REFERENCES public.classes(id) ON DELETE CASCADE,
+    type TEXT DEFAULT 'general',
+    scope_type TEXT DEFAULT 'class',
+    selected_ids TEXT[] DEFAULT '{}',
+    custom_instructions TEXT DEFAULT '',
+    messages JSONB DEFAULT '[]'::jsonb,
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -298,6 +311,65 @@ DROP TRIGGER IF EXISTS trg_auto_set_to_be_scored ON public.materials;
 CREATE TRIGGER trg_auto_set_to_be_scored
 BEFORE INSERT OR UPDATE ON public.materials
 FOR EACH ROW EXECUTE FUNCTION auto_set_to_be_scored();
+
+CREATE OR REPLACE FUNCTION public.sync_student_class_scores()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_class_id UUID;
+    v_student_id UUID;
+    v_avg_score NUMERIC;
+    v_tier TEXT;
+    v_grade TEXT;
+BEGIN
+    v_class_id := COALESCE(NEW.class_id, OLD.class_id);
+    v_student_id := COALESCE(NEW.student_id, OLD.student_id);
+
+    -- Calculate average percentage score across all scored submissions for this student in this class
+    SELECT 
+        ROUND(AVG((score / NULLIF(COALESCE(m.max_score, 100), 0)) * 100), 2)
+    INTO v_avg_score
+    FROM public.student_submissions s
+    LEFT JOIN public.materials m ON s.material_id = m.id
+    WHERE s.class_id = v_class_id
+      AND s.student_id = v_student_id
+      AND s.score IS NOT NULL;
+
+    IF v_avg_score IS NULL THEN
+        v_tier := 'Average';
+        v_grade := NULL;
+    ELSIF v_avg_score >= 88 THEN
+        v_tier := 'High';
+        v_grade := 'A';
+    ELSIF v_avg_score >= 75 THEN
+        v_tier := 'Average';
+        v_grade := 'B';
+    ELSIF v_avg_score >= 60 THEN
+        v_tier := 'Average';
+        v_grade := 'C';
+    ELSE
+        v_tier := 'At Risk';
+        v_grade := 'D';
+    END IF;
+
+    UPDATE public.class_students
+    SET current_score = v_avg_score,
+        current_grade = v_grade,
+        performance_tier = v_tier
+    WHERE class_id = v_class_id
+      AND student_id = v_student_id;
+
+    RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_student_scores ON public.student_submissions;
+CREATE TRIGGER trg_sync_student_scores
+AFTER INSERT OR UPDATE OF score, class_id, student_id OR DELETE
+ON public.student_submissions
+FOR EACH ROW EXECUTE FUNCTION public.sync_student_class_scores();
 
 
 -- ==========================================
@@ -394,17 +466,85 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION delete_material(p_material_id uuid) RETURNS text[] LANGUAGE plpgsql SECURITY INVOKER AS $$
-DECLARE
-    v_deleted_paths text[] := ARRAY[]::text[]; v_item jsonb; v_submission_count int;
+CREATE OR REPLACE FUNCTION unlink_material_from_class(p_class_id UUID, p_material_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
 BEGIN
-    SELECT count(*) INTO v_submission_count FROM public.student_submissions WHERE material_id = p_material_id;
-    IF v_submission_count > 0 THEN RAISE EXCEPTION 'Cannot hard-delete material. There are % student submissions attached. Please archive the material instead.', v_submission_count; END IF;
+    DELETE FROM public.class_materials 
+    WHERE class_id = p_class_id AND material_id = p_material_id;
+    RETURN true;
+END;
+$$;
 
-    FOR v_item IN SELECT jsonb_array_elements(content) FROM public.materials WHERE id = p_material_id LOOP
-        IF v_item->>'type' = 'File' THEN v_deleted_paths := array_append(v_deleted_paths, v_item->>'path'); END IF;
+CREATE OR REPLACE FUNCTION archive_material(p_material_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+BEGIN
+    UPDATE public.materials
+    SET is_archived = true
+    WHERE id = p_material_id;
+    RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION delete_submission_atomic(p_submission_id UUID)
+RETURNS text[]
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+DECLARE
+    v_deleted_paths text[] := ARRAY[]::text[];
+    v_item jsonb;
+BEGIN
+    FOR v_item IN SELECT jsonb_array_elements(content) FROM public.student_submissions WHERE id = p_submission_id LOOP
+        IF v_item->>'type' = 'File' AND v_item->>'path' IS NOT NULL 
+           AND NOT (v_item->>'path' LIKE 'text://%' OR v_item->>'path' LIKE 'grade://%') THEN
+            v_deleted_paths := array_append(v_deleted_paths, v_item->>'path');
+        END IF;
     END LOOP;
 
+    DELETE FROM public.student_submissions WHERE id = p_submission_id;
+    RETURN v_deleted_paths;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION delete_material(p_material_id uuid) RETURNS text[] LANGUAGE plpgsql SECURITY INVOKER AS $$
+DECLARE
+    v_deleted_paths text[] := ARRAY[]::text[];
+    v_item jsonb;
+    v_submission_count int;
+    v_other_ref_count int;
+BEGIN
+    -- 1. Guard: Check if student submissions are attached
+    SELECT count(*) INTO v_submission_count FROM public.student_submissions WHERE material_id = p_material_id;
+    IF v_submission_count > 0 THEN 
+        RAISE EXCEPTION 'Cannot hard-delete material. There are % student submissions attached. Please archive the material or unlink it from the class instead.', v_submission_count; 
+    END IF;
+
+    -- 2. Iterate through content items and only return storage paths that are NOT referenced by any other material
+    FOR v_item IN SELECT jsonb_array_elements(content) FROM public.materials WHERE id = p_material_id LOOP
+        IF v_item->>'type' = 'File' AND v_item->>'path' IS NOT NULL 
+           AND NOT (v_item->>'path' LIKE 'text://%' OR v_item->>'path' LIKE 'grade://%') THEN
+            
+            -- Check if any other material or class/template custom_content references this same storage path
+            SELECT (
+                (SELECT count(*) FROM public.materials m, jsonb_array_elements(m.content) elem WHERE m.id <> p_material_id AND elem->>'path' = v_item->>'path') +
+                (SELECT count(*) FROM public.class_materials cm, jsonb_array_elements(cm.custom_content) elem WHERE cm.material_id <> p_material_id AND elem->>'path' = v_item->>'path') +
+                (SELECT count(*) FROM public.template_materials tm, jsonb_array_elements(tm.custom_content) elem WHERE tm.material_id <> p_material_id AND elem->>'path' = v_item->>'path')
+            ) INTO v_other_ref_count;
+
+            -- Only mark for physical storage deletion if NO other material uses this file
+            IF v_other_ref_count = 0 THEN
+                v_deleted_paths := array_append(v_deleted_paths, v_item->>'path');
+            END IF;
+        END IF;
+    END LOOP;
+
+    -- 3. Delete the material record (cascades to class_materials, template_materials, and ai tables)
     DELETE FROM public.materials WHERE id = p_material_id;
     RETURN v_deleted_paths;
 END;
