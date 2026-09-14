@@ -24,8 +24,8 @@ stateDiagram-v2
 ## 2. Component Design & Prop Invariants
 
 1. **`InstituteAutocompleteField.tsx`**:
-   - Integrates with database `institutes` records.
-   - Decouples selecting an existing institute from registering a new institute inline via the `onAddNew` callback.
+   - Consumes `instituteService.fetchInstitutes()` to populate an in-memory client directory with 1-hour TTL caching.
+   - Executes multi-token fuzzy matching instantaneously on keystrokes with zero network latency, supporting keyboard navigation (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`).
 2. **`MultiSelect.tsx`**:
    - Controlled component accepting `selected: string[]` and emitting `onChange(newValues: string[])`.
    - Renders removable badge chips inline and handles keyboard tag deletion via Backspace.

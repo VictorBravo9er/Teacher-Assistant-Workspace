@@ -35,3 +35,6 @@ flowchart TD
 3. **FastAPI & LLM Communication (`chatService.ts`)**:
    - Dispatches requests to the FastAPI backend at `/api/chat`.
    - Propagates backend errors transparently with structured telemetry logged through `logger.ts`, surfacing actionable errors to the user via toast notifications without synthetic mock data.
+4. **Client-Side Institute Directory Caching (`instituteService.ts`)**:
+   - Maintains an in-memory / local storage TTL cache (`edu_institutes_directory`) with 1-hour validity.
+   - Eliminates per-keystroke RPC calls to PostgreSQL by powering client-side fuzzy searching, updating synchronously when new institutes are registered.

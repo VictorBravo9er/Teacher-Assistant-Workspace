@@ -11,10 +11,10 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 | Metric | Current Status |
 | :--- | :--- |
 | **Total Plans** | **11 Plans** (Phase 0 through Phase 4) |
-| **Plans Completed** | **1 / 11** (`9%`) |
+| **Plans Completed** | **2 / 11** (`18%`) |
 | **Plans In Progress** | **0 / 11** (`0%`) |
-| **Plans Pending Execution** | **10 / 11** (`91%`) |
-| **Current Execution Target** | [**`Plan 00.1: Client-Side Institute & Geographic Search`**](./00.1-client-side-institute-geographic-search.md) |
+| **Plans Pending Execution** | **9 / 11** (`82%`) |
+| **Current Execution Target** | [**`Plan 01: Database Schema Alignment, Portfolio Migration & content_type 'Text'`**](./01-database-schema-alignment.md) |
 | **System Readiness** | Pure LMS mode active; AI triggers decoupled; all plan files verified and aligned. |
 
 ---
@@ -74,7 +74,7 @@ flowchart TD
 | Plan File | Scope & Title | Phase | Priority | Status | Progress | Verification Status | Notes |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
 | [**`00-enum-tooltip-audit-tooling.md`**](./00-enum-tooltip-audit-tooling.md) | Developer Tooling, Enum Verification, Full-Stack Logging & Mock Data Purge | Phase 0 | `TOOLING` | ✅ Completed | `100%` | 🟢 Verified | Foundation: establishes `./logs/` streaming, Vite HMR, and `mockChat.ts` purge. |
-| [**`00.1-client-side-institute-geographic-search.md`**](./00.1-client-side-institute-geographic-search.md) | Client-Side Institute & Cascading Geographic Search | Phase 0 | `UX/PERF` | ⏳ Pending | `0%` | ⬜ Unverified | Replaces 5 round-trip RPCs with client cache & 780-district static hierarchy. |
+| [**`00.1-client-side-institute-geographic-search.md`**](./00.1-client-side-institute-geographic-search.md) | Client-Side Institute & Cascading Geographic Search | Phase 0 | `UX/PERF` | ✅ Completed | `100%` | 🟢 Verified | Replaces 5 round-trip RPCs with client cache & 780-district static hierarchy. |
 | [**`01-database-schema-alignment.md`**](./01-database-schema-alignment.md) | Database Schema Alignment, Portfolio Migration & `content_type` `'Text'` | Phase 1 | `CRITICAL` | ⏳ Pending | `0%` | ⬜ Unverified | Adds portfolio columns to `class_students`, adds `'Text'` to enum, relaxes validator. |
 | [**`02-instruction-type-enum-safety.md`**](./02-instruction-type-enum-safety.md) | Universal Database Enum Safety & Dynamic UI Mapping | Phase 1 | `CRITICAL` | ⏳ Pending | `0%` | ⬜ Unverified | Dynamic `Constants.public.Enums` dropdowns, multiselects, and `enumTooltips.ts`. |
 | [**`03-class-archiving-lifecycle.md`**](./03-class-archiving-lifecycle.md) | Class Archiving Lifecycle & State Standardization | Phase 2 | `HIGH` | ⏳ Pending | `0%` | ⬜ Unverified | Standardizes `isArchived` (client) and `is_archived` (database) across hooks and sidebar. |
@@ -91,7 +91,7 @@ flowchart TD
 
 ### Phase 0: Developer Tooling, Observability & Data Performance
 - [x] **Plan 00**: Implement `scripts/_verify_enum_tooltips.py`, `frontend/src/lib/logger.ts`, `backend/src/lib/logger.py`, and delete `mockChat.ts`.
-- [ ] **Plan 00.1**: Implement `frontend/src/data/geography.ts` and `frontend/src/services/instituteService.ts`.
+- [x] **Plan 00.1**: Implement `frontend/src/data/geography.ts` and `frontend/src/services/instituteService.ts`.
 
 ### Phase 1: Database Schema & Enum Runtime Integrity
 - [ ] **Plan 01**: Apply schema migration for portfolio columns, `content_type` `'Text'`, and regenerate types via `_generate_types.py`.
