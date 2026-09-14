@@ -26,6 +26,7 @@ sequenceDiagram
     DBSetup->>Postgres: Execute schema-langgraph.sql (RLS Policies)
     DBSetup->>TypeGen: generate_types(db_url)
     TypeGen->>Filesystem: Write frontend/src/types/db.ts & backend/src/types/db.py
+    TypeGen->>Filesystem: Audit tooltips via _verify_enum_tooltips.py
 ```
 
 ---
@@ -39,5 +40,5 @@ In [`db_setup.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/s
 - Main application tables reside in the `public` PostgreSQL schema.
 - LangGraph checkpoints are isolated in the `langgraph` schema via `DB_OPTIONS="-c search_path=langgraph"`, ensuring agent persistence artifacts do not clutter domain entity tables.
 
-### Contract Generation Contract:
-[`_generate_types.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_generate_types.py) uses the Supabase CLI (`npx -y supabase gen types`) to derive strict types directly from PostgreSQL catalog reflections, guaranteeing that frontend TypeScript types and backend Python models remain in lockstep with the database DDL.
+### Contract Generation & Tooltip Auditing:
+[`_generate_types.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_generate_types.py) uses the Supabase CLI (`npx -y supabase gen types`) to derive strict types directly from PostgreSQL catalog reflections, guaranteeing that frontend TypeScript types and backend Python models remain in lockstep with the database DDL. Following type generation, [`_verify_enum_tooltips.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_verify_enum_tooltips.py) automatically audits generated enum constants against pedagogical UI tooltip definitions in `frontend/src/utils/enumTooltips.ts`.

@@ -11,7 +11,7 @@ This directory encapsulates all outbound HTTP requests, PostgREST queries, and S
 - [`materialService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts): Manages curriculum materials, uploading files with rich size/mime metadata to Supabase Storage, forking materials for class-level rubric isolation (`forkMaterial`), linking shared references (`linkSharedMaterial`), unlinking materials from specific classes (`unlinkMaterialFromClass`), soft-archiving (`archiveMaterial`), and retrieving signed preview URLs via `get-material-url`.
 - [`instructionService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/instructionService.ts): Manages AI instruction prompts and behavioral rubrics, linking them to classes and templates.
 - [`templateService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/templateService.ts): Handles template creation, fetching preset teacher templates, duplicating classes into blueprints, and template deletion.
-- [`chatService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/chatService.ts): Dispatches prompt payloads to the FastAPI backend (`POST /api/chat`) and falls back gracefully to local mock responses if the Python service is offline.
+- [`chatService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/chatService.ts): Dispatches prompt payloads to the FastAPI backend (`POST /api/chat`) and manages chat session persistence in Supabase with telemetry logging and honest error propagation.
 
 ---
 

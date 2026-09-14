@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { secureStorage } from '@/lib/storage';
 import { Session } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 interface AuthContextType {
   session: Session | null;
@@ -23,15 +24,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const resolvedRole = session?.user?.user_metadata?.role || null;
+      logger.info('AUTH', 'Initial session restored', {
+        userId: session?.user?.id,
+        role: resolvedRole,
+      });
       setSession(session);
-      setRole(session?.user?.user_metadata?.role || null);
+      setRole(resolvedRole);
       setIsInitializing(false);
     });
 
     // 2. Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const resolvedRole = session?.user?.user_metadata?.role || null;
+      logger.info('AUTH', `Auth state changed: ${_event}`, {
+        userId: session?.user?.id,
+        role: resolvedRole,
+      });
       setSession(session);
-      setRole(session?.user?.user_metadata?.role || null);
+      setRole(resolvedRole);
       if (!session) {
         secureStorage.clearCache();
       }
@@ -44,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    logger.info('AUTH', 'User sign out initiated');
     // Clear cached items from storage
     secureStorage.clearCache();
     await supabase.auth.signOut();

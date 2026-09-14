@@ -32,6 +32,6 @@ flowchart TD
    - `classService` and `templateService` handle multi-table joins (e.g. `class_materials`, `class_instructions`, `class_students`) in cohesive transactions, reconstructing flat domain objects for the UI.
 2. **Defensive Storage Paths**:
    - File uploads in `materialService` follow the canonical path pattern `/{userId}/{materialId}/{contentItemId}`, matching the PostgreSQL RLS policy restrictions.
-3. **Resilient LLM Communication (`chatService.ts`)**:
-   - Dispatches requests to the FastAPI backend at `http://localhost:8090/api/chat`.
-   - Catches connection refusals or timeouts and seamlessly falls back to `mockChat.ts`, allowing teachers to explore UI capabilities even during backend maintenance.
+3. **FastAPI & LLM Communication (`chatService.ts`)**:
+   - Dispatches requests to the FastAPI backend at `/api/chat`.
+   - Propagates backend errors transparently with structured telemetry logged through `logger.ts`, surfacing actionable errors to the user via toast notifications without synthetic mock data.

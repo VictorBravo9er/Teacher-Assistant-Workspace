@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { Student, StudentSubmission, AttendanceRecord, AttendanceStatus, PerformanceTier, ContentItem } from '@/types/main';
 import { calculateAttendanceRate } from '@/lib/studentCalculations';
+import { logger } from '@/lib/logger';
 
 export const studentService = {
   async fetchStudentsForClass(classId: string): Promise<Student[]> {
@@ -375,7 +376,7 @@ export const studentService = {
         .remove(deletedPaths);
 
       if (storageError) {
-        console.warn("Storage submission cleanup warning:", storageError);
+        logger.warn('STUDENT_SERVICE', 'Storage submission cleanup warning', storageError);
       }
     }
   },
@@ -397,7 +398,10 @@ export const studentService = {
       .eq('class_id', classId)
       .eq('student_id', studentId);
       
-    if (error) throw error;
+    if (error) {
+      logger.error('STUDENT_SERVICE', `Failed to update student class data for ${studentId}`, error);
+      throw error;
+    }
   },
 
   async removeStudentFromClass(classId: string, studentId: string): Promise<void> {
@@ -407,7 +411,10 @@ export const studentService = {
       .eq('class_id', classId)
       .eq('student_id', studentId);
       
-    if (error) throw error;
+    if (error) {
+      logger.error('STUDENT_SERVICE', `Failed to remove student ${studentId} from class ${classId}`, error);
+      throw error;
+    }
   },
 
   /**
@@ -426,7 +433,7 @@ export const studentService = {
       .upload(storagePath, file);
 
     if (uploadError) {
-      console.error("Student submission file upload failed:", uploadError);
+      logger.error('SUBMISSION', 'Student submission file upload failed', uploadError);
       throw new Error(`Upload error: ${uploadError.message}`);
     }
 

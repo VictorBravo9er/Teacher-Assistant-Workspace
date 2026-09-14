@@ -79,6 +79,7 @@ classDiagram
    - `ai.py` models enforce non-Any typed interfaces for rubric evaluation requests, structured feedback breakdowns, prerequisite gap outputs, and ontology knowledge representations.
    - Provides runtime deserialization and validation at FastAPI endpoint ingress points.
 2. **Database Types Invariant (`db.py`)**:
-   - Generated mechanically by `scripts/_generate_types.py`. Manual edits are discouraged to maintain synchronization with PostgreSQL DDL.
+   - Generated mechanically via `supabase gen types --lang=python` (`scripts/_generate_types.py`).
    - Declares `TypedDict` models representing `Row`, `Insert`, and `Update` structures for all database tables and views.
+   - **Manual edits are strictly prohibited** in both frontend and backend development to maintain synchronization with PostgreSQL DDL. All custom schemas must be defined in `schemas.py` or `ai.py`.
 

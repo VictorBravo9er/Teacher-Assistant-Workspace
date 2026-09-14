@@ -9,6 +9,7 @@ import { classService } from '@/services/classService';
 import { templateService } from '@/services/templateService';
 import { materialService } from '@/services/materialService';
 import { instructionService } from '@/services/instructionService';
+import { logger } from '@/lib/logger';
 
 interface UseClassOperationsProps {
   classes: ClassModel[];
@@ -62,6 +63,7 @@ export function useClassOperations({
   // --- Class Selection ---
   const handleSelectClass = useCallback(
     (id: string) => {
+      logger.debug('CLASS_OPERATIONS', `Selecting active class: ${id}`);
       setActiveClassId(id);
       setViewMode('class');
       setIsEditMode(false);
@@ -75,6 +77,7 @@ export function useClassOperations({
 
   const handleSelectTemplate = useCallback(
     (id: string) => {
+      logger.debug('CLASS_OPERATIONS', `Selecting active template: ${id}`);
       setActiveTemplateId(id);
       setViewMode('template');
       setIsEditMode(false);
@@ -89,6 +92,7 @@ export function useClassOperations({
   const handleCreateClass = useCallback(
     async (name: string, templateId?: string, instituteId?: string, forkMaterials: boolean = true) => {
       try {
+        logger.info('CLASS_OPERATIONS', `Dispatch createClass: "${name}"`, { templateId, instituteId, forkMaterials });
         setProcessingMsg(`Creating class "${name}"...`);
         const matchedTemplate = templates.find((t) => t.id === templateId);
 
@@ -134,6 +138,7 @@ export function useClassOperations({
         setPreviousLayoutMode('details-only');
         triggerToast(`Created classroom: "${name}"`);
       } catch (err: any) {
+        logger.error('CLASS_OPERATIONS', `Failed to create class "${name}"`, err);
         triggerToast(`Error creating class: ${err.message}`);
       } finally {
         setProcessingMsg(null);
@@ -145,10 +150,12 @@ export function useClassOperations({
   const handleRenameClass = useCallback(
     async (id: string, newName: string) => {
       try {
+        logger.info('CLASS_OPERATIONS', `Dispatch renameClass: ${id} -> "${newName}"`);
         await classService.updateClass(id, { name: newName });
         mutateClasses(classes.map((w) => (w.id === id ? { ...w, name: newName } : w)));
         triggerToast('Class rename successfully committed.');
       } catch (err: any) {
+        logger.error('CLASS_OPERATIONS', `Failed to rename class ${id}`, err);
         triggerToast(`Failed to rename: ${err.message}`);
       }
     },

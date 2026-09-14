@@ -142,7 +142,7 @@ export default function AccountModals({ activeModal, onClose, onTriggerToast }: 
                 size="sm"
                 onClick={() => {
                   onClose();
-                  onTriggerToast('Mock Upgrade Successful: Welcome to Pro!');
+                  onTriggerToast('Subscription management coming soon in enterprise edition');
                 }}
               >
                 $12/mo

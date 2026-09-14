@@ -3,7 +3,7 @@ from typing import cast
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from src.lib.llm import get_openrouter_llm, parse_llm_response
-from src.lib.logger import logger
+from src.lib.logger import eval_logger, measure_async
 from src.types.ai import (
     GradeRequest,
     GradeResponse,
@@ -38,11 +38,12 @@ class EvaluatorService:
 
     @staticmethod
     async def grade_submission(req: GradeRequest, model: str) -> GradeResponse:
-        logger.info(
-            "Evaluating submission: submission_id=%s, material_name=%s, criteria_count=%d",
+        eval_logger.info(
+            "Evaluating submission: submission_id=%s, material_name=%s, criteria_count=%d, text_length=%d",
             req.submission_id,
             req.material_name,
             len(req.rubric_criteria),
+            len(req.submission_text),
         )
         api_key_str = os.environ.get("OPENROUTER_API_KEY", "")
         if not api_key_str:
@@ -90,10 +91,13 @@ STUDENT SUBMISSION CONTENT:
 """
 
         llm = get_openrouter_llm(model, api_key_str)
-        response = llm.invoke([
+        eval_messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_content),
-        ])
+        ]
+        response = await measure_async(
+            eval_logger, f"grade_submission_llm:{req.submission_id}", lambda: llm.ainvoke(eval_messages)
+        )
 
         parsed = parse_llm_response(cast(str, response.content))
 
@@ -147,6 +151,15 @@ STUDENT SUBMISSION CONTENT:
         notes_val = _safe_str(parsed.get("private_teacher_notes"), "")
         rationale_val = _safe_str(parsed.get("rationale"), "Evaluated against assigned rubric criteria.")
 
+        eval_logger.info(
+            "Evaluation complete: submission_id=%s, score=%.2f/%d, grade=%s, items_count=%d",
+            req.submission_id,
+            total_score,
+            req.max_score,
+            f"{letter} ({round(pct)}%)",
+            len(breakdown_items),
+        )
+
         return GradeResponse(
             submission_id=req.submission_id,
             score=round(total_score, 2),
@@ -162,7 +175,13 @@ STUDENT SUBMISSION CONTENT:
 
     @staticmethod
     async def analyze_material(req: MaterialAnalyzeRequest, model: str) -> MaterialAnalyzeResponse:
-        logger.info("Analyzing material: material_id=%s, name=%s", req.material_id, req.name)
+        eval_logger.info(
+            "Analyzing material: material_id=%s, name=%s, category=%s, text_length=%d",
+            req.material_id,
+            req.name,
+            req.category,
+            len(req.extracted_text),
+        )
         api_key_str = os.environ.get("OPENROUTER_API_KEY", "")
         if not api_key_str:
             raise ValueError("OPENROUTER_API_KEY environment variable is empty.")
@@ -215,10 +234,13 @@ MATERIAL EXTRACTED TEXT:
 """
 
         llm = get_openrouter_llm(model, api_key_str)
-        response = llm.invoke([
+        mat_messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_content),
-        ])
+        ]
+        response = await measure_async(
+            eval_logger, f"analyze_material_llm:{req.material_id}", lambda: llm.ainvoke(mat_messages)
+        )
 
         parsed = parse_llm_response(cast(str, response.content))
 
@@ -274,6 +296,14 @@ MATERIAL EXTRACTED TEXT:
                             difficulty=_safe_str(q_dict.get("difficulty"), "Intermediate"),
                         )
                     )
+
+        eval_logger.info(
+            "Material analysis complete: material_id=%s, syllabus_items=%d, prereq_gaps=%d, sample_questions=%d",
+            req.material_id,
+            len(syllabus_items),
+            len(prereq_items),
+            len(sample_q_items),
+        )
 
         return MaterialAnalyzeResponse(
             material_id=req.material_id,

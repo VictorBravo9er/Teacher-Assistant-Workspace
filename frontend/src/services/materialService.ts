@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Material, ContentCategory, ContentItem } from '@/types/main';
+import { logger } from '@/lib/logger';
 
 const BUCKET_NAME = 'class-materials';
 
@@ -32,7 +33,7 @@ export const materialService = {
       .upload(storagePath, file);
 
     if (uploadError) {
-      console.error("Storage upload failed:", uploadError);
+      logger.error('STORAGE', 'Storage upload failed', uploadError);
       throw new Error(`Storage upload error: ${uploadError.message}`);
     }
 
@@ -79,7 +80,7 @@ export const materialService = {
       .single();
 
     if (matDbError) {
-      console.error("Database insert materials failed:", matDbError);
+      logger.error('MATERIAL_SERVICE', 'Database insert materials failed', matDbError);
       // Clean up uploaded file if DB insert fails
       await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
       throw new Error(`Database error: ${matDbError.message}`);
@@ -94,7 +95,7 @@ export const materialService = {
       });
 
     if (linkError) {
-      console.error("Link class_materials failed:", linkError);
+      logger.error('MATERIAL_SERVICE', 'Link class_materials failed', linkError);
       throw new Error(`Failed to link material to class: ${linkError.message}`);
     }
 
@@ -243,7 +244,7 @@ export const materialService = {
       .eq('id', materialId);
 
     if (matError) {
-      console.error("Database error updating material rubric:", matError);
+      logger.error('MATERIAL_SERVICE', 'Database error updating material rubric', matError);
       throw matError;
     }
 
@@ -258,7 +259,7 @@ export const materialService = {
         .eq('material_id', materialId);
 
       if (linkError) {
-        console.error("Database error updating class custom rubric:", linkError);
+        logger.error('MATERIAL_SERVICE', 'Database error updating class custom rubric', linkError);
         throw linkError;
       }
     }
@@ -371,7 +372,7 @@ export const materialService = {
           }
         }
       } catch (err) {
-        console.warn("Edge Function get-material-url fallback to client SDK:", err);
+        logger.warn('MATERIAL_SERVICE', 'Edge Function get-material-url fallback to client SDK', err);
       }
     }
 
@@ -449,7 +450,7 @@ export const materialService = {
         .remove(deletedPaths);
 
       if (storageDelError) {
-        console.warn("Storage files removal error:", storageDelError);
+        logger.warn('STORAGE', 'Storage files removal error', storageDelError);
       }
     }
   },
@@ -482,7 +483,7 @@ export const materialService = {
       .single();
 
     if (insertError) {
-      console.error("Fork material insert failed:", insertError);
+      logger.error('MATERIAL_SERVICE', 'Fork material insert failed', insertError);
       throw new Error(`Failed to fork material: ${insertError.message}`);
     }
 
@@ -495,7 +496,7 @@ export const materialService = {
       });
 
     if (linkError) {
-      console.error("Class link error on fork:", linkError);
+      logger.error('MATERIAL_SERVICE', 'Class link error on fork', linkError);
       throw new Error(`Failed to link forked material: ${linkError.message}`);
     }
 
@@ -526,7 +527,7 @@ export const materialService = {
       });
 
     if (linkError) {
-      console.warn("Class link error on shared link:", linkError);
+      logger.warn('MATERIAL_SERVICE', 'Class link error on shared link', linkError);
     }
 
     return { ...material };
