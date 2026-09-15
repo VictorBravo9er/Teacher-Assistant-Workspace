@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { ClassModel, Material, Instruction, ContentCategory, RubricCriterion } from "@/types/main";
+import { Constants } from "@/types/db";
+import {
+  ClassModel,
+  Material,
+  Instruction,
+  ContentCategory,
+  RubricCriterion,
+  InstructionType,
+  TeachingStyle,
+  AssessmentPreference,
+  ExperienceLevel,
+} from "@/types/main";
+import { formatEnumLabel } from "@/utils/enumFormatters";
+import { getEnumTooltip } from "@/utils/enumTooltips";
 import { materialService } from "@/services/materialService";
 import { ConfirmModal, PromptModal, LoadingOverlay } from "@/components/shared/CustomDialogs";
 import { MultiSelect } from '@/components/shared/MultiSelect';
@@ -87,7 +100,7 @@ export default function ClassDetails({
   // Local form states for reusable instructions
   const [newPromptTitle, setNewPromptTitle] = useState("");
   const [newPromptType, setNewPromptType] =
-    useState<Instruction["type"]>("criteria");
+    useState<InstructionType>("System Persona");
   const [newPromptContent, setNewPromptContent] = useState("");
   const [showPromptForm, setShowPromptForm] = useState(false);
 
@@ -324,16 +337,24 @@ export default function ClassDetails({
                   </label>
                   {isEditMode ? (
                     <MultiSelect
-                      options={['Socratic', 'Lecture', 'Project-Based', 'Flipped Classroom', 'Discussion', 'Montessori', 'Direct Instruction']}
+                      options={[...Constants.public.Enums.teaching_style]}
                       selectedValues={classItem.teachingStyle}
-                      onChange={(values) => onUpdateClass(classItem.id, { teachingStyle: values })}
+                      onChange={(values) =>
+                        onUpdateClass(classItem.id, {
+                          teachingStyle: values as TeachingStyle[],
+                        })
+                      }
                       placeholder="Select teaching styles"
                     />
                   ) : (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {classItem.teachingStyle.length > 0 ? (
-                        classItem.teachingStyle.map(ts => (
-                          <span key={ts} className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-full border border-primary/20">
+                        classItem.teachingStyle.map((ts) => (
+                          <span
+                            key={ts}
+                            title={getEnumTooltip(ts)}
+                            className="cursor-help px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-full border border-primary/20"
+                          >
                             {ts}
                           </span>
                         ))
@@ -344,13 +365,34 @@ export default function ClassDetails({
                   )}
                 </div>
 
-                <div className={isEditMode ? "opacity-75 cursor-not-allowed bg-surface/50 border border-border-color rounded-md p-1.5 mt-0.5" : ""}>
-                  <label className={`text-[10px] uppercase font-mono text-muted-text ${isEditMode ? "pointer-events-none" : ""}`}>
+                <div>
+                  <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">
                     Experience scale
                   </label>
-                  <p className={`text-xs font-medium text-secondary-text pt-0.5 ${isEditMode ? "pointer-events-none" : ""}`}>
-                    {classItem.experienceLevel}
-                  </p>
+                  {isEditMode ? (
+                    <select
+                      value={classItem.experienceLevel}
+                      onChange={(e) =>
+                        onUpdateClass(classItem.id, {
+                          experienceLevel: e.target.value as ExperienceLevel,
+                        })
+                      }
+                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                      {Constants.public.Enums.experience_level.map((level) => (
+                        <option key={level} value={level}>
+                          {formatEnumLabel(level)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p
+                      title={getEnumTooltip(classItem.experienceLevel)}
+                      className="text-xs font-medium text-secondary-text pt-0.5 cursor-help"
+                    >
+                      {classItem.experienceLevel}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -359,16 +401,24 @@ export default function ClassDetails({
                   </label>
                   {isEditMode ? (
                     <MultiSelect
-                      options={['Formative', 'Summative', 'Peer Review', 'Self Assessment', 'Portfolio', 'Criteria-based', 'Multiple Choice']}
-                      selectedValues={classItem.assessmentPreferences}
-                      onChange={(values) => onUpdateClass(classItem.id, { assessmentPreferences: values })}
+                      options={[...Constants.public.Enums.assessment_preference]}
+                      selectedValues={classItem.assessmentPreferences || []}
+                      onChange={(values) =>
+                        onUpdateClass(classItem.id, {
+                          assessmentPreferences: values as AssessmentPreference[],
+                        })
+                      }
                       placeholder="Select assessment preferences"
                     />
                   ) : (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {classItem.assessmentPreferences.length > 0 ? (
-                        classItem.assessmentPreferences.map(ap => (
-                          <span key={ap} className="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-semibold rounded-full border border-secondary/20">
+                      {(classItem.assessmentPreferences || []).length > 0 ? (
+                        (classItem.assessmentPreferences || []).map((ap) => (
+                          <span
+                            key={ap}
+                            title={getEnumTooltip(ap)}
+                            className="cursor-help px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-semibold rounded-full border border-secondary/20"
+                          >
                             {ap}
                           </span>
                         ))
@@ -471,14 +521,11 @@ export default function ClassDetails({
                       }
                       className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
                     >
-                      <option value="Study Material">Study Material</option>
-                      <option value="Note">Class Note</option>
-                      <option value="Assigned Book">Assigned Book</option>
-                      <option value="Link">Web Link</option>
-                      <option value="Practical">Practical Lab</option>
-                      <option value="Assignment">Assignment</option>
-                      <option value="Test">Test Paper</option>
-                      <option value="Exam">Final Exam</option>
+                      {Constants.public.Enums.content_category.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {formatEnumLabel(cat)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -692,17 +739,21 @@ export default function ClassDetails({
                   <select
                     value={newPromptType}
                     onChange={(e) =>
-                      setNewPromptType(e.target.value as Instruction["type"])
+                      setNewPromptType(e.target.value as InstructionType)
                     }
                     className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-secondary cursor-pointer"
                   >
-                    <option value="criteria">Evaluation Criteria</option>
-                    <option value="marking">Marking Instructions</option>
-                    <option value="preference">Classroom Preferences</option>
-                    <option value="global">
-                      Global Assistant system prompt
-                    </option>
+                    {Constants.public.Enums.instruction_type.map((typeOption) => (
+                      <option key={typeOption} value={typeOption}>
+                        {formatEnumLabel(typeOption)}
+                      </option>
+                    ))}
                   </select>
+                  {getEnumTooltip(newPromptType) && (
+                    <p className="text-[11px] text-muted-text italic mt-1 bg-surface/50 p-2 rounded border border-border-color/50">
+                      💡 {getEnumTooltip(newPromptType)}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -740,8 +791,11 @@ export default function ClassDetails({
                     className="bg-surface border border-border-color rounded-xl p-3.5 space-y-2 shadow-sm transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-background text-secondary border border-secondary/30 rounded-full font-semibold">
-                        {inst.type}
+                      <span
+                        title={getEnumTooltip(inst.type)}
+                        className="text-[10px] uppercase font-mono px-2 py-0.5 bg-background text-secondary border border-secondary/30 rounded-full font-semibold cursor-help"
+                      >
+                        {formatEnumLabel(inst.type)}
                       </span>
                       {isEditMode && (
                         <button

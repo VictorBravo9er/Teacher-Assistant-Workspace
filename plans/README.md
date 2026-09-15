@@ -11,10 +11,10 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 | Metric | Current Status |
 | :--- | :--- |
 | **Total Plans** | **11 Plans** (Phase 0 through Phase 4) |
-| **Plans Completed** | **3 / 11** (`27%`) |
+| **Plans Completed** | **4 / 11** (`36%`) |
 | **Plans In Progress** | **0 / 11** (`0%`) |
-| **Plans Pending Execution** | **8 / 11** (`73%`) |
-| **Current Execution Target** | [**`Plan 02: Universal Database Enum Safety & Dynamic UI Mapping`**](./02-instruction-type-enum-safety.md) |
+| **Plans Pending Execution** | **7 / 11** (`64%`) |
+| **Current Execution Target** | [**`Plan 03: Class Archiving Lifecycle & State Standardization`**](./03-class-archiving-lifecycle.md) |
 | **System Readiness** | Pure LMS mode active; AI triggers decoupled; all plan files verified and aligned. |
 
 ---
@@ -76,7 +76,7 @@ flowchart TD
 | [**`00-enum-tooltip-audit-tooling.md`**](./00-enum-tooltip-audit-tooling.md) | Developer Tooling, Enum Verification, Full-Stack Logging & Mock Data Purge | Phase 0 | `TOOLING` | ✅ Completed | `100%` | 🟢 Verified | Foundation: establishes `./logs/` streaming, Vite HMR, and `mockChat.ts` purge. |
 | [**`00.1-client-side-institute-geographic-search.md`**](./00.1-client-side-institute-geographic-search.md) | Client-Side Institute & Cascading Geographic Search | Phase 0 | `UX/PERF` | ✅ Completed | `100%` | 🟢 Verified | Replaces 5 round-trip RPCs with client cache & 780-district static hierarchy. |
 | [**`01-database-schema-alignment.md`**](./01-database-schema-alignment.md) | Database Schema Alignment, Portfolio Migration & `content_type` `'Text'` | Phase 1 | `CRITICAL` | ✅ Completed | `100%` | 🟢 Verified | Adds portfolio columns to `class_students`, adds `'Text'` to enum, relaxes validator. |
-| [**`02-instruction-type-enum-safety.md`**](./02-instruction-type-enum-safety.md) | Universal Database Enum Safety & Dynamic UI Mapping | Phase 1 | `CRITICAL` | ⏳ Pending | `0%` | ⬜ Unverified | Dynamic `Constants.public.Enums` dropdowns, multiselects, and `enumTooltips.ts`. |
+| [**`02-instruction-type-enum-safety.md`**](./02-instruction-type-enum-safety.md) | Universal Database Enum Safety & Dynamic UI Mapping | Phase 1 | `CRITICAL` | ✅ Completed | `100%` | 🟢 Verified | Dynamic `Constants.public.Enums` dropdowns, multiselects, and `enumTooltips.ts`. |
 | [**`03-class-archiving-lifecycle.md`**](./03-class-archiving-lifecycle.md) | Class Archiving Lifecycle & State Standardization | Phase 2 | `HIGH` | ⏳ Pending | `0%` | ⬜ Unverified | Standardizes `isArchived` (client) and `is_archived` (database) across hooks and sidebar. |
 | [**`04-teacher-profile-preferences.md`**](./04-teacher-profile-preferences.md) | Teacher Profile & Teaching Preferences Persistence | Phase 2 | `LOW` | ⏳ Pending | `0%` | ⬜ Unverified | Binds settings modals to `user_metadata` and configurable `lateAttendanceWeight`. |
 | [**`05-student-roster-portfolio-persistence.md`**](./05-student-roster-portfolio-persistence.md) | Student Roster & Portfolio Persistence | Phase 2 | `CRITICAL` | ⏳ Pending | `0%` | ⬜ Unverified | Full CRUD for contact, parent, and accommodation fields in `studentService.ts`. |
@@ -95,7 +95,7 @@ flowchart TD
 
 ### Phase 1: Database Schema & Enum Runtime Integrity
 - [x] **Plan 01**: Apply schema migration for portfolio columns, `content_type` `'Text'`, and regenerate types via `_generate_types.py`.
-- [ ] **Plan 02**: Eliminate hardcoded enum literals in `ClassDetails.tsx` and create `frontend/src/utils/enumTooltips.ts`.
+- [x] **Plan 02**: Eliminate hardcoded enum literals in `ClassDetails.tsx` and create `frontend/src/utils/enumTooltips.ts`.
 
 ### Phase 2: Core Teacher Suite Lifecycle & Portfolio Persistence
 - [ ] **Plan 03**: Align `isArchived` across `useClassOperations.ts`, `classService.ts`, and `Sidebar.tsx`.
