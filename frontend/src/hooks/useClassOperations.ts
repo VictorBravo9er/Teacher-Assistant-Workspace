@@ -216,10 +216,11 @@ export function useClassOperations({
     async (id: string) => {
       const target = classes.find((w) => w.id === id);
       if (!target) return;
+      const nextStatus = !(target.isArchived ?? (target as any).archived);
       try {
-        await classService.updateClass(id, { archived: !target.archived });
-        mutateClasses(classes.map((w) => (w.id === id ? { ...w, archived: !w.archived } : w)));
-        triggerToast(!target.archived ? 'Archived classroom context.' : 'Restored classroom context.');
+        await classService.updateClass(id, { isArchived: nextStatus });
+        mutateClasses(classes.map((w) => (w.id === id ? { ...w, isArchived: nextStatus } : w)));
+        triggerToast(nextStatus ? 'Archived classroom context.' : 'Restored classroom context.');
       } catch (err: any) {
         triggerToast(`Failed to archive: ${err.message}`);
       }

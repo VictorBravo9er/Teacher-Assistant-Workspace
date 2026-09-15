@@ -222,7 +222,6 @@ export interface RAGSession {
   selectedIds: string[];
   customInstructions?: string;
   messages: Message[];
-  archived?: boolean;
   isArchived?: boolean;
   createdAt: string;
 }
@@ -246,7 +245,6 @@ export interface ClassModel {
   students: Student[];
   ragSessions: RAGSession[];
   attendanceRecords?: AttendanceRecord[];
-  archived?: boolean;
   isArchived?: boolean;
 }
 
@@ -261,6 +259,5 @@ export interface Template {
   instructions: Omit<Instruction, 'id'>[];
   materialsPreset?: Omit<Material, 'id' | 'uploadDate'>[];
   defaultCustomFields?: CustomField[];
-  archived?: boolean;
   isArchived?: boolean;
 }

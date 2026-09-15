@@ -1,5 +1,7 @@
 # Plan 03: Class Archiving Lifecycle & State Standardization
 
+> **Status**: ✅ **COMPLETED** (Standardized on `isArchived` across types, hook, service, sidebar, and verified with `npm run build`, `npm run lint`, and `uv run poe lint`)
+
 ## 1. Problem Statement & Root Cause
 In Teach&Learn, teachers can archive completed or historical classes so they no longer clutter the active navigation sidebar. However, the current implementation silently fails to persist archiving to PostgreSQL and fails to filter archived classes in the UI due to property name divergence:
 

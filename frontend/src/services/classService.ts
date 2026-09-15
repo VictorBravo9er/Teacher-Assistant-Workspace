@@ -18,8 +18,7 @@ export const classService = {
           class_materials ( custom_content, custom_rubric_criteria, materials (*) ),
           class_instructions ( instructions (*) )
         `)
-        .eq('user_id', user.id)
-        .eq('is_archived', false);
+        .eq('user_id', user.id);
 
       if (error) {
         logger.error('CLASS_SERVICE', 'Failed to fetch classes', error);
@@ -50,7 +49,7 @@ export const classService = {
           experienceLevel: c.experience_level || '',
           specialNotes: c.special_notes || '',
           assessmentPreferences: c.assessment_preferences || [],
-          isArchived: c.is_archived || false,
+          isArchived: Boolean(c.is_archived),
           
           materials: (c.class_materials || []).map((cm: any) => {
             const m = cm.materials;
@@ -169,8 +168,10 @@ export const classService = {
       if (updates.teachingStyle !== undefined) dbUpdates.teaching_style = updates.teachingStyle;
       if (updates.experienceLevel !== undefined) dbUpdates.experience_level = updates.experienceLevel;
       if (updates.specialNotes !== undefined) dbUpdates.special_notes = updates.specialNotes;
-      if (updates.assessmentPreferences !== undefined) dbUpdates.assessment_preferences = updates.assessmentPreferences;
-      if (updates.isArchived !== undefined) dbUpdates.is_archived = updates.isArchived;
+      const targetArchived = updates.isArchived !== undefined
+        ? updates.isArchived
+        : (updates as any).archived;
+      if (targetArchived !== undefined) dbUpdates.is_archived = targetArchived;
 
       const { error } = await supabase
         .from('classes')

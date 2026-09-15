@@ -46,7 +46,8 @@ export default function ClassApp() {
   // Ensure active class falls back when data loads
   useEffect(() => {
     if (!activeClassId && classes.length > 0) {
-      setActiveClassId(classes[0].id);
+      const defaultClass = classes.find((c) => !c.isArchived) || classes[0];
+      setActiveClassId(defaultClass.id);
     }
   }, [classes, activeClassId]);
 

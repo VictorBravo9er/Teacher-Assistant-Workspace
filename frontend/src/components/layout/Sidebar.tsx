@@ -94,7 +94,8 @@ export default function Sidebar({
 
   const filteredClasses = classes.filter(ws => {
     // Check archive state
-    const matchesArchive = showArchived ? !!ws.archived : !ws.archived;
+    const isArchived = Boolean(ws.isArchived ?? (ws as any).archived);
+    const matchesArchive = showArchived ? isArchived : !isArchived;
     // Check search term
     if (!sidebarSearch) return matchesArchive;
     return matchesArchive && (
@@ -439,7 +440,7 @@ export default function Sidebar({
                                     className="w-full text-left px-2.5 py-1.5 hover:bg-elevated rounded-lg flex items-center gap-2 hover:text-primary-text cursor-pointer"
                                   >
                                     <FolderArchive className="w-3.5 h-3.5 text-warning" />
-                                    {ws.archived
+                                    {(ws.isArchived ?? (ws as any).archived)
                                       ? "Activate Class"
                                       : "Archive Class"}
                                   </button>
