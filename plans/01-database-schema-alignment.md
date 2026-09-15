@@ -1,5 +1,7 @@
 # Plan 01: Database Schema Alignment & Portfolio Migration
 
+> **Status**: ✅ **COMPLETED** (Verified via migration 001 execution on Postgres, `scripts/_generate_types.py`, `npm run build`, and `uv run poe lint`)
+
 ## 1. Problem Statement & Context
 In the teacher-facing LMS, [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx) presents a rich student profile editor featuring:
 - **Phone Number**

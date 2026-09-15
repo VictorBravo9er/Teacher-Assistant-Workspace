@@ -15,7 +15,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto" with schema extensions;
 -- 2. Custom Enums
 -- ==========================================
 DO $$ BEGIN CREATE TYPE public.content_category AS ENUM ('Study Material', 'Note', 'Assigned Book', 'Link', 'Practical', 'Assignment', 'Test', 'Exam'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE public.content_type AS ENUM ('File', 'URL'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE public.content_type AS ENUM ('File', 'URL', 'Text'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE public.submission_status AS ENUM ('Assigned', 'Pending', 'Submitted', 'Evaluated', 'Graded'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE public.attendance_status AS ENUM ('Present', 'Absent', 'Late', 'Excused'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE public.institute_type AS ENUM ('Primary School', 'Middle School', 'High School', 'K-12', 'College', 'University', 'Vocational School', 'Tutoring Center', 'Private Tutor', 'Freelancer', 'Training Agency', 'Online Academy', 'Homeschool Co-op', 'Other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -40,7 +40,10 @@ BEGIN
             elem ? 'id' AND jsonb_typeof(elem->'id') = 'string' AND
             elem ? 'name' AND jsonb_typeof(elem->'name') = 'string' AND
             elem ? 'type' AND (elem->>'type' = ANY (enum_range(NULL::public.content_type)::text[])) AND
-            elem ? 'path' AND jsonb_typeof(elem->'path') = 'string' AND
+            (
+                (elem->>'type' = 'Text') OR 
+                (elem ? 'path' AND jsonb_typeof(elem->'path') = 'string')
+            ) AND
             (NOT elem ? 'description' OR jsonb_typeof(elem->'description') = 'string')
         ) THEN
             RETURN false;
@@ -119,6 +122,13 @@ CREATE TABLE IF NOT EXISTS public.class_students (
     general_feedback TEXT,
     performance_tier TEXT,
     behavioral_notes TEXT,
+    phone TEXT,
+    address TEXT,
+    parent_name TEXT,
+    parent_contact TEXT,
+    parent_notes TEXT,
+    custom_fields JSONB DEFAULT '[]'::jsonb,
+    roll_number TEXT,
     PRIMARY KEY (class_id, student_id)
 );
 
@@ -731,8 +741,11 @@ COMMENT ON COLUMN public.attendance_records.notes IS 'Teacher notes for why the 
 COMMENT ON COLUMN public.chat_sessions.title IS 'Auto-generated or custom title for the AI chat session.';
 COMMENT ON COLUMN public.chat_sessions.class_id IS 'Optional link to restrict the AI context to a specific class.';
 
+COMMENT ON COLUMN public.class_students.custom_fields IS 'Custom key-value accommodations and IEP tags configured by the teacher.';
+COMMENT ON COLUMN public.class_students.parent_notes IS 'Private teacher observations and notes regarding parent communications.';
+
 COMMENT ON TYPE public.content_category IS 'Broad classification of teaching materials.';
-COMMENT ON TYPE public.content_type IS 'The physical medium of the material (File upload or URL link).';
+COMMENT ON TYPE public.content_type IS 'The physical medium of the material (File upload, URL link, or Text body).';
 COMMENT ON TYPE public.submission_status IS 'Lifecycle state of a student submission.';
 COMMENT ON TYPE public.attendance_status IS 'Standard attendance states.';
 COMMENT ON TYPE public.institute_type IS 'The classification of the educational organization.';

@@ -12,6 +12,7 @@ This directory contains the PostgreSQL Data Definition Language (DDL) scripts, s
 - [`bucket-materials.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/bucket-materials.sql): Creates the private `class-materials` Supabase Storage bucket with 50MB file size limits, MIME type restrictions, and RLS policies scoped to teacher user IDs.
 - [`bucket-submissions.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/bucket-submissions.sql): Creates the private `student-submissions` Supabase Storage bucket with RLS policies allowing enrolled students to upload/view their own work and teachers to review submissions for their classes.
 - [`schema-reset.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-reset.sql): Database teardown script that cleanly drops all application tables, enums, triggers, `ai` schema, and helper functions in reverse dependency order for reproducible local resets.
+- [`migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/migrations): Incremental SQL migration scripts applied to target databases, including `001_add_class_student_portfolio_fields.sql` for student portfolio fields and `content_type` `'Text'`.
 - [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/AGENTS.md): Subsystem-specific rules for DDL design, mandatory RLS policies, indexing requirements, and naming conventions.
 
 ---
