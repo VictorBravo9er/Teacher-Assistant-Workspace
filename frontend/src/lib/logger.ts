@@ -55,7 +55,7 @@ const NAMESPACE_COLORS: Record<LogNamespace, string> = {
   APP: '#64748b', // Slate
 };
 
-function formatConsoleBadge(namespace: LogNamespace, level: LogLevel): [string, string] {
+function formatConsoleBadge(namespace: LogNamespace, level: LogLevel): [string, string, string] {
   const color = NAMESPACE_COLORS[namespace] || '#64748b';
   return [
     `%c[${level}] %c[${namespace}]`,

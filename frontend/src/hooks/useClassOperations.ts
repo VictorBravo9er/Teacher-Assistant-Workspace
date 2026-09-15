@@ -4,6 +4,7 @@ import {
   Template,
   Material,
   Instruction,
+  ExperienceLevel,
 } from '@/types/main';
 import { classService } from '@/services/classService';
 import { templateService } from '@/services/templateService';
@@ -566,7 +567,7 @@ export function useClassOperations({
         subject: activeTemplate.subject,
         teachingStyle: activeTemplate.teachingStyle,
         specialNotes: activeTemplate.description,
-        experienceLevel: 'Template Base',
+        experienceLevel: activeTemplate.experienceLevel || 'Beginner',
         academicYear: 'N/A',
         semester: 'N/A',
         teacherName: 'Template',

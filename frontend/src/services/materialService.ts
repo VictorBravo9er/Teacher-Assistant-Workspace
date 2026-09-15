@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Material, ContentCategory, ContentItem } from '@/types/main';
+import { Material, ContentCategory, ContentItem, RubricCriterion } from '@/types/main';
 import { logger } from '@/lib/logger';
 
 const BUCKET_NAME = 'class-materials';
