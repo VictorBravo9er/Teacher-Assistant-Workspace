@@ -11,10 +11,10 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 | Metric | Current Status |
 | :--- | :--- |
 | **Total Plans** | **11 Plans** (Phase 0 through Phase 4) |
-| **Plans Completed** | **5 / 11** (`45%`) |
+| **Plans Completed** | **6 / 11** (`55%`) |
 | **Plans In Progress** | **0 / 11** (`0%`) |
-| **Plans Pending Execution** | **6 / 11** (`55%`) |
-| **Current Execution Target** | [**`Plan 04: Teacher Profile & Teaching Preferences Persistence`**](./04-teacher-profile-preferences.md) |
+| **Plans Pending Execution** | **5 / 11** (`45%`) |
+| **Current Execution Target** | [**`Plan 05: Student Roster & Portfolio Persistence`**](./05-student-roster-portfolio-persistence.md) |
 | **System Readiness** | Pure LMS mode active; AI triggers decoupled; all plan files verified and aligned. |
 
 ---
@@ -78,7 +78,7 @@ flowchart TD
 | [**`01-database-schema-alignment.md`**](./01-database-schema-alignment.md) | Database Schema Alignment, Portfolio Migration & `content_type` `'Text'` | Phase 1 | `CRITICAL` | ✅ Completed | `100%` | 🟢 Verified | Adds portfolio columns to `class_students`, adds `'Text'` to enum, relaxes validator. |
 | [**`02-instruction-type-enum-safety.md`**](./02-instruction-type-enum-safety.md) | Universal Database Enum Safety & Dynamic UI Mapping | Phase 1 | `CRITICAL` | ✅ Completed | `100%` | 🟢 Verified | Dynamic `Constants.public.Enums` dropdowns, multiselects, and `enumTooltips.ts`. |
 | [**`03-class-archiving-lifecycle.md`**](./03-class-archiving-lifecycle.md) | Class Archiving Lifecycle & State Standardization | Phase 2 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Standardizes `isArchived` (client) and `is_archived` (database) across hooks and sidebar. |
-| [**`04-teacher-profile-preferences.md`**](./04-teacher-profile-preferences.md) | Teacher Profile & Teaching Preferences Persistence | Phase 2 | `LOW` | ⏳ Pending | `0%` | ⬜ Unverified | Binds settings modals to `user_metadata` and configurable `lateAttendanceWeight`. |
+| [**`04-teacher-profile-preferences.md`**](./04-teacher-profile-preferences.md) | Teacher Profile & Teaching Preferences Persistence | Phase 2 | `LOW` | ✅ Completed | `100%` | 🟢 Verified | Binds settings modals to `user_metadata` and configurable `lateAttendanceWeight`. |
 | [**`05-student-roster-portfolio-persistence.md`**](./05-student-roster-portfolio-persistence.md) | Student Roster & Portfolio Persistence | Phase 2 | `CRITICAL` | ⏳ Pending | `0%` | ⬜ Unverified | Full CRUD for contact, parent, and accommodation fields in `studentService.ts`. |
 | [**`06-submissions-materials-preview.md`**](./06-submissions-materials-preview.md) | Submission Previews, Native 'Text' Uploads, Edit Mode Polish & State Hygiene | Phase 2 | `MEDIUM` | ⏳ Pending | `0%` | ⬜ Unverified | Polymorphic preview reader, native text turn-in, institute edit mode, report card state. |
 | [**`07-student-portal-architecture.md`**](./07-student-portal-architecture.md) | Dedicated Student Portal, Student RLS Overhaul & Role-Based Routing | Phase 3 | `ARCHITECTURAL` | ⏳ Pending | `0%` | ⬜ Unverified | Student RLS overhaul, role router in `App.tsx`, `StudentApp.tsx`, self-turn-in modal. |
@@ -99,7 +99,7 @@ flowchart TD
 
 ### Phase 2: Core Teacher Suite Lifecycle & Portfolio Persistence
 - [x] **Plan 03**: Align `isArchived` across `useClassOperations.ts`, `classService.ts`, and `Sidebar.tsx`.
-- [ ] **Plan 04**: Connect `AccountModals.tsx` to `AuthContext.updateUserMetadata` and wire late attendance weight.
+- [x] **Plan 04**: Connect `AccountModals.tsx` to `AuthContext.updateUserMetadata` and wire late attendance weight.
 - [ ] **Plan 05**: Enable full portfolio CRUD in `studentService.ts` and unblock persistence gate in `StudentRegister.tsx`.
 - [ ] **Plan 06**: Implement polymorphic previews in `MaterialPreviewModal.tsx`, institute edit mode, and calculation fixes.
 

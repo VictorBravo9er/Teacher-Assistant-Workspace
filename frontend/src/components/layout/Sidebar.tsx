@@ -3,6 +3,7 @@ import { ClassModel, Template } from "@/types/main";
 import CreateClassModal from '@/features/classroom/CreateClassModal';
 import { ConfirmModal, PromptModal } from '@/components/shared/CustomDialogs';
 import BrandLogo from '@/components/shared/BrandLogo';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Sparkles,
   FolderLock,
@@ -79,6 +80,10 @@ export default function Sidebar({
   onOpenAccountModal,
   onTriggerToast
 }: SidebarProps) {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Elena Rostova';
+  const displayTitle = user?.user_metadata?.title || 'Educator';
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -573,10 +578,10 @@ export default function Sidebar({
             </div>
             <div className="truncate flex-1">
               <h4 className="text-xs font-semibold text-primary-text truncate leading-none">
-                Elena Rostova
+                {displayName}
               </h4>
               <span className="text-[10px] text-muted-text font-mono truncate block mt-1">
-                District Senior Educator
+                {displayTitle}
               </span>
             </div>
             <div className="flex flex-col items-center gap-1">

@@ -6,6 +6,7 @@ import {
 } from '@/types/main';
 import { studentService } from '@/services/studentService';
 import { calculateAttendanceRate } from '@/lib/studentCalculations';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Calendar,
   CheckCircle2,
@@ -80,6 +81,9 @@ export default function AttendanceManagerModal({
     setAttendanceMap(updated);
   };
 
+  const { user } = useAuth();
+  const lateAttendanceWeight = user?.user_metadata?.preferences?.lateAttendanceWeight ?? 0.5;
+
   const values = Object.values(attendanceMap);
   const totalCount = students.length;
   const presentCount = values.filter((v) => v.status === 'Present').length;
@@ -88,7 +92,7 @@ export default function AttendanceManagerModal({
   const excusedCount = values.filter((v) => v.status === 'Excused').length;
   const effectivePresentPct =
     totalCount > 0
-      ? Math.round(((presentCount + excusedCount + lateCount * 0.5) / totalCount) * 100)
+      ? Math.round(((presentCount + excusedCount + lateCount * lateAttendanceWeight) / totalCount) * 100)
       : 100;
 
   const handleSaveAttendance = async () => {
@@ -116,7 +120,7 @@ export default function AttendanceManagerModal({
           (r) => r.date !== selectedDate
         );
         const allRecords = [...existingRecords, studentRecord];
-        const newPct = calculateAttendanceRate(allRecords);
+        const newPct = calculateAttendanceRate(allRecords, lateAttendanceWeight);
 
         return {
           ...s,

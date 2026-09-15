@@ -6,15 +6,17 @@ import {
 
 /**
  * Calculates attendance percentage from an array of attendance records.
- * Present and Excused count as positive attendance.
+ * Present and Excused count as full attendance; Late counts as lateWeight (default 0.5).
  * Returns a number between 0 and 100.
  */
-export function calculateAttendanceRate(records?: AttendanceRecord[]): number {
+export function calculateAttendanceRate(records?: AttendanceRecord[], lateWeight: number = 0.5): number {
   if (!records || records.length === 0) return 100;
-  const positiveCount = records.filter(
-    (r) => r.status === 'Present' || r.status === 'Excused'
-  ).length;
-  return Math.round((positiveCount / records.length) * 100);
+  const score = records.reduce((acc, r) => {
+    if (r.status === 'Present' || r.status === 'Excused') return acc + 1;
+    if (r.status === 'Late') return acc + lateWeight;
+    return acc;
+  }, 0);
+  return Math.round((score / records.length) * 100);
 }
 
 /**

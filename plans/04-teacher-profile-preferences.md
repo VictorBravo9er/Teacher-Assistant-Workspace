@@ -1,7 +1,7 @@
 # Plan 04: Teacher Profile & Teaching Preferences Persistence
 
 > **Priority**: `LOW` (Cosmetic & Settings Polish)  
-> **Status**: Core Auth & Role Management is **90% complete and fully operational**. This plan is strictly focused on non-blocking UI form bindings in settings modals.
+> **Status**: ✅ **COMPLETED** (Bound Profile and Preferences modals to Supabase `user_metadata` via `AuthContext.updateUserMetadata`, wired configurable `lateAttendanceWeight`, and verified with `npm run build`, `npm run lint`, and `uv run poe lint`)
 
 ## 1. Problem Statement & Root Cause
 In [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx), the account profile and teaching preferences dialogs are completely detached from authentication state:
