@@ -256,25 +256,35 @@ export default function ClassDetails({
         {/* Profile Tab */}
         <div className={activeSubTab === "profile" ? "space-y-4" : "hidden"}>
           {/* Lead Class Metrics Cards */}
-          <div className={`grid ${isEditMode ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
-            {!isEditMode && (
-              <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
-                <span className="text-[10px] font-mono text-muted-text block uppercase">
-                  Institution / School
-                </span>
-                <span
-                  className="text-xs font-semibold text-primary-text block mt-1 truncate"
-                  title={classItem.instituteName || "Independent"}
-                >
-                  {classItem.instituteName || "Independent"}
-                </span>
-                {classItem.instituteAddress && (
-                  <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
-                    {classItem.instituteAddress}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
+              <span className="text-[10px] font-mono text-muted-text block uppercase">
+                Institution / School
+              </span>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={classItem.instituteName || ''}
+                  onChange={(e) => onUpdateClass(classItem.id, { instituteName: e.target.value })}
+                  placeholder="e.g. Lincoln High School"
+                  className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all mt-1"
+                />
+              ) : (
+                <>
+                  <span
+                    className="text-xs font-semibold text-primary-text block mt-1 truncate"
+                    title={classItem.instituteName || "Independent"}
+                  >
+                    {classItem.instituteName || "Independent"}
                   </span>
-                )}
-              </div>
-            )}
+                  {classItem.instituteAddress && (
+                    <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
+                      {classItem.instituteAddress}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
             <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
               <span className="text-[10px] font-mono text-muted-text block uppercase">
                 Curriculum Course

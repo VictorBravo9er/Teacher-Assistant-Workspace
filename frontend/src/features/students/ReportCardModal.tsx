@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClassModel } from '@/types/main';
+import { ClassModel, Student } from '@/types/main';
 import { studentService } from '@/services/studentService';
 import {
   calculateAverageScore,
@@ -22,6 +22,7 @@ interface ReportCardModalProps {
   classItem: ClassModel;
   initialStudentId?: string;
   onTriggerToast?: (msg: string) => void;
+  onUpdateStudent?: (studentId: string, updates: Partial<Student>) => void;
 }
 
 export default function ReportCardModal({
@@ -30,6 +31,7 @@ export default function ReportCardModal({
   classItem,
   initialStudentId,
   onTriggerToast,
+  onUpdateStudent,
 }: ReportCardModalProps) {
   if (!isOpen) return null;
 
@@ -69,9 +71,17 @@ export default function ReportCardModal({
     try {
       await studentService.updateStudentClassData(classItem.id, student.id, {
         behavioralNotes: customParentNote,
+        parentNotes: customParentNote,
       });
-      student.behavioralNotes = customParentNote;
-      student.parentNotes = customParentNote;
+      if (onUpdateStudent) {
+        onUpdateStudent(student.id, {
+          behavioralNotes: customParentNote,
+          parentNotes: customParentNote,
+        });
+      } else {
+        student.behavioralNotes = customParentNote;
+        student.parentNotes = customParentNote;
+      }
       if (onTriggerToast) onTriggerToast('Parent briefing note saved to database!');
     } catch (err: any) {
       if (onTriggerToast) onTriggerToast(`Failed to save note: ${err.message}`);

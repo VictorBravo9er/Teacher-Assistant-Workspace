@@ -35,10 +35,35 @@ export default function MaterialPreviewModal({
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
 
   const firstItem: ContentItem | undefined = material.content && material.content[0];
   const isUrl = firstItem?.type === 'URL' || material.category === 'Link';
   const rawPath = firstItem?.path || firstItem?.value || '';
+
+  const isTextSubmission =
+    firstItem?.type === 'Text' ||
+    firstItem?.path?.startsWith('text://') ||
+    rawPath.startsWith('text://') ||
+    (material.category === 'Note' && Boolean(firstItem?.value || firstItem?.description));
+
+  const isGradeLog = firstItem?.path?.startsWith('grade://') || rawPath.startsWith('grade://');
+  const isStorageFile = Boolean(
+    firstItem?.type === 'File' &&
+    firstItem?.path &&
+    !isTextSubmission &&
+    !isGradeLog &&
+    !firstItem.path.startsWith('http') &&
+    !firstItem.path.startsWith('blob:')
+  );
+
+  const textBody =
+    firstItem?.value ||
+    firstItem?.description ||
+    (material as any).description ||
+    '';
+  const wordCount = textBody.trim() ? textBody.trim().split(/\s+/).length : 0;
+  const charCount = textBody.length;
 
   const isPdf =
     rawPath.toLowerCase().endsWith('.pdf') ||
@@ -51,8 +76,16 @@ export default function MaterialPreviewModal({
     let active = true;
 
     async function loadUrl() {
+      if (isTextSubmission || isGradeLog) {
+        setLoadingUrl(false);
+        return;
+      }
       if (isUrl) {
         setSignedUrl(rawPath);
+        return;
+      }
+      if (!isStorageFile) {
+        setLoadingUrl(false);
         return;
       }
 
@@ -82,7 +115,7 @@ export default function MaterialPreviewModal({
     return () => {
       active = false;
     };
-  }, [material, classId, isUrl, rawPath, firstItem]);
+  }, [material, classId, isUrl, isTextSubmission, isGradeLog, isStorageFile, rawPath, firstItem]);
 
   const handleCopyLink = () => {
     const targetUrl = signedUrl || rawPath;
@@ -98,6 +131,15 @@ export default function MaterialPreviewModal({
     const targetUrl = signedUrl || rawPath;
     if (targetUrl) {
       window.open(targetUrl, '_blank');
+    }
+  };
+
+  const handleCopyText = () => {
+    if (textBody) {
+      navigator.clipboard.writeText(textBody);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+      if (onTriggerToast) onTriggerToast('Submission text copied to clipboard!');
     }
   };
 
@@ -244,6 +286,41 @@ export default function MaterialPreviewModal({
                 </a>
               </div>
             </object>
+          </div>
+        ) : isTextSubmission ? (
+          <div className="max-w-3xl w-full bg-surface border border-border-color rounded-3xl p-6 space-y-4 shadow-xl flex flex-col max-h-full">
+            <div className="flex items-center justify-between pb-3 border-b border-border-color flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-primary-text font-display">
+                    {material.name}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-muted-text font-mono">
+                      Text Response / Written Submission
+                    </span>
+                    <span className="text-[10px] text-muted-text">•</span>
+                    <Badge variant="neutral">{wordCount} words</Badge>
+                    <Badge variant="neutral">{charCount} characters</Badge>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCopyText}
+                leftIcon={copiedText ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+              >
+                {copiedText ? 'Copied' : 'Copy Text'}
+              </Button>
+            </div>
+
+            <div className="bg-elevated/60 p-5 rounded-2xl border border-border-color font-mono text-xs leading-relaxed whitespace-pre-wrap select-text overflow-y-auto max-h-[60vh] text-primary-text">
+              {textBody || 'No text content recorded for this submission.'}
+            </div>
           </div>
         ) : (
           <div className="max-w-2xl w-full bg-surface border border-border-color rounded-3xl p-6 space-y-4 shadow-xl">

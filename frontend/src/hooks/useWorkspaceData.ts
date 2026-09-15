@@ -65,14 +65,24 @@ export function useWorkspaceData() {
   }, [session?.user]);
 
   // Expose a method to manually mutate cache when user edits data
-  const mutateClasses = (newClasses: ClassModel[]) => {
-    setClasses(newClasses);
-    saveToCache(CACHE_KEY_CLASSES, newClasses);
+  const mutateClasses = (
+    newClasses: ClassModel[] | ((prev: ClassModel[]) => ClassModel[])
+  ) => {
+    setClasses((prev) => {
+      const resolved = typeof newClasses === 'function' ? newClasses(prev) : newClasses;
+      saveToCache(CACHE_KEY_CLASSES, resolved);
+      return resolved;
+    });
   };
 
-  const mutateTemplates = (newTemplates: Template[]) => {
-    setTemplates(newTemplates);
-    saveToCache(CACHE_KEY_TEMPLATES, newTemplates);
+  const mutateTemplates = (
+    newTemplates: Template[] | ((prev: Template[]) => Template[])
+  ) => {
+    setTemplates((prev) => {
+      const resolved = typeof newTemplates === 'function' ? newTemplates(prev) : newTemplates;
+      saveToCache(CACHE_KEY_TEMPLATES, resolved);
+      return resolved;
+    });
   };
 
   return { 

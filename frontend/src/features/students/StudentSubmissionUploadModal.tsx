@@ -97,9 +97,9 @@ export default function StudentSubmissionUploadModal({
           {
             id: itemId,
             name: `${displayTitle} (Text Excerpt)`,
-            type: 'File' as any,
-            value: `${displayTitle}.txt`,
-            path: `text://${itemId}`,
+            type: 'Text',
+            value: textContent.trim(),
+            path: '',
             description: textContent.trim() || 'Student provided written answers directly.',
           },
         ];

@@ -27,27 +27,23 @@ export function calculateAverageScore(
   submissions?: StudentSubmission[],
   fallbackScore?: number
 ): number {
-  if (fallbackScore !== undefined && fallbackScore !== null) {
-    return fallbackScore;
-  }
-  if (!submissions || submissions.length === 0) {
-    return 80; // Baseline default
-  }
-
-  const evaluated = submissions.filter(
+  const evaluated = (submissions || []).filter(
     (s) => s.score !== undefined && s.score !== null
   );
 
-  if (evaluated.length === 0) {
-    return 80;
+  if (evaluated.length > 0) {
+    const sumPct = evaluated.reduce((acc, sub) => {
+      const max = sub.maxScore || sub.max_score || parseFloat(sub.grade || '100') || 100;
+      return acc + (sub.score || 0) / (max > 0 ? max : 100);
+    }, 0);
+    return Math.round((sumPct / evaluated.length) * 100);
   }
 
-  const sumPct = evaluated.reduce((acc, sub) => {
-    const max = sub.maxScore || sub.max_score || parseFloat(sub.grade || '100') || 100;
-    return acc + (sub.score || 0) / (max > 0 ? max : 100);
-  }, 0);
+  if (fallbackScore !== undefined && fallbackScore !== null) {
+    return fallbackScore;
+  }
 
-  return Math.round((sumPct / evaluated.length) * 100);
+  return 80;
 }
 
 /**

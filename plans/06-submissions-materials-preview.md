@@ -1,5 +1,7 @@
 # Plan 06: Submission Previews, Edit Mode Polish, & State Hygiene
 
+> **Status: ✅ COMPLETED** (Verified via `npm run lint`, `npm run build`, `uv run poe lint`)
+
 ## 1. Problem Statement & Root Cause
 
 ### 1.1 Missing `'Text'` Enum Value & Pseudo-URI Crashes in Preview Modal

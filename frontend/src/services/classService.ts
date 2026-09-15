@@ -160,7 +160,34 @@ export const classService = {
     return logger.measure('CLASS_SERVICE', `updateClass:${classId}`, async () => {
       const dbUpdates: Record<string, any> = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.instituteId !== undefined) dbUpdates.institute_id = updates.instituteId;
+      if (updates.instituteId !== undefined) {
+        dbUpdates.institute_id = updates.instituteId;
+      } else if (updates.instituteName !== undefined) {
+        const trimmed = updates.instituteName.trim();
+        if (!trimmed) {
+          dbUpdates.institute_id = null;
+        } else {
+          const { data: found } = await supabase
+            .from('institutes')
+            .select('id')
+            .ilike('name', trimmed)
+            .limit(1)
+            .maybeSingle();
+
+          if (found?.id) {
+            dbUpdates.institute_id = found.id;
+          } else {
+            const { data: created } = await supabase
+              .from('institutes')
+              .insert({ name: trimmed })
+              .select('id')
+              .single();
+            if (created?.id) {
+              dbUpdates.institute_id = created.id;
+            }
+          }
+        }
+      }
       if (updates.academicYear !== undefined) dbUpdates.academic_year = updates.academicYear;
       if (updates.semester !== undefined) dbUpdates.semester = updates.semester;
       if (updates.subject !== undefined) dbUpdates.subject = updates.subject;
