@@ -8,6 +8,13 @@ export const studentService = {
     const { data, error } = await supabase
       .from('class_students')
       .select(`
+        roll_number,
+        phone,
+        address,
+        parent_name,
+        parent_contact,
+        parent_notes,
+        custom_fields,
         learning_style,
         strengths,
         weaknesses,
@@ -57,7 +64,14 @@ export const studentService = {
       return {
         id: student.id,
         name: student.name || 'Unknown Student',
+        rollNumber: row.roll_number || '',
         email: student.email || '',
+        phone: row.phone || '',
+        address: row.address || '',
+        parentName: row.parent_name || '',
+        parentContact: row.parent_contact || '',
+        parentNotes: row.parent_notes || '',
+        customFields: row.custom_fields || [],
         learningStyle: row.learning_style || '',
         strengths: row.strengths || [],
         weaknesses: row.weaknesses || [],
@@ -89,7 +103,6 @@ export const studentService = {
           submittedAt: sub.submitted_at,
           reviewedAt: sub.reviewed_at,
         })),
-        customFields: [],
         isArchived: student.is_archived || false,
       };
     });
@@ -383,6 +396,13 @@ export const studentService = {
 
   async updateStudentClassData(classId: string, studentId: string, updates: Partial<Student>): Promise<void> {
     const dbUpdates: Record<string, any> = {};
+    if (updates.rollNumber !== undefined) dbUpdates.roll_number = updates.rollNumber;
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+    if (updates.address !== undefined) dbUpdates.address = updates.address;
+    if (updates.parentName !== undefined) dbUpdates.parent_name = updates.parentName;
+    if (updates.parentContact !== undefined) dbUpdates.parent_contact = updates.parentContact;
+    if (updates.parentNotes !== undefined) dbUpdates.parent_notes = updates.parentNotes;
+    if (updates.customFields !== undefined) dbUpdates.custom_fields = updates.customFields;
     if (updates.performanceTier !== undefined) dbUpdates.performance_tier = updates.performanceTier;
     if (updates.currentScore !== undefined) dbUpdates.current_score = updates.currentScore;
     if (updates.currentGrade !== undefined) dbUpdates.current_grade = updates.currentGrade;

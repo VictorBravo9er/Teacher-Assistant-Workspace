@@ -1,5 +1,7 @@
 # Plan 05: Student Roster & Portfolio Persistence
 
+> **Status**: ✅ **COMPLETED** (Full portfolio CRUD wired in `studentService.ts`, conditional gate removed in `StudentRegister.tsx`, verified with `npm run build`, `npm run lint`, and `uv run poe lint`)
+
 ## 1. Problem Statement & Root Cause
 In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx#L280-L365), teachers can view and edit student profiles, including:
 - Phone number and home address

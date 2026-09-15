@@ -118,14 +118,13 @@ export default function StudentRegister({
       );
       onUpdateClass(classItem.id, { students: updated });
 
-      if (updatedFields.performanceIndicator || updatedFields.submissions) {
-        const student = updated.find((s) => s.id === studentId);
-        if (student) {
-          await studentService.updateStudentClassData(classItem.id, studentId, student);
-        }
+      const student = updated.find((s) => s.id === studentId);
+      if (student) {
+        await studentService.updateStudentClassData(classItem.id, studentId, student);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('Failed to persist student details:', e);
+      notify(`Failed to save student details: ${e.message || e}`);
     }
   };
 
