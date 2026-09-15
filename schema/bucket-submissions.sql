@@ -40,8 +40,10 @@ DROP POLICY IF EXISTS "Owner can view their students' Submissions" ON storage.ob
 DROP POLICY IF EXISTS "Owner can upload their students' Submissions" ON storage.objects;
 DROP POLICY IF EXISTS "Owner can update their students' Submissions" ON storage.objects;
 DROP POLICY IF EXISTS "Owner can delete their students' Submissions" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view student submissions" ON storage.objects;
 DROP POLICY IF EXISTS "Users can upload student submissions" ON storage.objects;
 DROP POLICY IF EXISTS "Users can update student submissions" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete student submissions" ON storage.objects;
 
 -- SELECT Policy:
 -- 1) Submitting student can view their own files ((SELECT auth.uid()) = owner)
