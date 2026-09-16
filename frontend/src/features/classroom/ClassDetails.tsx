@@ -227,6 +227,9 @@ export default function ClassDetails({
     );
 
     if (notifyOnCreateMaterial) {
+      notificationService.notifyMaterial(classItem.id, classItem.id, 'published', false).catch((err) => {
+        console.warn('Material publication notification dispatch failed:', err);
+      });
       onTriggerToast("Material published and notification emails queued.");
     }
 

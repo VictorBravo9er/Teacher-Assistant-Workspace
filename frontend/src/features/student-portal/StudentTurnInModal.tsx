@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Material, StudentSubmission } from '@/types/main';
 import { studentPortalService } from '@/services/studentPortalService';
+import { notificationService } from '@/services/notificationService';
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, File, X } from 'lucide-react';
 
 interface StudentTurnInModalProps {
@@ -80,6 +81,8 @@ export function StudentTurnInModal({
           text: submissionMode === 'text' ? textContent.trim() : undefined,
         }
       );
+      // Ensure notification is triggered to educator
+      notificationService.notifySubmission(submission.id, classId).catch(() => {});
       onSubmitted(submission);
       onClose();
       // Reset state
