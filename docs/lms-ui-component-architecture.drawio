@@ -1,0 +1,148 @@
+<mxfile host="app.diagrams.net" modified="2026-09-16T04:00:00.000Z" agent="Antigravity" version="24.0.0" type="device">
+  <diagram id="teach-learn-ui-architecture" name="Teacher vs Student Portal UI Architecture">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1250" background="#0B1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- TITLE & HEADER -->
+        <mxCell id="title-box" value="&lt;b style='font-size: 22px; color: #F8FAFC;'&gt;Teach&amp;Learn LMS — UI Component &amp; Architecture Map&lt;/b&gt;&lt;br/&gt;&lt;span style='font-size: 13px; color: #94A3B8;'&gt;Comparative breakdown between the Educator Cockpit and Dedicated Student Portal&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;strokeColor=#334155;strokeWidth=2;arcSize=8;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="1000" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ROLE ROUTER / AUTH GATE -->
+        <mxCell id="router-gate" value="&lt;b style='font-size: 14px; color: #F8FAFC;'&gt;Role-Based Routing Gate&lt;/b&gt;&lt;br/&gt;&lt;font color='#38BDF8'&gt;&lt;b&gt;App.tsx&lt;/b&gt;&lt;/font&gt; &amp;bull; &lt;i style='color: #94A3B8;'&gt;useAuth() &amp;bull; user_metadata.role&lt;/i&gt;&lt;br/&gt;&lt;span style='font-size: 11px; color: #CBD5E1;'&gt;Evaluates active session role to route either to Teacher Cockpit or Student Portal&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#38BDF8;strokeWidth=2;arcSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="640" y="115" width="420" height="75" as="geometry"/>
+        </mxCell>
+
+        <!-- ROUTER EDGES -->
+        <mxCell id="edge-to-teacher" value="role === 'educator'" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#38BDF8;strokeWidth=3;fontColor=#38BDF8;fontSize=12;fontStyle=1;" edge="1" parent="1" source="router-gate" target="teacher-container">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="220"/>
+              <mxPoint x="430" y="220"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge-to-student" value="role === 'student'" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#10B981;strokeWidth=3;fontColor=#10B981;fontSize=12;fontStyle=1;" edge="1" parent="1" source="router-gate" target="student-container">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="220"/>
+              <mxPoint x="1270" y="220"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- TEACHER PORTAL CONTAINER (LEFT) -->
+        <!-- ============================================================ -->
+        <mxCell id="teacher-container" value="&lt;b style='font-size: 16px; color: #38BDF8;'&gt;👨‍🏫 EDUCATOR COCKPIT&lt;/b&gt;&lt;br/&gt;&lt;span style='font-size: 11px; color: #94A3B8;'&gt;Root View: frontend/src/views/ClassApp.tsx&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#091322;strokeColor=#0284C7;strokeWidth=2;arcSize=4;verticalAlign=top;align=left;spacingLeft=20;spacingTop=15;" vertex="1" parent="1">
+          <mxGeometry x="50" y="260" width="760" height="720" as="geometry"/>
+        </mxCell>
+
+        <!-- Teacher Sidebar Component -->
+        <mxCell id="teacher-sidebar" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;Sidebar.tsx (Navigation &amp; Cohort Tree)&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #94A3B8; padding: 4px;'&gt;&amp;bull; Dynamic Class Switcher &amp;amp; Roster List&lt;br/&gt;&amp;bull; Active vs. Archived Courses Filter Toggle&lt;br/&gt;&amp;bull; Course Blueprint Templates Manager&lt;br/&gt;&amp;bull; Teacher Profile &amp;amp; Preferences Launcher&lt;br/&gt;&amp;bull; Create Class Action (triggers CreateClassModal)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;strokeColor=#334155;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="320" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- Teacher Modals Box -->
+        <mxCell id="teacher-modals" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;Teacher Authoring &amp; Settings Modals&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #94A3B8; padding: 4px;'&gt;&amp;bull; &lt;b style='color: #CBD5E1;'&gt;CreateClassModal.tsx&lt;/b&gt;: Cascading State/District search&lt;br/&gt;&amp;bull; &lt;b style='color: #CBD5E1;'&gt;AccountModals.tsx&lt;/b&gt;: Profile &amp;amp; lateAttendanceWeight&lt;br/&gt;&amp;bull; &lt;b style='color: #CBD5E1;'&gt;RubricBuilderModal.tsx&lt;/b&gt;: Weighted criteria editor&lt;br/&gt;&amp;bull; &lt;b style='color: #CBD5E1;'&gt;AddMaterialModal.tsx&lt;/b&gt;: Upload / Link / Fork files&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;strokeColor=#334155;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="465" width="320" height="135" as="geometry"/>
+        </mxCell>
+
+        <!-- Teacher ClassDetails (Main Cockpit Area) -->
+        <mxCell id="teacher-details" value="&lt;b style='color: #38BDF8; font-size: 14px;'&gt;ClassDetails.tsx (5 Sub-Tabs Cockpit)&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #CBD5E1; padding: 6px;'&gt;&lt;b&gt;1. Profile Tab:&lt;/b&gt; Editable Institute input in isEditMode, Subject, Term, TeachingStyle &amp;amp; ExperienceLevel dropdowns.&lt;br/&gt;&lt;b&gt;2. Materials Tab:&lt;/b&gt; Curriculum file manager, Forking, Rubrics link, Email notification toggle on create.&lt;br/&gt;&lt;b&gt;3. Prompts Tab:&lt;/b&gt; Dynamic instruction_type enum AI instructions, behavioral personas, lesson plan guidelines.&lt;br/&gt;&lt;b&gt;4. Announcements Tab:&lt;/b&gt; Notice composer (title, content, pin toggle, email students checkbox, email parents checkbox, delete).&lt;br/&gt;&lt;b&gt;5. Schedule Tab:&lt;/b&gt; Coursework &amp;amp; attendance timeline.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="420" y="320" width="360" height="280" as="geometry"/>
+        </mxCell>
+
+        <!-- Teacher Student Evaluation Suite -->
+        <mxCell id="teacher-evaluation" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;Student Register, Evaluation &amp; Gradebook Suite&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #94A3B8; padding: 6px;'&gt;&amp;bull; &lt;b style='color: #38BDF8;'&gt;StudentRegister.tsx&lt;/b&gt;: Roster management, student email invite, 7 portfolio fields CRUD (roll number, phone, address, parents, notes, custom fields).&lt;br/&gt;&amp;bull; &lt;b style='color: #38BDF8;'&gt;SubmissionGradingModal.tsx&lt;/b&gt;: Rubric point grading, private educator notes, and qualitative student feedback.&lt;br/&gt;&amp;bull; &lt;b style='color: #38BDF8;'&gt;AttendanceManagerModal.tsx&lt;/b&gt;: Roll call grid (Present / Absent / Late / Excused) + configurable late credit slider (0% - 100%).&lt;br/&gt;&amp;bull; &lt;b style='color: #38BDF8;'&gt;ReportCardModal.tsx&lt;/b&gt;: Automated report card generator, performance standing tier, and immutable parent briefing note saver.&lt;br/&gt;&amp;bull; &lt;b style='color: #38BDF8;'&gt;StudentSubmissionUploadModal.tsx&lt;/b&gt;: Teacher manual file/text record-keeper.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;strokeColor=#334155;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="620" width="700" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- Teacher Action Badges -->
+        <mxCell id="teacher-capabilities" value="&lt;b style='color: #38BDF8;'&gt;Teacher Authorizations:&lt;/b&gt; Full Multi-Tenant CRUD &amp;bull; Roster Management &amp;bull; Rubric Scoring &amp;bull; Resend Broadcast Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;strokeWidth=1;align=center;fontSize=11;fontColor=#CBD5E1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="790" width="700" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- STUDENT PORTAL CONTAINER (RIGHT) -->
+        <!-- ============================================================ -->
+        <mxCell id="student-container" value="&lt;b style='font-size: 16px; color: #10B981;'&gt;🎓 DEDICATED STUDENT PORTAL&lt;/b&gt;&lt;br/&gt;&lt;span style='font-size: 11px; color: #94A3B8;'&gt;Root View: frontend/src/views/StudentApp.tsx&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#041A14;strokeColor=#059669;strokeWidth=2;arcSize=4;verticalAlign=top;align=left;spacingLeft=20;spacingTop=15;" vertex="1" parent="1">
+          <mxGeometry x="890" y="260" width="760" height="720" as="geometry"/>
+        </mxCell>
+
+        <!-- Student Top Navigation & Course Selector -->
+        <mxCell id="student-nav" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;Compact Top Navbar &amp;amp; Course Switcher&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #94A3B8; padding: 4px;'&gt;&amp;bull; Enrolled Courses Dropdown (&lt;i&gt;studentPortalService.fetchEnrolledClasses&lt;/i&gt;)&lt;br/&gt;&amp;bull; Student Profile Avatar Initials &amp;amp; Email Display&lt;br/&gt;&amp;bull; Instant Dark / Light Theme Toggle &amp;amp; Sign Out Button&lt;br/&gt;&amp;bull; Zero sidebar clutter &amp;mdash; 100% focused reading/learning space&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#047857;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="920" y="320" width="340" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- Student Course Banner & Pinned Notice Hero -->
+        <mxCell id="student-hero" value="&lt;b style='color: #10B981; font-size: 13px;'&gt;Course Header &amp;amp; Urgent Notice Hero Banner&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #D1FAE5; padding: 4px;'&gt;&amp;bull; &lt;b&gt;Course Info Pill:&lt;/b&gt; Subject tag, Institution name, Term, Instructor name&lt;br/&gt;&amp;bull; &lt;b&gt;Grade Pill:&lt;/b&gt; Current letter grade, score percentage &amp;amp; tier badge&lt;br/&gt;&amp;bull; &lt;b&gt;Pinned Notice Banner:&lt;/b&gt; Prominent hero banner rendering pinned announcements above tabs for urgent exam/room updates&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#022C22;strokeColor=#10B981;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="320" width="340" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- Student Tab Navigation (5 Tabs) -->
+        <mxCell id="student-tabs" value="&lt;b style='color: #10B981; font-size: 14px;'&gt;Student Tab Views (StudentApp.tsx)&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #CBD5E1; padding: 6px;'&gt;&lt;b&gt;1. Assignments &amp;amp; Turn-In:&lt;/b&gt; Due dates, max scores, overdue warnings, status badges (&lt;i&gt;Pending, Submitted, Missing, Graded&lt;/i&gt;) + Turn In / Resubmit buttons.&lt;br/&gt;&lt;b&gt;2. Course Materials:&lt;/b&gt; Downloadable handouts, study guides, reference books with instant preview.&lt;br/&gt;&lt;b&gt;3. Announcements Feed:&lt;/b&gt; Chronological stream with pinned badges, author, timestamps, and full notice body.&lt;br/&gt;&lt;b&gt;4. Academic Calendar:&lt;/b&gt; Embedded CalendarView aggregating deadlines and alerts.&lt;br/&gt;&lt;b&gt;5. My Grades &amp;amp; Feedback:&lt;/b&gt; Cumulative score card, Letter grade card, Standing tier badge, Instructor portfolio feedback, itemized rubric breakdown scoreboard.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="920" y="460" width="700" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Student TurnInModal Highlight -->
+        <mxCell id="student-turnin-modal" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;StudentTurnInModal.tsx (Dual-Mode Self-Submission)&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #A7F3D0; padding: 6px;'&gt;&amp;bull; &lt;b&gt;Attach File Mode:&lt;/b&gt; 50MB drag-and-drop zone for PDF, DOCX, images &amp;rarr; Supabase Storage bucket &lt;i&gt;'student-submissions'&lt;/i&gt;.&lt;br/&gt;&amp;bull; &lt;b&gt;Written Response Mode:&lt;/b&gt; Clean native text response with real-time &lt;b&gt;word count&lt;/b&gt; and &lt;b&gt;character count&lt;/b&gt; badges (zero synthetic &lt;i&gt;text://&lt;/i&gt; URIs).&lt;br/&gt;&amp;bull; &lt;b&gt;Instant Resubmission:&lt;/b&gt; Allows revising work before teacher grading with full state retention.&lt;br/&gt;&amp;bull; &lt;b&gt;Automated Teacher Alert:&lt;/b&gt; Dispatches trigger call to &lt;i&gt;notify-submission&lt;/i&gt; edge function.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#022C22;strokeColor=#10B981;strokeWidth=2;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="920" y="635" width="700" height="135" as="geometry"/>
+        </mxCell>
+
+        <!-- Student Action Badges -->
+        <mxCell id="student-capabilities" value="&lt;b style='color: #10B981;'&gt;Student Safeguards:&lt;/b&gt; Read-Only Coursework RLS &amp;bull; Private Submission Uploads &amp;bull; Real-time Word Counter &amp;bull; Pinned Alert Banners" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#041A14;strokeColor=#059669;strokeWidth=1;align=center;fontSize=11;fontColor=#CBD5E1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="790" width="700" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- SHARED COMPONENTS & SERVICES (BRIDGING CENTER) -->
+        <!-- ============================================================ -->
+        <mxCell id="shared-container" value="&lt;b style='font-size: 15px; color: #C084FC;'&gt;🤝 SHARED REUSABLE COMPONENTS &amp;amp; DATA SERVICES&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E1035;strokeColor=#9333EA;strokeWidth=2;arcSize=6;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="850" width="1200" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- CalendarView.tsx -->
+        <mxCell id="shared-calendar" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;CalendarView.tsx&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #E9D5FF; padding: 4px;'&gt;&amp;bull; Aggregates assignment deadlines (&lt;i&gt;materials.due_at&lt;/i&gt;)&lt;br/&gt;&amp;bull; Aggregates attendance session records&lt;br/&gt;&amp;bull; Aggregates course announcements&lt;br/&gt;&amp;bull; Day selection drawer with &lt;i&gt;View Task&lt;/i&gt; preview&lt;br/&gt;&amp;bull; Embedded in both Teacher &amp;amp; Student tabs&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E1065;strokeColor=#A855F7;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="280" y="900" width="340" height="155" as="geometry"/>
+        </mxCell>
+
+        <!-- MaterialPreviewModal.tsx -->
+        <mxCell id="shared-preview" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;MaterialPreviewModal.tsx&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #E9D5FF; padding: 4px;'&gt;&amp;bull; Polymorphic document viewer (PDF, Images, Web URLs)&lt;br/&gt;&amp;bull; Dedicated &lt;b&gt;Text Submission Reader Card&lt;/b&gt;&lt;br/&gt;&amp;bull; Live word &amp;amp; character telemetry counters&lt;br/&gt;&amp;bull; Copy-to-clipboard action with visual feedback&lt;br/&gt;&amp;bull; Guards against calling signed URL on text payloads&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E1065;strokeColor=#A855F7;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="900" width="350" height="155" as="geometry"/>
+        </mxCell>
+
+        <!-- Services Layer -->
+        <mxCell id="shared-services" value="&lt;b style='color: #F8FAFC; font-size: 13px;'&gt;Data Services &amp;amp; Resend Edge Functions&lt;/b&gt;&lt;br/&gt;&lt;div style='text-align: left; font-size: 11px; color: #E9D5FF; padding: 4px;'&gt;&amp;bull; &lt;b&gt;studentPortalService.ts:&lt;/b&gt; Enrolled courses, materials, self-turn-in&lt;br/&gt;&amp;bull; &lt;b&gt;announcementService.ts:&lt;/b&gt; Notices CRUD &amp;amp; pinning&lt;br/&gt;&amp;bull; &lt;b&gt;notificationService.ts:&lt;/b&gt; Resend edge function triggers&lt;br/&gt;&amp;bull; &lt;b&gt;Edge Functions:&lt;/b&gt; &lt;i&gt;notify-announcement, notify-material, notify-submission, resend-webhook&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E1065;strokeColor=#A855F7;strokeWidth=1.5;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="900" width="410" height="155" as="geometry"/>
+        </mxCell>
+
+        <!-- Cross-Connection Edges -->
+        <mxCell id="conn-teacher-calendar" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#38BDF8;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="teacher-details" target="shared-calendar">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="conn-student-calendar" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=#10B981;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="student-tabs" target="shared-calendar">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="conn-student-preview" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#10B981;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="student-tabs" target="shared-preview">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="conn-teacher-preview" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#38BDF8;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="teacher-evaluation" target="shared-preview">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Database Layer Footnote -->
+        <mxCell id="footer-rls" value="&lt;b style='color: #CBD5E1;'&gt;Underlying Security Policy (PostgreSQL RLS):&lt;/b&gt; &lt;font color='#38BDF8'&gt;Educators own classes (classes.user_id = auth.uid())&lt;/font&gt; &amp;bull; &lt;font color='#10B981'&gt;Students access coursework strictly via roster enrollment (class_students.student_id = auth.uid())&lt;/font&gt; &amp;bull; Zero data leakage across cohorts." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0B1120;strokeColor=#334155;strokeWidth=1;align=center;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="250" y="1100" width="1200" height="40" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
