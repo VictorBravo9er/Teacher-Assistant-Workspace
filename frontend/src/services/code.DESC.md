@@ -13,6 +13,7 @@ This directory encapsulates all outbound HTTP requests, PostgREST queries, and S
 - [`templateService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/templateService.ts): Handles template creation, fetching preset teacher templates, duplicating classes into blueprints, and template deletion.
 - [`chatService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/chatService.ts): Dispatches prompt payloads to the FastAPI backend (`POST /api/chat`) and manages chat session persistence in Supabase with telemetry logging and honest error propagation.
 - [`instituteService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/instituteService.ts): Manages educational institute lookups and registrations, backed by client-side TTL storage caching (`edu_institutes_directory`) for instant autocomplete without database roundtrips.
+- [`studentPortalService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentPortalService.ts): Provides student-scoped data access for the dedicated student portal: fetching enrolled courses, course materials, assignment instructions, past submissions with feedback, and assignment turn-ins (file upload and clean text response).
 
 ---
 

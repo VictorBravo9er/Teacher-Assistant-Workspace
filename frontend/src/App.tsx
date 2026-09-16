@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import LandingPage from '@/views/LandingPage';
 import AuthPage from '@/views/AuthPage';
 import ClassApp from '@/views/ClassApp';
+import StudentApp from '@/views/StudentApp';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -16,7 +17,7 @@ const getInitialView = (): ViewMode => {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>(getInitialView);
-  const { session, isInitializing } = useAuth();
+  const { session, role, isInitializing } = useAuth();
   // Initializes global theme listener and synchronization
   useTheme();
 
@@ -80,7 +81,7 @@ export default function App() {
         />
       )}
       {currentView === 'auth' && <AuthPage onBack={() => navigateTo('landing')} />}
-      {currentView === 'app' && <ClassApp />}
+      {currentView === 'app' && (role === 'student' ? <StudentApp /> : <ClassApp />)}
     </>
   );
 }

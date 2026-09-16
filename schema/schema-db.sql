@@ -572,7 +572,14 @@ CREATE POLICY "Authenticated users can insert institutes" ON public.institutes F
 
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own classes" ON public.classes;
-CREATE POLICY "Users can only view their own classes" ON public.classes FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can view classes" ON public.classes;
+CREATE POLICY "Users can view classes" ON public.classes FOR SELECT USING (
+    (SELECT auth.uid()) = user_id 
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs 
+        WHERE cs.class_id = classes.id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 DROP POLICY IF EXISTS "Users can only insert their own classes" ON public.classes;
 CREATE POLICY "Users can only insert their own classes" ON public.classes FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own classes" ON public.classes;
@@ -602,7 +609,15 @@ CREATE POLICY "Users can access class_students" ON public.class_students FOR ALL
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own materials" ON public.materials;
-CREATE POLICY "Users can only view their own materials" ON public.materials FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can view materials" ON public.materials;
+CREATE POLICY "Users can view materials" ON public.materials FOR SELECT USING (
+    (SELECT auth.uid()) = user_id
+    OR EXISTS (
+        SELECT 1 FROM public.class_materials cm
+        JOIN public.class_students cs ON cs.class_id = cm.class_id
+        WHERE cm.material_id = materials.id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 DROP POLICY IF EXISTS "Users can only insert their own materials" ON public.materials;
 CREATE POLICY "Users can only insert their own materials" ON public.materials FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own materials" ON public.materials;
@@ -616,11 +631,29 @@ CREATE POLICY "Users can access template_materials via template ownership" ON pu
 
 ALTER TABLE public.class_materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_materials via class ownership" ON public.class_materials;
-CREATE POLICY "Users can access class_materials via class ownership" ON public.class_materials FOR ALL USING ( EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = class_materials.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+DROP POLICY IF EXISTS "Users can access class_materials" ON public.class_materials;
+CREATE POLICY "Users can access class_materials" ON public.class_materials FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.classes c
+        WHERE c.id = class_materials.class_id AND c.user_id = (SELECT auth.uid())
+    )
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs
+        WHERE cs.class_id = class_materials.class_id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 
 ALTER TABLE public.instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own instructions" ON public.instructions;
-CREATE POLICY "Users can only view their own instructions" ON public.instructions FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can view instructions" ON public.instructions;
+CREATE POLICY "Users can view instructions" ON public.instructions FOR SELECT USING (
+    (SELECT auth.uid()) = user_id
+    OR EXISTS (
+        SELECT 1 FROM public.class_instructions ci
+        JOIN public.class_students cs ON cs.class_id = ci.class_id
+        WHERE ci.instruction_id = instructions.id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 DROP POLICY IF EXISTS "Users can only insert their own instructions" ON public.instructions;
 CREATE POLICY "Users can only insert their own instructions" ON public.instructions FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own instructions" ON public.instructions;
@@ -634,7 +667,17 @@ CREATE POLICY "Users can access template_instructions via template ownership" ON
 
 ALTER TABLE public.class_instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_instructions via class ownership" ON public.class_instructions;
-CREATE POLICY "Users can access class_instructions via class ownership" ON public.class_instructions FOR ALL USING ( EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = class_instructions.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+DROP POLICY IF EXISTS "Users can access class_instructions" ON public.class_instructions;
+CREATE POLICY "Users can access class_instructions" ON public.class_instructions FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.classes c
+        WHERE c.id = class_instructions.class_id AND c.user_id = (SELECT auth.uid())
+    )
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs
+        WHERE cs.class_id = class_instructions.class_id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 
 ALTER TABLE public.student_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access student_submissions" ON public.student_submissions;

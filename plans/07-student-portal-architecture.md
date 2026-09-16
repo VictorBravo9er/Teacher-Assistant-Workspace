@@ -1,5 +1,7 @@
 # Plan 07: Dedicated Student Portal & Role-Based Routing
 
+> **Status**: ✅ **COMPLETED** (Enrolled student RLS policies applied via migration 002, studentPortalService implemented, role routing added to App.tsx, StudentApp shell and StudentTurnInModal created, verified via `npm run lint`, `npm run build`, and `uv run poe lint`)
+
 ## 1. Problem Statement & Architecture Gap
 In the current application:
 - **Sign-Up Allows Role Selection**: [`frontend/src/views/AuthPage.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/AuthPage.tsx#L28) provides a toggle allowing users to register as either **Educator** or **Student**.

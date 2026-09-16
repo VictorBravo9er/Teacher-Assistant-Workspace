@@ -9,6 +9,9 @@ export type LogNamespace =
   | 'AUTH'
   | 'CLASS_SERVICE'
   | 'STUDENT_SERVICE'
+  | 'STUDENT_PORTAL'
+  | 'ANNOUNCEMENT'
+  | 'NOTIFICATION'
   | 'MATERIAL_SERVICE'
   | 'INSTRUCTION_SERVICE'
   | 'CLASS_OPERATIONS'
@@ -46,6 +49,9 @@ const NAMESPACE_COLORS: Record<LogNamespace, string> = {
   AUTH: '#8b5cf6', // Violet
   CLASS_SERVICE: '#0ea5e9', // Sky Blue
   STUDENT_SERVICE: '#10b981', // Emerald
+  STUDENT_PORTAL: '#06b6d4', // Cyan
+  ANNOUNCEMENT: '#f97316', // Orange
+  NOTIFICATION: '#e11d48', // Rose
   MATERIAL_SERVICE: '#f59e0b', // Amber
   INSTRUCTION_SERVICE: '#ec4899', // Pink
   CLASS_OPERATIONS: '#6366f1', // Indigo
