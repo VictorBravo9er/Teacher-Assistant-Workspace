@@ -1,7 +1,8 @@
 # Plan 08: Extended LMS Modules — Announcements & Academic Calendar
 
+> **Status**: ✅ **COMPLETED** (Announcements schema and RLS applied via migration 003, announcementService and CalendarView implemented, ClassDetails and StudentApp wired with announcements feed and interactive calendar, verified via lint and build)
+
 ## 1. Scope & Overview
-While Plans 01 through 07 address database integrity, bug fixes, portfolio persistence, and the core Student Portal, this plan outlines two extended LMS modules that elevate Teach&Learn to a fully-fledged learning environment:
 1. **Course Announcements & Notice Board**: Broadcast updates, syllabus changes, and urgent notifications to enrolled students.
 2. **Academic Calendar & Schedule View**: An interactive schedule aggregating assignment deadlines (`materials.due_at`), attendance sessions (`attendance_records`), and class milestones.
 

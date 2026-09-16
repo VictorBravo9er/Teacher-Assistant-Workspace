@@ -5,9 +5,11 @@ import {
   studentPortalService,
   EnrolledClass,
 } from '@/services/studentPortalService';
-import { Material, Instruction, StudentSubmission } from '@/types/main';
+import { announcementService } from '@/services/announcementService';
+import { Material, Instruction, StudentSubmission, Announcement } from '@/types/main';
 import { StudentTurnInModal } from '@/features/student-portal/StudentTurnInModal';
 import MaterialPreviewModal from '@/features/classroom/MaterialPreviewModal';
+import { CalendarView } from '@/features/calendar/CalendarView';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -29,9 +31,11 @@ import {
   User,
   AlertTriangle,
   ChevronDown,
+  Pin,
+  Megaphone,
 } from 'lucide-react';
 
-type StudentTab = 'coursework' | 'assignments' | 'grades';
+type StudentTab = 'assignments' | 'coursework' | 'announcements' | 'calendar' | 'grades';
 
 export default function StudentApp() {
   const { user, signOut } = useAuth();
@@ -47,6 +51,7 @@ export default function StudentApp() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoadingClassData, setIsLoadingClassData] = useState<boolean>(false);
 
   // Modals state
@@ -82,19 +87,21 @@ export default function StudentApp() {
     loadClasses();
   }, [loadClasses]);
 
-  // 2. Fetch class materials, instructions, and submissions whenever activeClassId changes
+  // 2. Fetch class materials, instructions, submissions, and announcements whenever activeClassId changes
   const loadClassData = useCallback(async () => {
     if (!activeClassId || !user?.id) return;
     try {
       setIsLoadingClassData(true);
-      const [mats, insts, subs] = await Promise.all([
+      const [mats, insts, subs, anns] = await Promise.all([
         studentPortalService.fetchClassMaterials(activeClassId),
         studentPortalService.fetchClassInstructions(activeClassId),
         studentPortalService.fetchMySubmissions(activeClassId, user.id),
+        announcementService.fetchAnnouncements(activeClassId),
       ]);
       setMaterials(mats);
       setInstructions(insts);
       setSubmissions(subs);
+      setAnnouncements(anns);
     } catch (err) {
       showToast('Failed to load course details.');
     } finally {
@@ -130,6 +137,10 @@ export default function StudentApp() {
         !['Assignment', 'Practical', 'Test', 'Exam'].includes(m.category)
     );
   }, [materials]);
+
+  const pinnedAnnouncements = React.useMemo(() => {
+    return announcements.filter((a) => a.isPinned);
+  }, [announcements]);
 
   return (
     <div className="min-h-screen bg-background text-primary-text flex flex-col font-sans transition-colors">
@@ -300,12 +311,44 @@ export default function StudentApp() {
               </div>
             )}
 
+            {/* Pinned Announcements Notice Banner */}
+            {pinnedAnnouncements.length > 0 && (
+              <div className="space-y-2">
+                {pinnedAnnouncements.map((ann) => (
+                  <div
+                    key={ann.id}
+                    className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-start gap-3 shadow-xs"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+                      <Pin className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="primary" className="text-[10px]">
+                          Pinned Notice
+                        </Badge>
+                        <span className="text-[10px] text-muted-text font-mono">
+                          {new Date(ann.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-primary-text font-display mt-1">
+                        {ann.title}
+                      </h4>
+                      <p className="text-xs text-secondary-text mt-1 whitespace-pre-wrap leading-relaxed">
+                        {ann.content}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-border-color pb-1">
+            <div className="flex items-center gap-2 border-b border-border-color pb-1 overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('assignments')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === 'assignments'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-muted-text hover:text-primary-text hover:bg-elevated'
@@ -323,7 +366,7 @@ export default function StudentApp() {
               <button
                 type="button"
                 onClick={() => setActiveTab('coursework')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === 'coursework'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-muted-text hover:text-primary-text hover:bg-elevated'
@@ -340,8 +383,39 @@ export default function StudentApp() {
 
               <button
                 type="button"
+                onClick={() => setActiveTab('announcements')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'announcements'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted-text hover:text-primary-text hover:bg-elevated'
+                }`}
+              >
+                <Megaphone className="w-4 h-4" />
+                Announcements
+                {announcements.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-md bg-elevated text-[10px] text-muted-text">
+                    {announcements.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('calendar')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'calendar'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted-text hover:text-primary-text hover:bg-elevated'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Calendar
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveTab('grades')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === 'grades'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-muted-text hover:text-primary-text hover:bg-elevated'
@@ -519,7 +593,68 @@ export default function StudentApp() {
               </div>
             )}
 
-            {/* Tab 3: My Grades & Feedback */}
+            {/* Tab 3: Announcements Feed */}
+            {activeTab === 'announcements' && (
+              <div className="space-y-4">
+                {isLoadingClassData ? (
+                  <div className="py-12 text-center text-xs text-muted-text">Loading announcements...</div>
+                ) : announcements.length === 0 ? (
+                  <div className="bg-surface border border-border-color rounded-2xl p-8 text-center text-xs text-muted-text">
+                    No class announcements posted yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((ann) => (
+                      <div
+                        key={ann.id}
+                        className={`bg-surface border rounded-2xl p-5 shadow-sm space-y-2 transition-all ${
+                          ann.isPinned
+                            ? 'border-primary/40 bg-primary/5'
+                            : 'border-border-color hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            {ann.isPinned && (
+                              <Badge variant="primary" className="text-[10px] flex items-center gap-1">
+                                <Pin className="w-3 h-3" /> Pinned
+                              </Badge>
+                            )}
+                            <h3 className="text-sm font-bold text-primary-text font-display">
+                              {ann.title}
+                            </h3>
+                          </div>
+                          <span className="text-[10px] text-muted-text font-mono flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(ann.createdAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-secondary-text whitespace-pre-wrap leading-relaxed">
+                          {ann.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab 4: Academic Calendar */}
+            {activeTab === 'calendar' && (
+              <CalendarView
+                materials={materials}
+                announcements={announcements}
+                onSelectMaterial={(material) => setSelectedMaterialForPreview(material)}
+              />
+            )}
+
+            {/* Tab 5: My Grades & Feedback */}
             {activeTab === 'grades' && activeClass && (
               <div className="space-y-6">
                 {/* Summary Metrics */}

@@ -63,7 +63,7 @@ export default function ClassApp() {
   const [previousLayoutMode, setPreviousLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('details-only');
   const [mainViewTab, setMainViewTab] = useState<'classroom' | 'gradebook'>('classroom');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'materials' | 'prompts'>('profile');
+  const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'materials' | 'prompts' | 'announcements' | 'calendar'>('profile');
   const [activeAccountModal, setActiveAccountModal] = useState<
     'profile' | 'preferences' | 'settings' | 'subscription' | null
   >(null);

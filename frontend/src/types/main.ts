@@ -261,3 +261,32 @@ export interface Template {
   defaultCustomFields?: CustomField[];
   isArchived?: boolean;
 }
+
+export interface Announcement {
+  id: string;
+  classId: string;
+  authorId: string;
+  title: string;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationLog {
+  id: string;
+  classId: string;
+  announcementId?: string;
+  materialId?: string;
+  submissionId?: string;
+  notificationType: 'announcement' | 'material_published' | 'material_updated' | 'submission_turned_in';
+  recipientEmail: string;
+  recipientName?: string;
+  recipientType: 'student' | 'parent' | 'teacher';
+  studentId?: string;
+  resendEmailId?: string;
+  status: 'queued' | 'delivered' | 'bounced' | 'failed' | 'complained';
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}

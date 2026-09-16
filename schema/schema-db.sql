@@ -240,6 +240,37 @@ CREATE TABLE IF NOT EXISTS public.chat_sessions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    is_pinned BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.notification_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    announcement_id UUID REFERENCES public.announcements(id) ON DELETE CASCADE,
+    material_id UUID REFERENCES public.materials(id) ON DELETE CASCADE,
+    submission_id UUID REFERENCES public.student_submissions(id) ON DELETE CASCADE,
+    notification_type TEXT NOT NULL CHECK (
+        notification_type IN ('announcement', 'material_published', 'material_updated', 'submission_turned_in')
+    ),
+    recipient_email TEXT NOT NULL,
+    recipient_name TEXT,
+    recipient_type TEXT NOT NULL CHECK (recipient_type IN ('student', 'parent', 'teacher')),
+    student_id UUID REFERENCES public.students(id) ON DELETE SET NULL,
+    resend_email_id TEXT,
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'delivered', 'bounced', 'failed', 'complained')),
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 
 -- ==========================================
 -- 5. Indexes
@@ -262,6 +293,13 @@ CREATE INDEX IF NOT EXISTS idx_attendance_records_class_id ON public.attendance_
 CREATE INDEX IF NOT EXISTS idx_attendance_records_student_id ON public.attendance_records(student_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON public.chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_class_id ON public.chat_sessions(class_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_class_id ON public.announcements(class_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON public.announcements(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_class_id ON public.notification_logs(class_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_announcement_id ON public.notification_logs(announcement_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_material_id ON public.notification_logs(material_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_submission_id ON public.notification_logs(submission_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_resend_email_id ON public.notification_logs(resend_email_id);
 
 
 -- ==========================================
@@ -696,6 +734,32 @@ DROP POLICY IF EXISTS "Users can only update their own chat sessions" ON public.
 CREATE POLICY "Users can only update their own chat sessions" ON public.chat_sessions FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own chat sessions" ON public.chat_sessions;
 CREATE POLICY "Users can only delete their own chat sessions" ON public.chat_sessions FOR DELETE USING ((SELECT auth.uid()) = user_id);
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Teachers manage class announcements" ON public.announcements;
+CREATE POLICY "Teachers manage class announcements"
+    ON public.announcements FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = announcements.class_id AND classes.user_id = (SELECT auth.uid())
+    ));
+
+DROP POLICY IF EXISTS "Enrolled students read class announcements" ON public.announcements;
+CREATE POLICY "Enrolled students read class announcements"
+    ON public.announcements FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.class_students 
+        WHERE class_students.class_id = announcements.class_id AND class_students.student_id = (SELECT auth.uid())
+    ));
+
+ALTER TABLE public.notification_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Teachers view notification logs for their classes" ON public.notification_logs;
+CREATE POLICY "Teachers view notification logs for their classes"
+    ON public.notification_logs FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = notification_logs.class_id AND classes.user_id = (SELECT auth.uid())
+    ));
 
 
 -- ==========================================

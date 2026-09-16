@@ -38,3 +38,6 @@ flowchart TD
 4. **Client-Side Institute Directory Caching (`instituteService.ts`)**:
    - Maintains an in-memory / local storage TTL cache (`edu_institutes_directory`) with 1-hour validity.
    - Eliminates per-keystroke RPC calls to PostgreSQL by powering client-side fuzzy searching, updating synchronously when new institutes are registered.
+5. **Universal Notification & Email Engine (`notificationService.ts`)**:
+   - Offloads email distribution entirely to serverless Edge Functions (`notify-announcement`, `notify-material`, `notify-submission`) backed by Resend.
+   - Non-blocking async invocations ensure UI responsiveness; delivery states (`sent`, `delivered`, `bounced`) are tracked in `public.notification_logs` with webhook reconciliation.

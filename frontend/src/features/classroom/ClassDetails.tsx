@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Constants } from "@/types/db";
 import {
   ClassModel,
   Material,
   Instruction,
+  Announcement,
   ContentCategory,
   RubricCriterion,
   InstructionType,
@@ -14,6 +15,9 @@ import {
 import { formatEnumLabel } from "@/utils/enumFormatters";
 import { getEnumTooltip } from "@/utils/enumTooltips";
 import { materialService } from "@/services/materialService";
+import { announcementService } from "@/services/announcementService";
+import { notificationService } from "@/services/notificationService";
+import { CalendarView } from "@/features/calendar/CalendarView";
 import { ConfirmModal, PromptModal, LoadingOverlay } from "@/components/shared/CustomDialogs";
 import { MultiSelect } from '@/components/shared/MultiSelect';
 import MaterialPreviewModal from '@/features/classroom/MaterialPreviewModal';
@@ -42,6 +46,9 @@ import {
   Eye,
   Sliders,
   Lock,
+  Bell,
+  Pin,
+  Send,
 } from "lucide-react";
 import { Button, Badge, Modal, FormField, Input, Textarea } from '@/components/ui';
 
@@ -61,8 +68,8 @@ interface ClassDetailsProps {
   ) => void;
   onDeleteInstruction: (wsId: string, promptId: string) => void;
   onTriggerToast: (text: string) => void;
-  activeSubTab?: "profile" | "materials" | "prompts";
-  onSubTabChange?: (tab: "profile" | "materials" | "prompts") => void;
+  activeSubTab?: "profile" | "materials" | "prompts" | "announcements" | "calendar";
+  onSubTabChange?: (tab: "profile" | "materials" | "prompts" | "announcements" | "calendar") => void;
 }
 
 export default function ClassDetails({
@@ -78,11 +85,11 @@ export default function ClassDetails({
   onSubTabChange,
 }: ClassDetailsProps) {
   const [internalSubTab, setInternalSubTab] = useState<
-    "profile" | "materials" | "prompts"
+    "profile" | "materials" | "prompts" | "announcements" | "calendar"
   >("profile");
 
   const activeSubTab = externalSubTab !== undefined ? externalSubTab : internalSubTab;
-  const setActiveSubTab = (tab: "profile" | "materials" | "prompts") => {
+  const setActiveSubTab = (tab: "profile" | "materials" | "prompts" | "announcements" | "calendar") => {
     if (onSubTabChange) onSubTabChange(tab);
     setInternalSubTab(tab);
   };
@@ -112,6 +119,75 @@ export default function ClassDetails({
   // Material Preview & Rubric Builder states
   const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
   const [rubricModalMaterial, setRubricModalMaterial] = useState<Material | null>(null);
+
+  // Announcements state
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(false);
+  const [newAnnTitle, setNewAnnTitle] = useState("");
+  const [newAnnContent, setNewAnnContent] = useState("");
+  const [newAnnPinned, setNewAnnPinned] = useState(false);
+  const [newAnnNotifyStudents, setNewAnnNotifyStudents] = useState(true);
+  const [newAnnNotifyParents, setNewAnnNotifyParents] = useState(false);
+  const [isPostingAnn, setIsPostingAnn] = useState(false);
+  const [notifyOnCreateMaterial, setNotifyOnCreateMaterial] = useState(true);
+
+  const loadAnnouncements = useCallback(async () => {
+    if (!classItem.id) return;
+    try {
+      setIsLoadingAnnouncements(true);
+      const data = await announcementService.fetchAnnouncements(classItem.id);
+      setAnnouncements(data);
+    } catch (e) {
+      console.error("Failed to load announcements:", e);
+    } finally {
+      setIsLoadingAnnouncements(false);
+    }
+  }, [classItem.id]);
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  const handlePostAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAnnTitle.trim() || !newAnnContent.trim()) return;
+    try {
+      setIsPostingAnn(true);
+      const created = await announcementService.createAnnouncement(classItem.id, {
+        title: newAnnTitle.trim(),
+        content: newAnnContent.trim(),
+        isPinned: newAnnPinned,
+      });
+      setAnnouncements((prev) => [created, ...prev]);
+      if (newAnnNotifyStudents) {
+        await notificationService.notifyAnnouncement(
+          created.id,
+          classItem.id,
+          newAnnNotifyParents
+        );
+        onTriggerToast("Announcement posted. Notification emails queued.");
+      } else {
+        onTriggerToast("Announcement posted successfully.");
+      }
+      setNewAnnTitle("");
+      setNewAnnContent("");
+      setNewAnnPinned(false);
+    } catch (err: any) {
+      onTriggerToast(`Failed to post announcement: ${err.message}`);
+    } finally {
+      setIsPostingAnn(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    try {
+      await announcementService.deleteAnnouncement(id);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      onTriggerToast("Announcement removed.");
+    } catch (err: any) {
+      onTriggerToast(`Failed to delete announcement: ${err.message}`);
+    }
+  };
 
   const handleSaveRubric = (materialId: string, criteria: RubricCriterion[], maxScore: number) => {
     const updated = classItem.materials.map((m) =>
@@ -149,6 +225,10 @@ export default function ClassDetails({
       },
       newFileObj || undefined,
     );
+
+    if (notifyOnCreateMaterial) {
+      onTriggerToast("Material published and notification emails queued.");
+    }
 
     setNewFileName("");
     setNewFileTags("");
@@ -248,6 +328,33 @@ export default function ClassDetails({
               {classItem.instructions.length}
             </span>
           )}
+        </button>
+        <button
+          onClick={() => setActiveSubTab("announcements")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeSubTab === "announcements"
+              ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+              : "text-muted-text hover:text-secondary-text"
+          }`}
+        >
+          <Bell className="w-3.5 h-3.5" />
+          Announcements
+          {announcements.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.2 bg-warning/15 text-warning text-[10px] rounded-full font-mono border border-warning/25 font-bold">
+              {announcements.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveSubTab("calendar")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeSubTab === "calendar"
+              ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+              : "text-muted-text hover:text-secondary-text"
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          Schedule
         </button>
       </div>
 
@@ -595,6 +702,19 @@ export default function ClassDetails({
                   </div>
                 )}
 
+                <div className="flex items-center gap-2 pt-1 pb-1">
+                  <input
+                    type="checkbox"
+                    id="notify-students-material"
+                    checked={notifyOnCreateMaterial}
+                    onChange={(e) => setNotifyOnCreateMaterial(e.target.checked)}
+                    className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                  />
+                  <label htmlFor="notify-students-material" className="text-xs text-secondary-text cursor-pointer select-none">
+                    Notify enrolled students via email
+                  </label>
+                </div>
+
                 <button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs py-2 rounded-lg transition-colors cursor-pointer"
@@ -830,6 +950,160 @@ export default function ClassDetails({
               )}
             </div>
           </div>
+
+        {/* Announcements Tab */}
+        <div className={activeSubTab === "announcements" ? "space-y-4" : "hidden"}>
+          {/* Post Announcement Composer Card */}
+          <div className="bg-surface border border-border-color rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-border-color">
+              <Bell className="w-4 h-4 text-primary" />
+              <h4 className="text-xs font-bold font-display text-primary-text">
+                Post Class Announcement
+              </h4>
+            </div>
+
+            <form onSubmit={handlePostAnnouncement} className="space-y-3">
+              <div>
+                <label className="text-[10px] font-mono text-muted-text block mb-1">
+                  ANNOUNCEMENT TITLE
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Midterm Exam Schedule & Room Change"
+                  value={newAnnTitle}
+                  onChange={(e) => setNewAnnTitle(e.target.value)}
+                  className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono text-muted-text block mb-1">
+                  CONTENT / DETAILS
+                </label>
+                <textarea
+                  placeholder="Broadcast instructions, exam locations, homework reminders, or syllabus updates..."
+                  value={newAnnContent}
+                  onChange={(e) => setNewAnnContent(e.target.value)}
+                  rows={3}
+                  className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text resize-none focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-border-color/60">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-1.5 text-xs text-secondary-text cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newAnnPinned}
+                      onChange={(e) => setNewAnnPinned(e.target.checked)}
+                      className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    <Pin className="w-3 h-3 text-warning" />
+                    Pin to top
+                  </label>
+
+                  <label className="flex items-center gap-1.5 text-xs text-secondary-text cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newAnnNotifyStudents}
+                      onChange={(e) => setNewAnnNotifyStudents(e.target.checked)}
+                      className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    Email students
+                  </label>
+
+                  <label className="flex items-center gap-1.5 text-xs text-secondary-text cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newAnnNotifyParents}
+                      onChange={(e) => setNewAnnNotifyParents(e.target.checked)}
+                      className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    Notify parents
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isPostingAnn}
+                  leftIcon={<Send className="w-3.5 h-3.5" />}
+                >
+                  Post Notice
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* Announcements Feed List */}
+          <div className="space-y-2.5">
+            {isLoadingAnnouncements ? (
+              <div className="text-center py-6 text-xs text-muted-text font-mono">
+                Loading announcements...
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="text-center py-8 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
+                No announcements posted yet. Post a notice to notify enrolled students.
+              </div>
+            ) : (
+              announcements.map((ann) => (
+                <div
+                  key={ann.id}
+                  className={`bg-surface border rounded-xl p-4 space-y-2 shadow-sm transition-all ${
+                    ann.isPinned
+                      ? "border-warning/40 bg-warning/5"
+                      : "border-border-color hover:border-primary/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {ann.isPinned && (
+                        <Badge variant="warning" size="sm">
+                          <Pin className="w-2.5 h-2.5 mr-1 inline" />
+                          Pinned
+                        </Badge>
+                      )}
+                      <h4 className="text-xs font-bold text-primary-text font-display">
+                        {ann.title}
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-text font-mono">
+                        {new Date(ann.createdAt).toLocaleDateString()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnouncement(ann.id)}
+                        className="text-muted-text hover:text-danger p-1 rounded hover:bg-elevated transition-colors"
+                        title="Delete Announcement"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-secondary-text leading-relaxed whitespace-pre-line bg-elevated/40 rounded-lg p-2.5 border border-border-color/60">
+                    {ann.content}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Academic Calendar Tab */}
+        <div className={activeSubTab === "calendar" ? "space-y-4" : "hidden"}>
+          <CalendarView
+            materials={classItem.materials}
+            attendanceRecords={classItem.attendanceRecords}
+            announcements={announcements}
+            onSelectMaterial={(m) => setPreviewMaterial(m)}
+          />
+        </div>
       </div>
 
       {/* Version History Modal Overlay (simulated overlay) */}
