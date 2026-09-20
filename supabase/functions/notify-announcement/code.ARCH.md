@@ -56,3 +56,4 @@ interface NotifyAnnouncementPayload {
 ### Invariants:
 - **Resend Batch Limit**: Maximum 100 recipients per HTTP dispatch call.
 - **Fail-Safe Graceful Degradation**: If `RESEND_API_KEY` is missing or Resend API returns an error, the function continues to record queued logs rather than failing with a fatal HTTP 500.
+- **Teacher Reply-To Routing**: Automatically sets the email's `reply_to` payload attribute to the instructor's verified email address (retrieved from `auth.admin.getUserById(classItem.user_id)`), ensuring student or parent replies route directly to the teacher's inbox.

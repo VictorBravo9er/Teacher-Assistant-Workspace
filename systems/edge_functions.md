@@ -174,8 +174,9 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 - **Trigger**: Teacher posting a new class announcement with broadcast notifications enabled (`ClassDetails.tsx`).
 - **Workflow**:
   - Fetches announcement title, body, and class instructor metadata.
+  - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
   - Retrieves enrolled students and optional parent contact emails from `public.class_students`.
-  - Formats branded HTML notification templates.
+  - Formats branded HTML notification templates and sets `reply_to` to the teacher's verified email.
   - Dispatches batch emails via Resend Batch API (`https://api.resend.com/emails/batch`, max 100 per call).
   - Inserts audit records with `status = 'queued'` and `resend_email_id` into `public.notification_logs`.
 
@@ -185,8 +186,9 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 - **Trigger**: Teacher publishing or updating a course material or assignment.
 - **Workflow**:
   - Retrieves material category, title, max score, and due date.
+  - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
   - Fetches enrolled student emails from `public.class_students`.
-  - Dynamically customizes email copy based on `event_type` (`"published"` vs `"updated"`).
+  - Dynamically customizes email copy based on `event_type` (`"published"` vs `"updated"`) with `reply_to` pointing to the teacher.
   - Queues batch delivery through Resend and records audit entries in `public.notification_logs`.
 
 ---
@@ -194,9 +196,9 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 ### 3.10 `notify-submission`
 - **Trigger**: Student turning in an assignment via the Student Portal.
 - **Workflow**:
-  - Resolves submission ID, linked material title, and student name.
+  - Resolves submission ID, linked material title, and student name and email.
   - Resolves class instructor's email privately via `auth.admin.getUserById(class.user_id)`.
-  - Dispatches an email notification to the instructor alerting them of new work ready for grading.
+  - Dispatches an email notification to the instructor alerting them of new work ready for grading, with `reply_to` configured to the student's email for single-click instructor replies.
   - Writes audit entry to `public.notification_logs` with `notification_type = 'submission_turned_in'`.
 
 ---

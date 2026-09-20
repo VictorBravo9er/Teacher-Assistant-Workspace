@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const { data: classItem, error: classError } = await adminSupabase
       .from("classes")
-      .select("id, name, teacher_name")
+      .select("id, name, teacher_name, user_id")
       .eq("id", class_id)
       .single();
 
@@ -44,6 +44,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Failed to fetch enrolled students" }, 500);
     }
 
+    // 2b. Fetch teacher email to configure reply_to header
+    let teacherEmail: string | undefined;
+    if (classItem?.user_id) {
+      const { data: teacherUser } = await adminSupabase.auth.admin.getUserById(classItem.user_id);
+      teacherEmail = teacherUser?.user?.email;
+    }
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const senderEmail = Deno.env.get("RESEND_FROM_EMAIL") || "updates@teachandlearn.edu";
     const recipients: any[] = [];
@@ -56,6 +63,7 @@ Deno.serve(async (req) => {
         recipients.push({
           from: senderEmail,
           to: [student.email],
+          ...(teacherEmail ? { reply_to: teacherEmail } : {}),
           subject: `[${classItem.name}] ${eventVerb} ${material.category}: ${material.name}`,
           html: `<div style="font-family: sans-serif; padding: 20px;">
             <h3>${classItem.name}</h3>
@@ -64,7 +72,7 @@ Deno.serve(async (req) => {
             ${material.max_score ? `<p><strong>Max Points:</strong> ${material.max_score}</p>` : ""}
             <p>Please log in to your Teach&Learn Student Portal to review the coursework details and submit your work.</p>
             <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            <p style="font-size: 12px; color: #6b7280;">Instructor: ${classItem.teacher_name || "Instructor"}</p>
+            <p style="font-size: 12px; color: #6b7280;">Instructor: ${classItem.teacher_name || "Instructor"}${teacherEmail ? ` &bull; Direct inquiries to <a href="mailto:${teacherEmail}">${teacherEmail}</a>` : ""}</p>
           </div>`,
         });
 

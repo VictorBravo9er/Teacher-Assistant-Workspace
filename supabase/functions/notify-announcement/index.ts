@@ -40,6 +40,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Failed to fetch enrolled students" }, 500);
     }
 
+    // 2b. Fetch teacher email to configure reply_to header
+    let teacherEmail: string | undefined;
+    if (classItem?.user_id) {
+      const { data: teacherUser } = await adminSupabase.auth.admin.getUserById(classItem.user_id);
+      teacherEmail = teacherUser?.user?.email;
+    }
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const senderEmail = Deno.env.get("RESEND_FROM_EMAIL") || "updates@teachandlearn.edu";
     const recipients: any[] = [];
@@ -51,13 +58,14 @@ Deno.serve(async (req) => {
         recipients.push({
           from: senderEmail,
           to: [student.email],
+          ...(teacherEmail ? { reply_to: teacherEmail } : {}),
           subject: `[${classItem.name}] Announcement: ${announcement.title}`,
           html: `<div style="font-family: sans-serif; padding: 20px;">
             <h3>${classItem.name} — Class Announcement</h3>
             <h2>${announcement.title}</h2>
             <p>${announcement.content}</p>
             <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            <p style="font-size: 12px; color: #6b7280;">Posted by ${classItem.teacher_name || "Instructor"}</p>
+            <p style="font-size: 12px; color: #6b7280;">Posted by ${classItem.teacher_name || "Instructor"}${teacherEmail ? ` &bull; Direct inquiries to <a href="mailto:${teacherEmail}">${teacherEmail}</a>` : ""}</p>
           </div>`,
         });
 
@@ -77,13 +85,14 @@ Deno.serve(async (req) => {
         recipients.push({
           from: senderEmail,
           to: [en.parent_contact],
+          ...(teacherEmail ? { reply_to: teacherEmail } : {}),
           subject: `[${classItem.name}] Announcement for Parents: ${announcement.title}`,
           html: `<div style="font-family: sans-serif; padding: 20px;">
             <h3>${classItem.name} — Announcement for Parents</h3>
             <h2>${announcement.title}</h2>
             <p>${announcement.content}</p>
             <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            <p style="font-size: 12px; color: #6b7280;">Student: ${student?.name || "Your child"} • Instructor: ${classItem.teacher_name || "Instructor"}</p>
+            <p style="font-size: 12px; color: #6b7280;">Student: ${student?.name || "Your child"} • Instructor: ${classItem.teacher_name || "Instructor"}${teacherEmail ? ` &bull; Direct inquiries to <a href="mailto:${teacherEmail}">${teacherEmail}</a>` : ""}</p>
           </div>`,
         });
 

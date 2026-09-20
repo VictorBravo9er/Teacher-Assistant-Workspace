@@ -48,3 +48,4 @@ interface NotifyMaterialPayload {
 - **Event Verb Customization**: Adjusts subject line and email headers between `"New"` vs `"Updated"` based on `event_type`.
 - **Due Date Visibility**: When `due_at` is set, dates are formatted to ensure clear deadline visibility for students.
 - **Audit Logging**: Every recipient generates a row in `public.notification_logs` with `notification_type` set to `'material_published'` or `'material_updated'`.
+- **Teacher Reply-To Routing**: Automatically sets `reply_to` to the instructor's verified email address (retrieved from `auth.admin.getUserById(classItem.user_id)`), ensuring student queries on coursework route straight to the instructor.

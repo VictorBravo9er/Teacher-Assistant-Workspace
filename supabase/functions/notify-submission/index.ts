@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: senderEmail,
             to: [teacherEmail],
+            ...(student?.email ? { reply_to: student.email } : {}),
             subject: `[Turn-In] ${studentName} submitted ${materialName} (${classItem.name})`,
             html: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
               <h3 style="color: #4F46E5; margin-top: 0;">${classItem.name}</h3>

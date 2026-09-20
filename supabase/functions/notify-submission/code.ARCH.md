@@ -43,4 +43,5 @@ interface NotifySubmissionPayload {
 
 ### Security & Invariants:
 - **Teacher Email Resolution**: Teacher email is retrieved using `adminSupabase.auth.admin.getUserById(classItem.user_id)`, keeping teacher emails private from student clients.
+- **Student Reply-To Routing**: Automatically sets `reply_to` to the submitting student's email address, allowing the instructor to reply directly to the student from their inbox.
 - **Audit Entity**: Written with `notification_type = 'submission_turned_in'`, linking `submission_id`, `class_id`, and `material_id`.
