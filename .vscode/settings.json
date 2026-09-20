@@ -10,5 +10,9 @@
   "basedpyright.analysis.extraPaths": [
     "${workspaceFolder}/backend",
     "${workspaceFolder}/backend/src"
-  ]
+  ],
+  "deno.enablePaths": [
+    "./supabase/functions"
+  ],
+  "deno.importMap": "./supabase/functions/deno.json"
 }

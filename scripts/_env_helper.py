@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 __dir = os.path.dirname(__file__)
-_ = load_dotenv(__dir + "/.env")
+_ = load_dotenv(__dir + "/../backend/.env")
 
 
 POSTGRES_URI: str = os.getenv(

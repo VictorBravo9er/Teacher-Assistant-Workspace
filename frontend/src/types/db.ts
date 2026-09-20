@@ -1,3 +1,6 @@
+// @ts-nocheck
+/* eslint-disable */
+/* prettier-ignore */
 export type Json =
   | string
   | number
@@ -9,6 +12,65 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      _schema_migrations: {
+        Row: {
+          applied_at: string
+          name: string
+          version: string
+        }
+        Insert: {
+          applied_at?: string
+          name: string
+          version: string
+        }
+        Update: {
+          applied_at?: string
+          name?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          author_id: string
+          class_id: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          class_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          class_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           class_id: string
@@ -16,8 +78,9 @@ export type Database = {
           date: string
           id: string
           notes: string | null
-          status: string
+          status: Database["public"]["Enums"]["attendance_status"]
           student_id: string
+          updated_at: string
         }
         Insert: {
           class_id: string
@@ -25,8 +88,9 @@ export type Database = {
           date: string
           id?: string
           notes?: string | null
-          status: string
+          status: Database["public"]["Enums"]["attendance_status"]
           student_id: string
+          updated_at?: string
         }
         Update: {
           class_id?: string
@@ -34,8 +98,9 @@ export type Database = {
           date?: string
           id?: string
           notes?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["attendance_status"]
           student_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -58,24 +123,42 @@ export type Database = {
         Row: {
           class_id: string | null
           created_at: string
+          custom_instructions: string | null
           id: string
+          is_archived: boolean | null
+          messages: Json | null
+          scope_type: string | null
+          selected_ids: string[] | null
           title: string
+          type: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           class_id?: string | null
           created_at?: string
+          custom_instructions?: string | null
           id?: string
+          is_archived?: boolean | null
+          messages?: Json | null
+          scope_type?: string | null
+          selected_ids?: string[] | null
           title?: string
+          type?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           class_id?: string | null
           created_at?: string
+          custom_instructions?: string | null
           id?: string
+          is_archived?: boolean | null
+          messages?: Json | null
+          scope_type?: string | null
+          selected_ids?: string[] | null
           title?: string
+          type?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -94,16 +177,19 @@ export type Database = {
           class_id: string
           created_at: string
           instruction_id: string
+          updated_at: string
         }
         Insert: {
           class_id: string
           created_at?: string
           instruction_id: string
+          updated_at?: string
         }
         Update: {
           class_id?: string
           created_at?: string
           instruction_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -126,17 +212,26 @@ export type Database = {
         Row: {
           class_id: string
           created_at: string
+          custom_content: Json | null
+          custom_rubric_criteria: Json | null
           material_id: string
+          updated_at: string
         }
         Insert: {
           class_id: string
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id: string
+          updated_at?: string
         }
         Update: {
           class_id?: string
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -157,28 +252,64 @@ export type Database = {
       }
       class_students: {
         Row: {
-          attendance: Json | null
+          address: string | null
           behavioral_notes: string | null
           class_id: string
-          grades: Json | null
+          current_grade: string | null
+          current_score: number | null
+          custom_fields: Json | null
+          general_feedback: string | null
+          learning_style: string | null
+          parent_contact: string | null
+          parent_name: string | null
+          parent_notes: string | null
           performance_tier: string | null
+          phone: string | null
+          roll_number: string | null
+          strengths: string[] | null
           student_id: string
+          updated_at: string
+          weaknesses: string[] | null
         }
         Insert: {
-          attendance?: Json | null
+          address?: string | null
           behavioral_notes?: string | null
           class_id: string
-          grades?: Json | null
+          current_grade?: string | null
+          current_score?: number | null
+          custom_fields?: Json | null
+          general_feedback?: string | null
+          learning_style?: string | null
+          parent_contact?: string | null
+          parent_name?: string | null
+          parent_notes?: string | null
           performance_tier?: string | null
+          phone?: string | null
+          roll_number?: string | null
+          strengths?: string[] | null
           student_id: string
+          updated_at?: string
+          weaknesses?: string[] | null
         }
         Update: {
-          attendance?: Json | null
+          address?: string | null
           behavioral_notes?: string | null
           class_id?: string
-          grades?: Json | null
+          current_grade?: string | null
+          current_score?: number | null
+          custom_fields?: Json | null
+          general_feedback?: string | null
+          learning_style?: string | null
+          parent_contact?: string | null
+          parent_name?: string | null
+          parent_notes?: string | null
           performance_tier?: string | null
+          phone?: string | null
+          roll_number?: string | null
+          strengths?: string[] | null
           student_id?: string
+          updated_at?: string
+          weaknesses?: string[] | null
         }
         Relationships: [
           {
@@ -200,52 +331,68 @@ export type Database = {
       classes: {
         Row: {
           academic_year: string | null
-          archived: boolean | null
-          assessment_preferences: string | null
+          assessment_preferences:
+            | Database["public"]["Enums"]["assessment_preference"][]
+            | null
           created_at: string
-          experience_level: string | null
+          experience_level:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           id: string
           institute_id: string | null
+          is_archived: boolean | null
           name: string
           semester: string | null
           special_notes: string | null
           subject: string | null
           teacher_name: string | null
-          teaching_style: string | null
+          teaching_style: Database["public"]["Enums"]["teaching_style"][] | null
           updated_at: string
           user_id: string
         }
         Insert: {
           academic_year?: string | null
-          archived?: boolean | null
-          assessment_preferences?: string | null
+          assessment_preferences?:
+            | Database["public"]["Enums"]["assessment_preference"][]
+            | null
           created_at?: string
-          experience_level?: string | null
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           id?: string
           institute_id?: string | null
+          is_archived?: boolean | null
           name: string
           semester?: string | null
           special_notes?: string | null
           subject?: string | null
           teacher_name?: string | null
-          teaching_style?: string | null
+          teaching_style?:
+            | Database["public"]["Enums"]["teaching_style"][]
+            | null
           updated_at?: string
           user_id: string
         }
         Update: {
           academic_year?: string | null
-          archived?: boolean | null
-          assessment_preferences?: string | null
+          assessment_preferences?:
+            | Database["public"]["Enums"]["assessment_preference"][]
+            | null
           created_at?: string
-          experience_level?: string | null
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           id?: string
           institute_id?: string | null
+          is_archived?: boolean | null
           name?: string
           semester?: string | null
           special_notes?: string | null
           subject?: string | null
           teacher_name?: string | null
-          teaching_style?: string | null
+          teaching_style?:
+            | Database["public"]["Enums"]["teaching_style"][]
+            | null
           updated_at?: string
           user_id?: string
         }
@@ -268,7 +415,7 @@ export type Database = {
           id: string
           name: string
           state: string | null
-          type: string | null
+          type: Database["public"]["Enums"]["institute_type"] | null
         }
         Insert: {
           city?: string | null
@@ -278,7 +425,7 @@ export type Database = {
           id?: string
           name: string
           state?: string | null
-          type?: string | null
+          type?: Database["public"]["Enums"]["institute_type"] | null
         }
         Update: {
           city?: string | null
@@ -288,7 +435,7 @@ export type Database = {
           id?: string
           name?: string
           state?: string | null
-          type?: string | null
+          type?: Database["public"]["Enums"]["institute_type"] | null
         }
         Relationships: []
       }
@@ -297,9 +444,10 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          is_active: boolean | null
+          is_archived: boolean | null
           title: string
-          type: string | null
+          type: Database["public"]["Enums"]["instruction_type"]
+          updated_at: string
           user_id: string
           when_to_apply: string | null
         }
@@ -307,9 +455,10 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          is_active?: boolean | null
+          is_archived?: boolean | null
           title: string
-          type?: string | null
+          type?: Database["public"]["Enums"]["instruction_type"]
+          updated_at?: string
           user_id: string
           when_to_apply?: string | null
         }
@@ -317,9 +466,10 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          is_active?: boolean | null
+          is_archived?: boolean | null
           title?: string
-          type?: string | null
+          type?: Database["public"]["Enums"]["instruction_type"]
+          updated_at?: string
           user_id?: string
           when_to_apply?: string | null
         }
@@ -327,130 +477,217 @@ export type Database = {
       }
       materials: {
         Row: {
-          category: string
-          content_type: string
+          category: Database["public"]["Enums"]["content_category"]
+          content: Json | null
           created_at: string
+          due_at: string | null
           id: string
-          link_urls: string[] | null
+          is_archived: boolean | null
+          max_score: number | null
           name: string
-          size: string | null
-          storage_paths: string[] | null
+          rubric_criteria: Json | null
           tags: string[] | null
+          to_be_scored: boolean | null
+          updated_at: string
           user_id: string
-          version_history: Json | null
         }
         Insert: {
-          category?: string
-          content_type?: string
+          category?: Database["public"]["Enums"]["content_category"]
+          content?: Json | null
           created_at?: string
+          due_at?: string | null
           id?: string
-          link_urls?: string[] | null
+          is_archived?: boolean | null
+          max_score?: number | null
           name: string
-          size?: string | null
-          storage_paths?: string[] | null
+          rubric_criteria?: Json | null
           tags?: string[] | null
+          to_be_scored?: boolean | null
+          updated_at?: string
           user_id: string
-          version_history?: Json | null
         }
         Update: {
-          category?: string
-          content_type?: string
+          category?: Database["public"]["Enums"]["content_category"]
+          content?: Json | null
           created_at?: string
+          due_at?: string | null
           id?: string
-          link_urls?: string[] | null
+          is_archived?: boolean | null
+          max_score?: number | null
           name?: string
-          size?: string | null
-          storage_paths?: string[] | null
+          rubric_criteria?: Json | null
           tags?: string[] | null
+          to_be_scored?: boolean | null
+          updated_at?: string
           user_id?: string
-          version_history?: Json | null
         }
         Relationships: []
       }
-      student_materials: {
+      notification_logs: {
         Row: {
+          announcement_id: string | null
           class_id: string
-          content: string | null
           created_at: string
-          due_at: string | null
-          feedback: string | null
-          grade: string | null
-          graded_at: string | null
+          error_message: string | null
           id: string
-          is_late: boolean | null
           material_id: string | null
-          max_score: number | null
-          private_teacher_notes: string | null
-          rubric_breakdown: Json | null
-          score: number | null
+          notification_type: string
+          recipient_email: string
+          recipient_name: string | null
+          recipient_type: string
+          resend_email_id: string | null
           status: string
-          storage_paths: string[] | null
-          student_id: string
-          submission_type: string
-          submission_urls: string[] | null
-          submitted_at: string | null
+          student_id: string | null
+          submission_id: string | null
+          updated_at: string
         }
         Insert: {
+          announcement_id?: string | null
           class_id: string
-          content?: string | null
           created_at?: string
-          due_at?: string | null
-          feedback?: string | null
-          grade?: string | null
-          graded_at?: string | null
+          error_message?: string | null
           id?: string
-          is_late?: boolean | null
           material_id?: string | null
-          max_score?: number | null
-          private_teacher_notes?: string | null
-          rubric_breakdown?: Json | null
-          score?: number | null
+          notification_type: string
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_type: string
+          resend_email_id?: string | null
           status?: string
-          storage_paths?: string[] | null
-          student_id: string
-          submission_type?: string
-          submission_urls?: string[] | null
-          submitted_at?: string | null
+          student_id?: string | null
+          submission_id?: string | null
+          updated_at?: string
         }
         Update: {
+          announcement_id?: string | null
           class_id?: string
-          content?: string | null
           created_at?: string
-          due_at?: string | null
-          feedback?: string | null
-          grade?: string | null
-          graded_at?: string | null
+          error_message?: string | null
           id?: string
-          is_late?: boolean | null
           material_id?: string | null
-          max_score?: number | null
-          private_teacher_notes?: string | null
-          rubric_breakdown?: Json | null
-          score?: number | null
+          notification_type?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_type?: string
+          resend_email_id?: string | null
           status?: string
-          storage_paths?: string[] | null
-          student_id?: string
-          submission_type?: string
-          submission_urls?: string[] | null
-          submitted_at?: string | null
+          student_id?: string | null
+          submission_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "student_materials_class_id_fkey"
+            foreignKeyName: "notification_logs_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_materials_material_id_fkey"
+            foreignKeyName: "notification_logs_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_materials_student_id_fkey"
+            foreignKeyName: "notification_logs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "student_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_submissions: {
+        Row: {
+          class_id: string
+          content: Json | null
+          created_at: string
+          due_at: string | null
+          feedback: string | null
+          grade: string | null
+          id: string
+          is_late: boolean | null
+          material_id: string | null
+          private_teacher_notes: string | null
+          reviewed_at: string | null
+          rubric_breakdown: Json | null
+          score: number | null
+          status: Database["public"]["Enums"]["submission_status"]
+          student_id: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          content?: Json | null
+          created_at?: string
+          due_at?: string | null
+          feedback?: string | null
+          grade?: string | null
+          id?: string
+          is_late?: boolean | null
+          material_id?: string | null
+          private_teacher_notes?: string | null
+          reviewed_at?: string | null
+          rubric_breakdown?: Json | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          student_id: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          content?: Json | null
+          created_at?: string
+          due_at?: string | null
+          feedback?: string | null
+          grade?: string | null
+          id?: string
+          is_late?: boolean | null
+          material_id?: string | null
+          private_teacher_notes?: string | null
+          reviewed_at?: string | null
+          rubric_breakdown?: Json | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          student_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_submissions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_submissions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_submissions_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
@@ -464,33 +701,27 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
-          learning_style: string | null
+          is_archived: boolean | null
           name: string
-          strengths: string[] | null
-          user_id: string
-          weaknesses: string[] | null
+          updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
-          id?: string
-          learning_style?: string | null
+          id: string
+          is_archived?: boolean | null
           name: string
-          strengths?: string[] | null
-          user_id: string
-          weaknesses?: string[] | null
+          updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
-          learning_style?: string | null
+          is_archived?: boolean | null
           name?: string
-          strengths?: string[] | null
-          user_id?: string
-          weaknesses?: string[] | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -499,16 +730,19 @@ export type Database = {
           created_at: string
           instruction_id: string
           template_id: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           instruction_id: string
           template_id: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           instruction_id?: string
           template_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -530,18 +764,27 @@ export type Database = {
       template_materials: {
         Row: {
           created_at: string
+          custom_content: Json | null
+          custom_rubric_criteria: Json | null
           material_id: string
           template_id: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id: string
           template_id: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          custom_content?: Json | null
+          custom_rubric_criteria?: Json | null
           material_id?: string
           template_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -562,39 +805,61 @@ export type Database = {
       }
       templates: {
         Row: {
+          assessment_preferences:
+            | Database["public"]["Enums"]["assessment_preference"][]
+            | null
           created_at: string
           description: string | null
+          experience_level:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           id: string
           institute_id: string | null
-          instructions: Json | null
-          materials_preset: Json | null
+          is_archived: boolean | null
           name: string
           subject: string | null
-          teaching_style: string | null
+          teaching_style: Database["public"]["Enums"]["teaching_style"][] | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          assessment_preferences?:
+            | Database["public"]["Enums"]["assessment_preference"][]
+            | null
           created_at?: string
           description?: string | null
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           id?: string
           institute_id?: string | null
-          instructions?: Json | null
-          materials_preset?: Json | null
+          is_archived?: boolean | null
           name: string
           subject?: string | null
-          teaching_style?: string | null
+          teaching_style?:
+            | Database["public"]["Enums"]["teaching_style"][]
+            | null
+          updated_at?: string
           user_id: string
         }
         Update: {
+          assessment_preferences?:
+            | Database["public"]["Enums"]["assessment_preference"][]
+            | null
           created_at?: string
           description?: string | null
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           id?: string
           institute_id?: string | null
-          instructions?: Json | null
-          materials_preset?: Json | null
+          is_archived?: boolean | null
           name?: string
           subject?: string | null
-          teaching_style?: string | null
+          teaching_style?:
+            | Database["public"]["Enums"]["teaching_style"][]
+            | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -612,6 +877,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_student_to_class: {
+        Args: {
+          p_behavioral_notes: string
+          p_class_id: string
+          p_current_grade: string
+          p_current_score: number
+          p_general_feedback: string
+          p_learning_style: string
+          p_performance_tier: string
+          p_strengths: string[]
+          p_student_id: string
+          p_weaknesses: string[]
+        }
+        Returns: string
+      }
+      archive_material: { Args: { p_material_id: string }; Returns: boolean }
+      check_workspace_modifications: {
+        Args: { p_client_timestamps?: Json }
+        Returns: Json
+      }
+      delete_material: { Args: { p_material_id: string }; Returns: string[] }
+      delete_submission_atomic: {
+        Args: { p_submission_id: string }
+        Returns: string[]
+      }
+      get_workspace_last_modified: {
+        Args: { p_client_timestamps?: Json }
+        Returns: Json
+      }
+      is_class_teacher: { Args: { lookup_class_id: string }; Returns: boolean }
       search_cities: {
         Args: { search_term: string }
         Returns: {
@@ -640,7 +935,7 @@ export type Database = {
           id: string
           name: string
           state: string | null
-          type: string | null
+          type: Database["public"]["Enums"]["institute_type"] | null
         }[]
         SetofOptions: {
           from: "*"
@@ -655,9 +950,76 @@ export type Database = {
           result: string
         }[]
       }
+      unlink_material_from_class: {
+        Args: { p_class_id: string; p_material_id: string }
+        Returns: boolean
+      }
+      update_material_contents: {
+        Args: { p_diff_array: Json; p_record_id: string; p_table_name: string }
+        Returns: string[]
+      }
+      validate_content_array: { Args: { arr: Json }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      assessment_preference:
+        | "Multiple Choice"
+        | "Short Answer"
+        | "Essays"
+        | "Presentations"
+        | "Single Project"
+        | "Group Projects"
+        | "Oral Exams"
+        | "Peer Review"
+      attendance_status: "Present" | "Absent" | "Late" | "Excused"
+      content_category:
+        | "Study Material"
+        | "Note"
+        | "Assigned Book"
+        | "Link"
+        | "Practical"
+        | "Assignment"
+        | "Test"
+        | "Exam"
+      content_type: "File" | "URL" | "Text"
+      experience_level: "Beginner" | "Intermediate" | "Advanced" | "Mixed"
+      institute_type:
+        | "Primary School"
+        | "Middle School"
+        | "High School"
+        | "K-12"
+        | "College"
+        | "University"
+        | "Vocational School"
+        | "Tutoring Center"
+        | "Private Tutor"
+        | "Freelancer"
+        | "Training Agency"
+        | "Online Academy"
+        | "Homeschool Co-op"
+        | "Other"
+      instruction_type:
+        | "System Persona"
+        | "Grading Rubric"
+        | "Lesson Plan Guideline"
+        | "Material Generation Rule"
+        | "Student Interaction Rule"
+        | "Assessment Creation Rule"
+        | "Content Filtering Rule"
+        | "General Policy"
+      submission_status:
+        | "Assigned"
+        | "Pending"
+        | "Submitted"
+        | "Evaluated"
+        | "Graded"
+      teaching_style:
+        | "Lecture"
+        | "Socratic Method"
+        | "Interactive"
+        | "Project-Based"
+        | "Flipped Classroom"
+        | "Discussion-Based"
+        | "Hands-On"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -673,12 +1035,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -702,11 +1064,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -727,11 +1089,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -752,11 +1114,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -769,11 +1131,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -784,7 +1146,73 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      assessment_preference: [
+        "Multiple Choice",
+        "Short Answer",
+        "Essays",
+        "Presentations",
+        "Single Project",
+        "Group Projects",
+        "Oral Exams",
+        "Peer Review",
+      ],
+      attendance_status: ["Present", "Absent", "Late", "Excused"],
+      content_category: [
+        "Study Material",
+        "Note",
+        "Assigned Book",
+        "Link",
+        "Practical",
+        "Assignment",
+        "Test",
+        "Exam",
+      ],
+      content_type: ["File", "URL", "Text"],
+      experience_level: ["Beginner", "Intermediate", "Advanced", "Mixed"],
+      institute_type: [
+        "Primary School",
+        "Middle School",
+        "High School",
+        "K-12",
+        "College",
+        "University",
+        "Vocational School",
+        "Tutoring Center",
+        "Private Tutor",
+        "Freelancer",
+        "Training Agency",
+        "Online Academy",
+        "Homeschool Co-op",
+        "Other",
+      ],
+      instruction_type: [
+        "System Persona",
+        "Grading Rubric",
+        "Lesson Plan Guideline",
+        "Material Generation Rule",
+        "Student Interaction Rule",
+        "Assessment Creation Rule",
+        "Content Filtering Rule",
+        "General Policy",
+      ],
+      submission_status: [
+        "Assigned",
+        "Pending",
+        "Submitted",
+        "Evaluated",
+        "Graded",
+      ],
+      teaching_style: [
+        "Lecture",
+        "Socratic Method",
+        "Interactive",
+        "Project-Based",
+        "Flipped Classroom",
+        "Discussion-Based",
+        "Hands-On",
+      ],
+    },
   },
 } as const
 

@@ -2,7 +2,7 @@
 name = "teacher-assistant-backend"
 version = "0.1.0"
 description = "FastAPI backend using LangChain & OpenRouter"
-readme = "README.md"
+readme = "code.DESC.md"
 requires-python = ">=3.13,<3.14"
 
 dependencies = [
@@ -32,3 +32,24 @@ format = "ruff format ."
 
 [tool.uv]
 package = false
+
+[tool.ruff]
+target-version = "py313"
+exclude = [
+    ".venv",
+    "src/types/db.py",
+]
+
+[tool.ruff.lint]
+per-file-ignores = { "src/types/db.py" = ["ALL"] }
+
+[tool.basedpyright]
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "src/types/db.py",
+]
+ignore = [
+    "src/types/db.py",
+]

@@ -20,6 +20,8 @@ Thumbs.db
 
 # Logs
 *.log
+*.jsonl
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -49,6 +51,8 @@ service-account.json
 .prettiercache
 .turbo/
 .temp
+.scratch/
+.ua/
 .supabase
 # Version control leftovers
 *.orig

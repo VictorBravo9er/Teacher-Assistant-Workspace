@@ -1,6 +1,21 @@
 {
   "venvPath": "backend",
   "venv": ".venv",
+  "include": [
+    "backend/src",
+    "scripts"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.venv",
+    "**/.temp",
+    "backend/src/types/db.py"
+  ],
+  "ignore": [
+    "backend/src/types/db.py",
+    "**/src/types/db.py"
+  ],
   "executionEnvironments": [
     {
       "root": "backend"

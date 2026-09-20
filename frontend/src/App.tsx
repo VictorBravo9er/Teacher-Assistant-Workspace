@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import LandingPage from './components/LandingPage';
-import AuthPage from './components/AuthPage';
-import ClassApp from './components/ClassApp';
-import { useAuth } from './contexts/AuthContext';
+import LandingPage from '@/views/LandingPage';
+import AuthPage from '@/views/AuthPage';
+import ClassApp from '@/views/ClassApp';
+import StudentApp from '@/views/StudentApp';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/hooks/useTheme';
 
 type ViewMode = 'landing' | 'auth' | 'app';
 
@@ -15,7 +17,9 @@ const getInitialView = (): ViewMode => {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>(getInitialView);
-  const { session, isInitializing } = useAuth();
+  const { session, role, isInitializing } = useAuth();
+  // Initializes global theme listener and synchronization
+  useTheme();
 
   const navigateTo = useCallback((view: ViewMode) => {
     let targetPath = '/';
@@ -49,51 +53,15 @@ export default function App() {
     };
   }, [navigateTo]);
 
-  // Apply system theme by default across all views (LandingPage, AuthPage, ClassApp)
-  useEffect(() => {
-    const applyGlobalTheme = () => {
-      const savedTheme = (localStorage.getItem('edu_rag_theme') as 'system' | 'light' | 'dark') || 'system';
-      const root = window.document.documentElement;
-
-      if (savedTheme === 'dark') {
-        root.classList.add('dark');
-      } else if (savedTheme === 'light') {
-        root.classList.remove('dark');
-      } else {
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (systemPrefersDark) {
-          root.classList.add('dark');
-        } else {
-          root.classList.remove('dark');
-        }
-      }
-    };
-
-    applyGlobalTheme();
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => applyGlobalTheme();
-    mediaQuery.addEventListener('change', handleChange);
-    window.addEventListener('storage', handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-      window.removeEventListener('storage', handleChange);
-    };
-  }, []);
-
   // Sync view based on session changes without blocking logged-in users from viewing the landing page
   useEffect(() => {
     if (isInitializing) return;
 
     if (session) {
-      // If user logs in while on auth page, redirect them to dashboard
       if (currentView === 'auth') {
         navigateTo('app');
       }
-      // Note: If currentView === 'landing', we let them stay on the landing page!
     } else {
-      // If unauthenticated user tries to view dashboard, redirect to auth page
       if (currentView === 'app') {
         navigateTo('auth');
       }
@@ -113,8 +81,7 @@ export default function App() {
         />
       )}
       {currentView === 'auth' && <AuthPage onBack={() => navigateTo('landing')} />}
-      {currentView === 'app' && <ClassApp />}
+      {currentView === 'app' && (role === 'student' ? <StudentApp /> : <ClassApp />)}
     </>
   );
 }
-

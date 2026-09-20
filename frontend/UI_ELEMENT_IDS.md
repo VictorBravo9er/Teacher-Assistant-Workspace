@@ -4,7 +4,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 1. Main Navigation & Sidebar (`Sidebar.tsx`)
+## 1. Main Navigation & Sidebar (`components/layout/Sidebar.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -34,7 +34,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 2. Top Header & Layout Controls (`ClassApp.tsx`)
+## 2. Top Header & Layout Controls (`views/ClassApp.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -52,7 +52,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 3. Class Details & Configuration (`ClassDetails.tsx`)
+## 3. Class Details & Configuration (`features/classroom/ClassDetails.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -69,7 +69,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 4. RAG AI Diagnostics & Chat (`RAGClass.tsx`)
+## 4. RAG AI Diagnostics & Chat (`features/ai-assistant/RAGClass.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -86,7 +86,7 @@ This document organizes and lists all important element `id` attributes assigned
 
 ---
 
-## 5. Roster & Student Management (`StudentRegister.tsx`)
+## 5. Roster & Student Management (`features/students/StudentRegister.tsx`)
 
 | Element ID | Description / Component Role |
 | :--- | :--- |
@@ -125,3 +125,30 @@ This document organizes and lists all important element `id` attributes assigned
 | `auth-password-input` | Input field for user password |
 | `auth-submit-button` | Primary button for Sign In / Sign Up submission |
 | `auth-toggle-mode-button` | Link/button to switch between Sign In and Sign Up modes |
+
+---
+
+## 8. Public Landing Page (`LandingPage.tsx`)
+
+| Element ID | Description / Component Role |
+| :--- | :--- |
+| `landing-nav-logo` | Brand logo in top navigation header |
+| `landing-nav-features-link` | Nav anchor button jumping to features section |
+| `landing-nav-workflow-link` | Nav anchor button jumping to workflow section |
+| `landing-nav-architecture-link` | Nav anchor button jumping to architecture section |
+| `landing-nav-glipse-link` | External link badge to Glipse Technologies website |
+| `landing-nav-auth-btn` | Header button to launch Dashboard or Sign In modal |
+| `landing-hero-get-started-btn` | Primary hero CTA button to get started / go to dashboard |
+| `landing-hero-explore-btn` | Secondary hero button to explore platform capabilities |
+| `landing-glipse-about-link` | Link to Glipse Technologies in architecture overview section |
+| `landing-cta-launch-btn` | Bottom banner primary CTA to launch workspace |
+| `landing-footer-brand-logo` | Footer brand logo button |
+| `landing-footer-glipse-link` | Footer link to Glipse Technologies Pvt. Ltd. |
+| `landing-footer-clerko-link` | Footer link to Clerko AI companion |
+| `grading-simulator-container` | Root container for the 3D animated grading simulator |
+| `grading-simulator-play-toggle-btn` | Button to toggle auto-play and pause on the simulator |
+| `grading-simulator-reset-btn` | Button to reset simulator back to Step 1 |
+| `grading-simulator-step-btn-${stepId}` | Quick-jump stepper buttons (0-5) across simulation phases |
+| `grading-simulator-accept-action-btn` | Simulated teacher approval action button |
+
+
