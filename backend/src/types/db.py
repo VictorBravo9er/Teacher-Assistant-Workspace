@@ -24,7 +24,7 @@ AuthCodeChallengeMethod: TypeAlias = Literal["s256", "plain"]
 
 AuthFactorStatus: TypeAlias = Literal["unverified", "verified"]
 
-AuthFactorType: TypeAlias = Literal["totp", "webauthn", "phone"]
+AuthFactorType: TypeAlias = Literal["totp", "webauthn", "phone", "recovery_code"]
 
 AuthOauthAuthorizationStatus: TypeAlias = Literal["pending", "approved", "denied", "expired"]
 
@@ -60,6 +60,51 @@ RealtimeEqualityOp: TypeAlias = Literal["eq", "neq", "lt", "lte", "gt", "gte", "
 
 StorageBuckettype: TypeAlias = Literal["STANDARD", "ANALYTICS", "VECTOR"]
 
+class PublicSchemaMigrations(BaseModel):
+    applied_at: datetime.datetime = Field(alias="applied_at")
+    name: str = Field(alias="name")
+    version: str = Field(alias="version")
+
+class PublicSchemaMigrationsInsert(TypedDict):
+    applied_at: NotRequired[Annotated[datetime.datetime, Field(alias="applied_at")]]
+    name: Annotated[str, Field(alias="name")]
+    version: Annotated[str, Field(alias="version")]
+
+class PublicSchemaMigrationsUpdate(TypedDict):
+    applied_at: NotRequired[Annotated[datetime.datetime, Field(alias="applied_at")]]
+    name: NotRequired[Annotated[str, Field(alias="name")]]
+    version: NotRequired[Annotated[str, Field(alias="version")]]
+
+class PublicAnnouncements(BaseModel):
+    author_id: uuid.UUID = Field(alias="author_id")
+    class_id: uuid.UUID = Field(alias="class_id")
+    content: str = Field(alias="content")
+    created_at: datetime.datetime = Field(alias="created_at")
+    id: uuid.UUID = Field(alias="id")
+    is_pinned: bool = Field(alias="is_pinned")
+    title: str = Field(alias="title")
+    updated_at: datetime.datetime = Field(alias="updated_at")
+
+class PublicAnnouncementsInsert(TypedDict):
+    author_id: Annotated[uuid.UUID, Field(alias="author_id")]
+    class_id: Annotated[uuid.UUID, Field(alias="class_id")]
+    content: Annotated[str, Field(alias="content")]
+    created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    is_pinned: NotRequired[Annotated[bool, Field(alias="is_pinned")]]
+    title: Annotated[str, Field(alias="title")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
+
+class PublicAnnouncementsUpdate(TypedDict):
+    author_id: NotRequired[Annotated[uuid.UUID, Field(alias="author_id")]]
+    class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
+    content: NotRequired[Annotated[str, Field(alias="content")]]
+    created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    is_pinned: NotRequired[Annotated[bool, Field(alias="is_pinned")]]
+    title: NotRequired[Annotated[str, Field(alias="title")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
+
 class PublicAttendanceRecords(BaseModel):
     class_id: uuid.UUID = Field(alias="class_id")
     created_at: datetime.datetime = Field(alias="created_at")
@@ -68,6 +113,7 @@ class PublicAttendanceRecords(BaseModel):
     notes: Optional[str] = Field(alias="notes")
     status: PublicAttendanceStatus = Field(alias="status")
     student_id: uuid.UUID = Field(alias="student_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicAttendanceRecordsInsert(TypedDict):
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
@@ -77,6 +123,7 @@ class PublicAttendanceRecordsInsert(TypedDict):
     notes: NotRequired[Annotated[Optional[str], Field(alias="notes")]]
     status: Annotated[PublicAttendanceStatus, Field(alias="status")]
     student_id: Annotated[uuid.UUID, Field(alias="student_id")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicAttendanceRecordsUpdate(TypedDict):
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
@@ -86,6 +133,7 @@ class PublicAttendanceRecordsUpdate(TypedDict):
     notes: NotRequired[Annotated[Optional[str], Field(alias="notes")]]
     status: NotRequired[Annotated[PublicAttendanceStatus, Field(alias="status")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicChatSessions(BaseModel):
     class_id: Optional[uuid.UUID] = Field(alias="class_id")
@@ -133,16 +181,19 @@ class PublicClassInstructions(BaseModel):
     class_id: uuid.UUID = Field(alias="class_id")
     created_at: datetime.datetime = Field(alias="created_at")
     instruction_id: uuid.UUID = Field(alias="instruction_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicClassInstructionsInsert(TypedDict):
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     instruction_id: Annotated[uuid.UUID, Field(alias="instruction_id")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicClassInstructionsUpdate(TypedDict):
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     instruction_id: NotRequired[Annotated[uuid.UUID, Field(alias="instruction_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicClassMaterials(BaseModel):
     class_id: uuid.UUID = Field(alias="class_id")
@@ -150,6 +201,7 @@ class PublicClassMaterials(BaseModel):
     custom_content: Optional[Json[Any]] = Field(alias="custom_content")
     custom_rubric_criteria: Optional[Json[Any]] = Field(alias="custom_rubric_criteria")
     material_id: uuid.UUID = Field(alias="material_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicClassMaterialsInsert(TypedDict):
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
@@ -157,6 +209,7 @@ class PublicClassMaterialsInsert(TypedDict):
     custom_content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_content")]]
     custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: Annotated[uuid.UUID, Field(alias="material_id")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicClassMaterialsUpdate(TypedDict):
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
@@ -164,6 +217,7 @@ class PublicClassMaterialsUpdate(TypedDict):
     custom_content: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_content")]]
     custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: NotRequired[Annotated[uuid.UUID, Field(alias="material_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicClassStudents(BaseModel):
     address: Optional[str] = Field(alias="address")
@@ -182,6 +236,7 @@ class PublicClassStudents(BaseModel):
     roll_number: Optional[str] = Field(alias="roll_number")
     strengths: Optional[List[str]] = Field(alias="strengths")
     student_id: uuid.UUID = Field(alias="student_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
     weaknesses: Optional[List[str]] = Field(alias="weaknesses")
 
 class PublicClassStudentsInsert(TypedDict):
@@ -201,6 +256,7 @@ class PublicClassStudentsInsert(TypedDict):
     roll_number: NotRequired[Annotated[Optional[str], Field(alias="roll_number")]]
     strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
     student_id: Annotated[uuid.UUID, Field(alias="student_id")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicClassStudentsUpdate(TypedDict):
@@ -220,6 +276,7 @@ class PublicClassStudentsUpdate(TypedDict):
     roll_number: NotRequired[Annotated[Optional[str], Field(alias="roll_number")]]
     strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicClasses(BaseModel):
@@ -310,6 +367,7 @@ class PublicInstructions(BaseModel):
     is_archived: Optional[bool] = Field(alias="is_archived")
     title: str = Field(alias="title")
     type: PublicInstructionType = Field(alias="type")
+    updated_at: datetime.datetime = Field(alias="updated_at")
     user_id: uuid.UUID = Field(alias="user_id")
     when_to_apply: Optional[str] = Field(alias="when_to_apply")
 
@@ -320,6 +378,7 @@ class PublicInstructionsInsert(TypedDict):
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
     title: Annotated[str, Field(alias="title")]
     type: NotRequired[Annotated[PublicInstructionType, Field(alias="type")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: Annotated[uuid.UUID, Field(alias="user_id")]
     when_to_apply: NotRequired[Annotated[Optional[str], Field(alias="when_to_apply")]]
 
@@ -330,6 +389,7 @@ class PublicInstructionsUpdate(TypedDict):
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
     title: NotRequired[Annotated[str, Field(alias="title")]]
     type: NotRequired[Annotated[PublicInstructionType, Field(alias="type")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]
     when_to_apply: NotRequired[Annotated[Optional[str], Field(alias="when_to_apply")]]
 
@@ -345,6 +405,7 @@ class PublicMaterials(BaseModel):
     rubric_criteria: Optional[Json[Any]] = Field(alias="rubric_criteria")
     tags: Optional[List[str]] = Field(alias="tags")
     to_be_scored: Optional[bool] = Field(alias="to_be_scored")
+    updated_at: datetime.datetime = Field(alias="updated_at")
     user_id: uuid.UUID = Field(alias="user_id")
 
 class PublicMaterialsInsert(TypedDict):
@@ -359,6 +420,7 @@ class PublicMaterialsInsert(TypedDict):
     rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="rubric_criteria")]]
     tags: NotRequired[Annotated[Optional[List[str]], Field(alias="tags")]]
     to_be_scored: NotRequired[Annotated[Optional[bool], Field(alias="to_be_scored")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: Annotated[uuid.UUID, Field(alias="user_id")]
 
 class PublicMaterialsUpdate(TypedDict):
@@ -373,7 +435,59 @@ class PublicMaterialsUpdate(TypedDict):
     rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="rubric_criteria")]]
     tags: NotRequired[Annotated[Optional[List[str]], Field(alias="tags")]]
     to_be_scored: NotRequired[Annotated[Optional[bool], Field(alias="to_be_scored")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]
+
+class PublicNotificationLogs(BaseModel):
+    announcement_id: Optional[uuid.UUID] = Field(alias="announcement_id")
+    class_id: uuid.UUID = Field(alias="class_id")
+    created_at: datetime.datetime = Field(alias="created_at")
+    error_message: Optional[str] = Field(alias="error_message")
+    id: uuid.UUID = Field(alias="id")
+    material_id: Optional[uuid.UUID] = Field(alias="material_id")
+    notification_type: str = Field(alias="notification_type")
+    recipient_email: str = Field(alias="recipient_email")
+    recipient_name: Optional[str] = Field(alias="recipient_name")
+    recipient_type: str = Field(alias="recipient_type")
+    resend_email_id: Optional[str] = Field(alias="resend_email_id")
+    status: str = Field(alias="status")
+    student_id: Optional[uuid.UUID] = Field(alias="student_id")
+    submission_id: Optional[uuid.UUID] = Field(alias="submission_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
+
+class PublicNotificationLogsInsert(TypedDict):
+    announcement_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="announcement_id")]]
+    class_id: Annotated[uuid.UUID, Field(alias="class_id")]
+    created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    error_message: NotRequired[Annotated[Optional[str], Field(alias="error_message")]]
+    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    material_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="material_id")]]
+    notification_type: Annotated[str, Field(alias="notification_type")]
+    recipient_email: Annotated[str, Field(alias="recipient_email")]
+    recipient_name: NotRequired[Annotated[Optional[str], Field(alias="recipient_name")]]
+    recipient_type: Annotated[str, Field(alias="recipient_type")]
+    resend_email_id: NotRequired[Annotated[Optional[str], Field(alias="resend_email_id")]]
+    status: NotRequired[Annotated[str, Field(alias="status")]]
+    student_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="student_id")]]
+    submission_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="submission_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
+
+class PublicNotificationLogsUpdate(TypedDict):
+    announcement_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="announcement_id")]]
+    class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
+    created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
+    error_message: NotRequired[Annotated[Optional[str], Field(alias="error_message")]]
+    id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
+    material_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="material_id")]]
+    notification_type: NotRequired[Annotated[str, Field(alias="notification_type")]]
+    recipient_email: NotRequired[Annotated[str, Field(alias="recipient_email")]]
+    recipient_name: NotRequired[Annotated[Optional[str], Field(alias="recipient_name")]]
+    recipient_type: NotRequired[Annotated[str, Field(alias="recipient_type")]]
+    resend_email_id: NotRequired[Annotated[Optional[str], Field(alias="resend_email_id")]]
+    status: NotRequired[Annotated[str, Field(alias="status")]]
+    student_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="student_id")]]
+    submission_id: NotRequired[Annotated[Optional[uuid.UUID], Field(alias="submission_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicStudentSubmissions(BaseModel):
     class_id: uuid.UUID = Field(alias="class_id")
@@ -392,6 +506,7 @@ class PublicStudentSubmissions(BaseModel):
     status: PublicSubmissionStatus = Field(alias="status")
     student_id: uuid.UUID = Field(alias="student_id")
     submitted_at: Optional[datetime.datetime] = Field(alias="submitted_at")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicStudentSubmissionsInsert(TypedDict):
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
@@ -410,6 +525,7 @@ class PublicStudentSubmissionsInsert(TypedDict):
     status: NotRequired[Annotated[PublicSubmissionStatus, Field(alias="status")]]
     student_id: Annotated[uuid.UUID, Field(alias="student_id")]
     submitted_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="submitted_at")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicStudentSubmissionsUpdate(TypedDict):
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
@@ -428,6 +544,7 @@ class PublicStudentSubmissionsUpdate(TypedDict):
     status: NotRequired[Annotated[PublicSubmissionStatus, Field(alias="status")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
     submitted_at: NotRequired[Annotated[Optional[datetime.datetime], Field(alias="submitted_at")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicStudents(BaseModel):
     avatar_url: Optional[str] = Field(alias="avatar_url")
@@ -436,6 +553,7 @@ class PublicStudents(BaseModel):
     id: uuid.UUID = Field(alias="id")
     is_archived: Optional[bool] = Field(alias="is_archived")
     name: str = Field(alias="name")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicStudentsInsert(TypedDict):
     avatar_url: NotRequired[Annotated[Optional[str], Field(alias="avatar_url")]]
@@ -444,6 +562,7 @@ class PublicStudentsInsert(TypedDict):
     id: Annotated[uuid.UUID, Field(alias="id")]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
     name: Annotated[str, Field(alias="name")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicStudentsUpdate(TypedDict):
     avatar_url: NotRequired[Annotated[Optional[str], Field(alias="avatar_url")]]
@@ -452,21 +571,25 @@ class PublicStudentsUpdate(TypedDict):
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
     name: NotRequired[Annotated[str, Field(alias="name")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicTemplateInstructions(BaseModel):
     created_at: datetime.datetime = Field(alias="created_at")
     instruction_id: uuid.UUID = Field(alias="instruction_id")
     template_id: uuid.UUID = Field(alias="template_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicTemplateInstructionsInsert(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     instruction_id: Annotated[uuid.UUID, Field(alias="instruction_id")]
     template_id: Annotated[uuid.UUID, Field(alias="template_id")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicTemplateInstructionsUpdate(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     instruction_id: NotRequired[Annotated[uuid.UUID, Field(alias="instruction_id")]]
     template_id: NotRequired[Annotated[uuid.UUID, Field(alias="template_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicTemplateMaterials(BaseModel):
     created_at: datetime.datetime = Field(alias="created_at")
@@ -474,6 +597,7 @@ class PublicTemplateMaterials(BaseModel):
     custom_rubric_criteria: Optional[Json[Any]] = Field(alias="custom_rubric_criteria")
     material_id: uuid.UUID = Field(alias="material_id")
     template_id: uuid.UUID = Field(alias="template_id")
+    updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicTemplateMaterialsInsert(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
@@ -481,6 +605,7 @@ class PublicTemplateMaterialsInsert(TypedDict):
     custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: Annotated[uuid.UUID, Field(alias="material_id")]
     template_id: Annotated[uuid.UUID, Field(alias="template_id")]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicTemplateMaterialsUpdate(TypedDict):
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
@@ -488,6 +613,7 @@ class PublicTemplateMaterialsUpdate(TypedDict):
     custom_rubric_criteria: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_rubric_criteria")]]
     material_id: NotRequired[Annotated[uuid.UUID, Field(alias="material_id")]]
     template_id: NotRequired[Annotated[uuid.UUID, Field(alias="template_id")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicTemplates(BaseModel):
     assessment_preferences: Optional[List[PublicAssessmentPreference]] = Field(alias="assessment_preferences")
@@ -500,6 +626,7 @@ class PublicTemplates(BaseModel):
     name: str = Field(alias="name")
     subject: Optional[str] = Field(alias="subject")
     teaching_style: Optional[List[PublicTeachingStyle]] = Field(alias="teaching_style")
+    updated_at: datetime.datetime = Field(alias="updated_at")
     user_id: uuid.UUID = Field(alias="user_id")
 
 class PublicTemplatesInsert(TypedDict):
@@ -513,6 +640,7 @@ class PublicTemplatesInsert(TypedDict):
     name: Annotated[str, Field(alias="name")]
     subject: NotRequired[Annotated[Optional[str], Field(alias="subject")]]
     teaching_style: NotRequired[Annotated[Optional[List[PublicTeachingStyle]], Field(alias="teaching_style")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: Annotated[uuid.UUID, Field(alias="user_id")]
 
 class PublicTemplatesUpdate(TypedDict):
@@ -526,4 +654,5 @@ class PublicTemplatesUpdate(TypedDict):
     name: NotRequired[Annotated[str, Field(alias="name")]]
     subject: NotRequired[Annotated[Optional[str], Field(alias="subject")]]
     teaching_style: NotRequired[Annotated[Optional[List[PublicTeachingStyle]], Field(alias="teaching_style")]]
+    updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
     user_id: NotRequired[Annotated[uuid.UUID, Field(alias="user_id")]]

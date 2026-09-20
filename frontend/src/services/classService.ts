@@ -4,6 +4,69 @@ import { studentService } from '@/services/studentService';
 import { chatService } from '@/services/chatService';
 import { logger } from '@/lib/logger';
 
+function mapDbRowToClassModel(c: any, students: Student[], ragSessions: RAGSession[]): ClassModel {
+  return {
+    id: c.id,
+    instituteId: c.institute_id,
+    instituteName: c.institutes?.name,
+    instituteAddress: c.institutes ? [c.institutes.city, c.institutes.state, c.institutes.country].filter(Boolean).join(', ') : undefined,
+    name: c.name,
+    academicYear: c.academic_year || '',
+    semester: c.semester || '',
+    subject: c.subject || '',
+    teacherName: c.teacher_name || '',
+    teachingStyle: c.teaching_style || [],
+    experienceLevel: c.experience_level || '',
+    specialNotes: c.special_notes || '',
+    assessmentPreferences: c.assessment_preferences || [],
+    isArchived: Boolean(c.is_archived),
+    
+    materials: (c.class_materials || []).map((cm: any) => {
+      const m = cm.materials;
+      if (!m) return null;
+      const canonicalContent = (m.content || []).map((ci: any) => ({ ...ci, isShared: true }));
+      const customContent = (cm.custom_content || []).map((ci: any) => ({ ...ci, isPrivate: true }));
+      const mergedContent = [...canonicalContent, ...customContent];
+
+      const canonicalRubric = (m.rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: false }));
+      const customRubric = (cm.custom_rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: true }));
+      const augmentedRubric = [...canonicalRubric, ...customRubric];
+
+      return {
+        id: m.id,
+        name: m.name,
+        category: m.category,
+        content: mergedContent,
+        customContent: cm.custom_content || [],
+        uploadDate: m.created_at,
+        size: m.size,
+        tags: m.tags || [],
+        dueAt: m.due_at,
+        maxScore: m.max_score,
+        toBeScored: m.to_be_scored || false,
+        rubricCriteria: augmentedRubric,
+        customRubricCriteria: cm.custom_rubric_criteria || [],
+        versionHistory: m.version_history,
+        isShared: true,
+      } as Material;
+    }).filter(Boolean) as Material[],
+
+    instructions: (c.class_instructions || []).map((ci: any) => {
+      const i = ci.instructions;
+      return {
+        id: i.id,
+        title: i.title,
+        type: i.type,
+        content: i.content,
+        whenToApply: i.when_to_apply,
+      } as Instruction;
+    }),
+
+    students,
+    ragSessions,
+  };
+}
+
 export const classService = {
   async fetchClasses(): Promise<ClassModel[]> {
     return logger.measure('CLASS_SERVICE', 'fetchClasses', async () => {
@@ -25,80 +88,46 @@ export const classService = {
         throw error;
       }
 
-    const classes: ClassModel[] = await Promise.all(
-      data.map(async (c: any) => {
-        // Fetch students and sessions in parallel for each class
-        // In a real optimized scenario, we'd probably want to lazy load these or do a more complex join, 
-        // but for now we follow the existing model structure.
-        const [students, ragSessions] = await Promise.all([
-          studentService.fetchStudentsForClass(c.id).catch(() => [] as Student[]),
-          chatService.fetchSessions(c.id).catch(() => [] as RAGSession[])
-        ]);
+      const classes: ClassModel[] = await Promise.all(
+        data.map(async (c: any) => {
+          const [students, ragSessions] = await Promise.all([
+            studentService.fetchStudentsForClass(c.id).catch(() => [] as Student[]),
+            chatService.fetchSessions(c.id).catch(() => [] as RAGSession[])
+          ]);
+          return mapDbRowToClassModel(c, students, ragSessions);
+        })
+      );
 
-        return {
-          id: c.id,
-          instituteId: c.institute_id,
-          instituteName: c.institutes?.name,
-          instituteAddress: c.institutes ? [c.institutes.city, c.institutes.state, c.institutes.country].filter(Boolean).join(', ') : undefined,
-          name: c.name,
-          academicYear: c.academic_year || '',
-          semester: c.semester || '',
-          subject: c.subject || '',
-          teacherName: c.teacher_name || '',
-          teachingStyle: c.teaching_style || [],
-          experienceLevel: c.experience_level || '',
-          specialNotes: c.special_notes || '',
-          assessmentPreferences: c.assessment_preferences || [],
-          isArchived: Boolean(c.is_archived),
-          
-          materials: (c.class_materials || []).map((cm: any) => {
-            const m = cm.materials;
-            if (!m) return null;
-            const canonicalContent = (m.content || []).map((ci: any) => ({ ...ci, isShared: true }));
-            const customContent = (cm.custom_content || []).map((ci: any) => ({ ...ci, isPrivate: true }));
-            const mergedContent = [...canonicalContent, ...customContent];
+      return classes;
+    });
+  },
 
-            const canonicalRubric = (m.rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: false }));
-            const customRubric = (cm.custom_rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: true }));
-            const augmentedRubric = [...canonicalRubric, ...customRubric];
+  async fetchClassById(classId: string): Promise<ClassModel | null> {
+    return logger.measure('CLASS_SERVICE', `fetchClassById:${classId}`, async () => {
+      const { data, error } = await supabase
+        .from('classes')
+        .select(`
+          *,
+          institutes ( name, city, state, country ),
+          class_materials ( custom_content, custom_rubric_criteria, materials (*) ),
+          class_instructions ( instructions (*) )
+        `)
+        .eq('id', classId)
+        .maybeSingle();
 
-            return {
-              id: m.id,
-              name: m.name,
-              category: m.category,
-              content: mergedContent,
-              customContent: cm.custom_content || [],
-              uploadDate: m.created_at,
-              size: m.size,
-              tags: m.tags || [],
-              dueAt: m.due_at,
-              maxScore: m.max_score,
-              toBeScored: m.to_be_scored || false,
-              rubricCriteria: augmentedRubric,
-              customRubricCriteria: cm.custom_rubric_criteria || [],
-              versionHistory: m.version_history,
-              isShared: true,
-            } as Material;
-          }).filter(Boolean) as Material[],
+      if (error) {
+        logger.error('CLASS_SERVICE', `Failed to fetch class ${classId}`, error);
+        throw error;
+      }
 
-          instructions: (c.class_instructions || []).map((ci: any) => {
-            const i = ci.instructions;
-            return {
-              id: i.id,
-              title: i.title,
-              type: i.type,
-              content: i.content,
-              whenToApply: i.when_to_apply,
-            } as Instruction;
-          }),
+      if (!data) return null;
 
-          students,
-          ragSessions,
-        };
-      })
-    );
+      const [students, ragSessions] = await Promise.all([
+        studentService.fetchStudentsForClass(data.id).catch(() => [] as Student[]),
+        chatService.fetchSessions(data.id).catch(() => [] as RAGSession[])
+      ]);
 
-    return classes;
+      return mapDbRowToClassModel(data, students, ragSessions);
     });
   },
 

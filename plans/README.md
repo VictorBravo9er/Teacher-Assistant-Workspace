@@ -10,12 +10,12 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 
 | Metric | Current Status |
 | :--- | :--- |
-| **Total Plans** | **11 Plans** (Phase 0 through Phase 4) |
-| **Plans Completed** | **11 / 11** (`100%`) |
-| **Plans In Progress** | **0 / 11** (`0%`) |
-| **Plans Pending Execution** | **0 / 11** (`0%`) |
+| **Total Plans** | **13 Plans** (Phase 0 through Phase 6) |
+| **Plans Completed** | **13 / 13** (`100%`) |
+| **Plans In Progress** | **0 / 13** (`0%`) |
+| **Plans Pending Execution** | **0 / 13** (`0%`) |
 | **Current Execution Target** | **All Remediation Plans Successfully Implemented & Verified** |
-| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–4 100% complete; role routing, student portal, announcements, calendar, and notification engine fully operational. |
+| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–5 100% complete; role routing, student portal, announcements, calendar, notification engine, and containerization infrastructure fully operational. |
 
 ---
 
@@ -51,9 +51,14 @@ flowchart TD
         P085["08.5: Universal Notifications Engine<br/>(Resend Batch & Bounce Alerts)"]
     end
 
+    subgraph Phase 5: Containerization & Infrastructure Observability
+        P09["09: Docker Containerization & Infrastructure Observability<br/>(Logger path fix, volume bind mounts, X-Request-ID proxying)"]
+    end
+
     P00 -.-> P01
     P00 -.-> P02
     P00 -.-> P03
+    P00 -.-> P09
     P001 -.-> P06
     P01 --> P05
     P01 --> P02
@@ -65,6 +70,7 @@ flowchart TD
     P06 --> P07
     P07 --> P08
     P08 --> P085
+    P085 -.-> P09
 ```
 
 ---
@@ -84,6 +90,8 @@ flowchart TD
 | [**`07-student-portal-architecture.md`**](./07-student-portal-architecture.md) | Dedicated Student Portal, Student RLS Overhaul & Role-Based Routing | Phase 3 | `ARCHITECTURAL` | ✅ Completed | `100%` | 🟢 Verified | Student RLS overhaul, role router in `App.tsx`, `StudentApp.tsx`, self-turn-in modal. |
 | [**`08-extended-lms-modules.md`**](./08-extended-lms-modules.md) | Extended LMS Modules: Announcements & Academic Calendar | Phase 4 | `FUTURE` | ✅ Completed | `100%` | 🟢 Verified | Class announcements schema & UI feed; interactive calendar aggregating `due_at`. |
 | [**`08.5-classroom-notifications-resend.md`**](./08.5-classroom-notifications-resend.md) | Universal Classroom Notifications, Resend Delivery Engine & Bounce Tracking | Phase 4 | `FUTURE` | ✅ Completed | `100%` | 🟢 Verified | Multi-event Resend batch engine, `public.notification_logs`, bounce alerts to teacher. |
+| [**`09-docker-containerization-observability.md`**](./09-docker-containerization-observability.md) | Docker Containerization, Logger Alignment & Infrastructure Observability | Phase 5 | `CRITICAL` | ✅ Completed | `100%` | 🟢 Verified | Remediates container startup crashes, binds `./logs` host volume in dev, injects `X-Request-ID`. |
+| [**`10-local-storage-ttl-revalidation.md`**](./10-local-storage-ttl-revalidation.md) | Multi-Component TTL & Granular Database Revalidation Engine | Phase 6 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Decouples TTL & modified_at, granular component stale list RPC, student role support. |
 
 ---
 
@@ -109,6 +117,12 @@ flowchart TD
 ### Phase 4: Extended LMS Modules & Universal Notifications
 - [x] **Plan 08**: Implement `public.announcements` schema, teacher composer, student notice feed, and `CalendarView.tsx`.
 - [x] **Plan 08.5**: Implement `public.notification_logs`, Resend batch Edge Functions (`notify-announcement`, `notify-material`, `notify-submission`), and `resend-webhook` bounce alert handler.
+
+### Phase 5: Containerization & Infrastructure Observability
+- [x] **Plan 09**: Implement dynamic logs path in `backend/src/lib/logger.py` & `frontend/vite.config.ts`, pre-allocate `/app/logs` in Dockerfiles, bind `./logs` in compose dev configuration, inject `X-Request-ID` in Nginx, and update `.env.example`.
+
+### Phase 6: Client Persistence & Database Synchronization
+- [x] **Plan 10**: Robust Local Storage TTL & Conditional Database Revalidation Engine (`updated_at` triggers on relevant tables, `get_workspace_last_modified` RPC, TTL/modified_at separation in client cache, and lifecycle revalidation on reload/network recovery).
 
 ---
 
