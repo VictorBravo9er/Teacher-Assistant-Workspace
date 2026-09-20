@@ -22,18 +22,21 @@ flowchart TD
         GRD["Teacher Grading & Review (grading_and_evaluation.md)"]
         COP["RAG Copilot & Visualizer (rag_copilot.md)"]
         INS["Instructions & Rubrics (instructions_and_rubrics.md)"]
+        NOTIF["Announcements & Notifications (announcements_and_notifications.md)"]
     end
 
-    subgraph SystemTriggered["Event-Driven Asynchronous AI Workflows"]
+    subgraph SystemTriggered["Event-Driven Asynchronous AI & Delivery Workflows"]
         AIM["AI Material Analysis (ai_material_analysis.md)"]
         AIS["AI Submission Grading (ai_submission_grading.md)"]
         TRG["Database Score Sync Trigger (trg_sync_student_scores)"]
+        WHK["Resend Inbound Delivery Webhook (resend-webhook)"]
     end
 
     MAT -.->|pg_net DB Webhook| AIM
     SUB -.->|pg_net DB Webhook| AIS
     AIS -.->|Status Update| TRG
     GRD -.->|Publish Grade| TRG
+    NOTIF -.->|External MTA Status| WHK
 ```
 
 ---
@@ -51,6 +54,7 @@ flowchart TD
 | [**`grading_and_evaluation.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows-atomic/grading_and_evaluation.md) | `ATOM-GRD-01`<br>`ATOM-GRD-02`<br>`ATOM-GRD-03`<br>`ATOM-GRD-04`<br>`ATOM-GRD-05` | • Fetch AI Diagnostic Breakdown<br>• Publish Final Student Grade<br>• Atomic Gradebook Recalculation<br>• Batch Evaluation Synchronization<br>• Atomic Submission Deletion | User Evaluated Chip Click<br>User Publish Grade Button<br>Database Trigger (`trg_sync_student_scores`)<br>User Batch Save Button<br>User Delete Submission Action |
 | [**`rag_copilot.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows-atomic/rag_copilot.md) | `ATOM-RAG-01`<br>`ATOM-RAG-02`<br>`ATOM-RAG-03`<br>`ATOM-RAG-04` | • Dispatch AI Copilot Query<br>• Mount Dynamic Visualization Widget<br>• Persist Chat Session History<br>• Switch / Load Historical Session | User Chat Form Submit<br>LLM Response Payload Parse<br>Stream Completion Event<br>User Session Select |
 | [**`instructions_and_rubrics.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows-atomic/instructions_and_rubrics.md) | `ATOM-INS-01`<br>`ATOM-INS-02`<br>`ATOM-INS-03` | • Create Assistant System Persona / Policy<br>• Build & Save Custom Rubric<br>• Attach Rubric to Class Assignment | User Instruction Form<br>User Rubric Builder Save<br>User Assignment Edit |
+| [**`announcements_and_notifications.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows-atomic/announcements_and_notifications.md) | `ATOM-NOTIF-01`<br>`ATOM-NOTIF-02`<br>`ATOM-NOTIF-03`<br>`ATOM-NOTIF-04` | • Post Class Announcement<br>• Delete Class Announcement<br>• Dispatch Material Alert Emails<br>• Process Resend Inbound Delivery Webhook | User Announcement Form<br>User Delete Icon Click<br>Service Notification Trigger<br>Inbound HTTP Webhook |
 
 ---
 

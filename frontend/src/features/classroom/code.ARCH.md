@@ -15,11 +15,14 @@ flowchart TD
         Profile["Profile Tab (Editing & Metadata)"]
         Materials["Materials Tab (Repository List)"]
         Instructions["Guidelines Tab (Class Guidelines & Rubric Rules)"]
+        Announcements["Announcements Tab (Notice Feed & Resend Triggers)"]
+        Calendar["Calendar Tab (Aggregated Schedule)"]
     end
 
     ClassDetails --> Tabs
     Materials --> PreviewModal["MaterialPreviewModal.tsx (Signed URLs)"]
     Materials --> RubricBuilder["RubricBuilderModal.tsx (Criteria Weighting)"]
+    Announcements --> NotifyService["notificationService (notify-announcement)"]
     
     ClassApp --> Gradebook["GradebookMatrix.tsx"]
     Gradebook --> SubmissionGrading["SubmissionGradingModal (Cell Click)"]
@@ -38,3 +41,5 @@ flowchart TD
    - Offers client-side CSV generation with UTF-8 BOM encoding for direct spreadsheet import.
 3. **Secure File Streaming (`MaterialPreviewModal.tsx`)**:
    - For private bucket files, calls the `get-material-url` Edge Function with `{ class_id, material_id, content_item_id }` to retrieve a short-lived signed URL, avoiding public asset exposure.
+4. **Announcement Broadcast Triggers (`ClassDetails.tsx`)**:
+   - On posting announcements with `notify_parents` enabled, dispatches an asynchronous call to `notificationService.notifyAnnouncement()` which triggers batch email dispatch without delaying UI state updates.

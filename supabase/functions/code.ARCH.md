@@ -40,3 +40,5 @@ sequenceDiagram
    Responses are returned using `jsonResponse(payload, statusCode)` from `_shared/cors.ts` with explicit `Content-Type: application/json` headers.
 3. **Strict Error Guarding**:
    Handlers wrap domain logic in top-level `try/catch` blocks, returning structured JSON `{ error: string }` on failure rather than plain text error traces.
+4. **Email Dispatch & Delivery Tracking**:
+   Functions communicating externally (`notify-announcement`, `notify-material`, `notify-submission`) utilize the Resend Batch API (up to 100 recipients per call) and write audit records with `status = 'queued'` to `public.notification_logs`, updated asynchronously upon receipt of MTA webhooks via `resend-webhook`.

@@ -17,6 +17,10 @@ This directory contains Deno-based serverless Edge Functions for secure document
 - [`invite-student/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/invite-student): Enrolls students and generates secure class invitation tokens.
 - [`trigger-submission-evaluation/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-submission-evaluation): Receives DB webhooks on student submission turn-in, extracts work text, sets `ai.submission_evaluations` to processing, and calls backend `/api/grade`.
 - [`trigger-material-analysis/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-material-analysis): Receives DB webhooks on material upload/update, extracts document text, sets `ai.material_insights` to processing, and calls backend `/api/materials/analyze`.
+- [`notify-announcement/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/notify-announcement): Dispatches batch email notifications for new announcements to enrolled students and parents via Resend, logging delivery in `notification_logs`.
+- [`notify-material/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/notify-material): Dispatches batch email notifications when course materials/assignments are published or updated, highlighting due dates.
+- [`notify-submission/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/notify-submission): Alerts course teachers when an assignment submission is received, looking up instructor email securely.
+- [`resend-webhook/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/resend-webhook): Receives Resend webhook events (`delivered`, `bounced`), updates `notification_logs`, and emails teachers on bounce failures.
 
 ---
 

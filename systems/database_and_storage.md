@@ -89,6 +89,11 @@ erDiagram
     materials ||--o{ student_submissions : "targeted_by"
     classes ||--o{ attendance_records : "logs"
     classes ||--o{ chat_sessions : "maintains"
+    classes ||--o{ announcements : "publishes"
+    classes ||--o{ notification_logs : "records"
+    announcements ||--o{ notification_logs : "triggers"
+    materials ||--o{ notification_logs : "tracks"
+    student_submissions ||--o{ notification_logs : "tracks"
 ```
 
 #### Core Entities:
@@ -100,12 +105,14 @@ erDiagram
 6. **`instructions`**: Assistant prompts, system personas, and grading rubrics (`id`, `title`, `description`, `type`, `content`, `user_id`, `created_at`, `updated_at`).
 
 #### Junction & Execution Entities:
-1. **`class_students`**: Class enrollment junction linking `class_id` and `student_id`, storing calculated running metrics (`current_score`, `current_grade`, `performance_tier`, `attendance_rate`, `status`, `joined_at`).
-2. **`class_materials`**: Connects reusable `material_id` to `class_id` with ordering indices (`order_index`) and class-specific availability constraints.
+1. **`class_students`**: Class enrollment junction linking `class_id` and `student_id`, storing portfolio details (`phone`, `address`, `parent_name`, `parent_contact`, `parent_notes`, `custom_fields`, `roll_number`), and calculated running metrics (`current_score`, `current_grade`, `performance_tier`, `attendance_rate`, `status`, `joined_at`).
+2. **`class_materials`**: Connects reusable `material_id` to `class_id` with ordering indices (`order_index`), class-specific content overlays (`custom_content`), and augmented criteria (`custom_rubric_criteria`).
 3. **`class_instructions`**: Connects system instructions or rubrics to `class_id` with execution priority (`order_index`).
 4. **`student_submissions`**: Student work records targeting an assignment material (`id`, `class_id`, `student_id`, `material_id`, `status`, `score`, `max_score`, `feedback`, `content` JSONB, `submitted_at`, `evaluated_at`).
 5. **`attendance_records`**: Session-level attendance tracking (`id`, `class_id`, `student_id`, `date`, `status`, `notes`, `recorded_by`).
 6. **`chat_sessions`**: Persisted conversation sessions between teachers and the AI Assistant (`id`, `class_id`, `user_id`, `title`, `messages` JSONB, `analysis_config` JSONB, `created_at`, `updated_at`).
+7. **`announcements`**: Classroom broadcast board notices (`id`, `class_id`, `author_id`, `title`, `content`, `is_pinned`, `created_at`, `updated_at`).
+8. **`notification_logs`**: Outbound email transmission records and Resend webhook audit log (`id`, `class_id`, `announcement_id`, `material_id`, `submission_id`, `notification_type`, `recipient_email`, `recipient_name`, `recipient_type`, `student_id`, `resend_email_id`, `status`, `error_message`, `created_at`, `updated_at`).
 
 ---
 
@@ -129,10 +136,10 @@ flowchart TD
 ```
 
 ### RLS Policies Summary:
-- **Teacher Ownership**: Teachers (`auth.uid() = teacher_id` or `auth.uid() = user_id`) have complete administrative control over their institutes, classes, curriculum materials, instructions, and student records.
-- **Enrolled Student Read Access**: Students whose `auth.uid()` matches `students.user_id` enrolled in `class_students` can `SELECT` classes, linked `class_materials`, and view active announcements.
+- **Teacher Ownership**: Teachers (`auth.uid() = teacher_id` or `auth.uid() = user_id`) have complete administrative control over their institutes, classes, curriculum materials, instructions, student records, announcements, and notification logs.
+- **Enrolled Student Read Access**: Students whose `auth.uid()` matches `students.user_id` enrolled in `class_students` can `SELECT` classes, linked `class_materials`, and view active announcements for their enrolled classes.
 - **Submission Guarding**: Students can only `INSERT` and `UPDATE` submissions where `student_id` resolves to their own record, and cannot modify teacher-assigned `score` or `feedback`.
-- **Foreign Key Indexing Requirement**: To guarantee that RLS subqueries do not degrade under high multi-tenant load, **every foreign key column in the schema is backed by an explicit B-Tree index** (e.g. `idx_classes_teacher_id`, `idx_class_students_class_id`, `idx_class_materials_material_id`).
+- **Foreign Key Indexing Requirement**: To guarantee that RLS subqueries do not degrade under high multi-tenant load, **every foreign key column in the schema is backed by an explicit B-Tree index** (e.g. `idx_classes_teacher_id`, `idx_class_students_class_id`, `idx_class_materials_material_id`, `idx_announcements_class_id`, `idx_notification_logs_class_id`).
 
 ---
 
@@ -158,18 +165,25 @@ BEGIN
     SELECT AVG((score / NULLIF(max_score, 0)) * 100)
     INTO v_avg_score
     FROM public.student_submissions
-    WHERE class_id = v_class_id AND student_id = v_student_id AND score IS NOT NULL;
+    WHERE class_id = v_class_id AND student_id = v_student_id;
 
-    -- Compute letter grade & performance tier
-    IF v_avg_score >= 90 THEN v_grade := 'A'; v_tier := 'Advanced';
-    ELSIF v_avg_score >= 80 THEN v_grade := 'B'; v_tier := 'Proficient';
-    ELSIF v_avg_score >= 70 THEN v_grade := 'C'; v_tier := 'Developing';
-    ELSIF v_avg_score IS NOT NULL THEN v_grade := 'D'; v_tier := 'Critical Support';
-    ELSE v_grade := 'N/A'; v_tier := 'Unassessed';
+    -- Determine Letter Grade and Tier
+    IF v_avg_score IS NULL THEN
+        v_grade := 'N/A';
+        v_tier := 'Average';
+    ELSIF v_avg_score >= 85 THEN
+        v_grade := 'A';
+        v_tier := 'High';
+    ELSIF v_avg_score >= 65 THEN
+        v_grade := 'B';
+        v_tier := 'Average';
+    ELSE
+        v_grade := 'C';
+        v_tier := 'At Risk';
     END IF;
 
     UPDATE public.class_students
-    SET current_score = ROUND(v_avg_score, 2),
+    SET current_score = COALESCE(v_avg_score, 0),
         current_grade = v_grade,
         performance_tier = v_tier,
         updated_at = timezone('utc'::text, now())
@@ -179,6 +193,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
+
+### 4.2 Automatic Timestamp Maintenance Trigger (`trg_handle_updated_at`)
+Migration `006_add_table_updated_at_triggers.sql` binds a standardized `handle_updated_at` trigger to every operational table across the database (e.g., `classes`, `materials`, `instructions`, `students`, `class_students`, `announcements`, `notification_logs`), guaranteeing that all updates automatically record precise UTC timestamp modifications without requiring application-level timestamp management.
 
 ---
 

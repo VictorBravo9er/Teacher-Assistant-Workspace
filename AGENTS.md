@@ -29,12 +29,28 @@ Root rules are universal; subsystems specialize them:
 - Secrets in `.env`, never committed. Use `.env.example` to document required vars.
 - Never log or hardcode API keys, auth tokens, or private credentials.
 
-## 5. Directory Docs (`code.DESC.md` & `code.ARCH.md`)
-Document source files **directly in that directory only** (not subdirs):
-- `code.DESC.md`: Plain-English overview, flow diagrams, application role.
-- `code.ARCH.md`: Interfaces, data lifecycles, cross-module dependencies.
+## 5. Documentation Architecture: Macro Dossier & Micro Directory Docs
+The workspace maintains a two-tier, self-documenting knowledge base:
+
+### 5.1 Macro Application Dossier (`systems/`)
+A self-completing dossier that describes the entire application, its domain concepts, multi-tier topology, and workflows without requiring readers to inspect raw source code:
+- **Subsystem Specs (`systems/*.md`)**: Comprehensive architectural blueprints for Frontend, Backend, Database/Storage, AI/Ontology, Edge Functions, and DevOps.
+- **System Lifecycles & Workflows (`systems/workflows/` & `systems/workflows-atomic/`)**: End-to-end user journeys, sequence diagrams, state transitions, and atomic task specifications.
+- **Maintenance Policy**: **Mandatory Update**. Any significant architectural changes, new feature flows, database schema additions, REST endpoints, or edge functions MUST be reflected in the corresponding `systems/` documentation.
+
+### 5.2 Micro Directory Docs (`code.DESC.md` & `code.ARCH.md`)
+Localized source file documentation located directly within code directories:
+- `code.DESC.md`: Plain-English overview, flow diagrams, and role of files in that specific folder.
+- `code.ARCH.md`: Interfaces, data lifecycles, and cross-module dependencies for that directory.
 - **Exemptions**: Never create in `docs/`, `plans/`, `systems/`, `public/`, `assets/`, `dist/`, `node_modules/`, `.venv/`, `.scratch/`, or namespace-only dirs (`supabase/`).
-- **Policy**: Update only on significant architectural redesign or new source files — not for routine fixes.
+- **Policy**: Update only on significant architectural redesign or new source files within that directory — not for routine fixes.
+
+### 5.3 Agent Navigation Policy: Docs-First Inspection
+When investigating features, analyzing bugs, or planning implementations, agents MUST follow a docs-first inspection sequence:
+1. **Macro Dossier First**: Consult `systems/*.md` or `systems/workflows/` to establish topological and cross-tier architectural context.
+2. **Micro Docs Second**: Consult the target folder's `code.DESC.md` and `code.ARCH.md` to identify file roles, interfaces, and module boundaries.
+3. **Targeted Source Code Last**: Perform surgical inspection of raw source files (`.py`, `.ts`, `.tsx`, `.sql`) only after locating the specific component and understanding its contract.
+- **No Blind Code Crawling**: Do not scan, grep, or dump raw source files across directories without first consulting the documentation layer.
 
 ## 6. Git & Commits
 Conventional Commits, atomic and focused:

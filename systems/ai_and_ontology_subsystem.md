@@ -9,7 +9,7 @@ The **AI, Vector Search & Ontological Knowledge Subsystem** powers the intellige
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TB
-    subgraph ClientUI["Client Frontend (React 18)"]
+    subgraph ClientUI["Client Frontend (React 19)"]
         ChatUI["Interactive RAG Chat (RAGClass.tsx)"]
         DiffModal["AI Diagnostic Review (AIDiagnosticDiffModal.tsx)"]
         MatModal["Material Preview & AI Analysis (MaterialPreviewModal.tsx)"]
