@@ -1,5 +1,7 @@
 import os
+from typing import cast
 
+from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from src.lib.formatter import (
     format_analysis_config_context,
@@ -7,7 +9,7 @@ from src.lib.formatter import (
     format_students_context,
 )
 from src.lib.llm import get_openrouter_llm, parse_llm_response
-from src.lib.logger import logger
+from src.lib.logger import chat_logger, measure_async
 from src.types.schemas import ChatPayload
 
 
@@ -16,7 +18,7 @@ class ChatService:
 
     @staticmethod
     async def process_chat_message(payload: ChatPayload, model: str) -> dict[str, object]:
-        logger.info(
+        chat_logger.info(
             "Processing chat message: model=%s, message_count=%d, student_count=%d",
             model,
             len(payload.messages),
@@ -25,7 +27,7 @@ class ChatService:
         # EAFP: Access environmental variable directly
         api_key_str = os.environ["OPENROUTER_API_KEY"]
         if not api_key_str:
-            logger.error("Missing OPENROUTER_API_KEY environment variable")
+            chat_logger.error("Missing OPENROUTER_API_KEY environment variable")
             raise ValueError("OPENROUTER_API_KEY environment variable is empty.")
 
         # 1. Format classroom, students, and session configurations
@@ -84,23 +86,23 @@ Data Schema Guidelines for "visualization":
             user_prompt=payload.messages[-1].text,
         )
 
-        # 3. Call LLM generation
-        logger.info("Invoking OpenRouter LLM: model=%s", model)
-        try:
-            response = llm.invoke(formatted_messages)
-            logger.info(
-                "LLM generation successful, response_length=%d", len(response.content)
-            )
-        except Exception as err:
-            logger.error("LLM generation failed: %s", str(err), exc_info=True)
-            raise
+        # 3. Call LLM generation with async measurement
+        async def _invoke_llm() -> BaseMessage:
+            return await llm.ainvoke(formatted_messages)
+
+        response = await measure_async(chat_logger, f"chat_llm_invoke:{model}", _invoke_llm)
 
         # 4. Clean and parse LLM response payload
-        logger.info("Parsing LLM response")
-        try:
-            parsed_res = parse_llm_response(response.content)
-            logger.info("LLM response parsed successfully")
-            return parsed_res
-        except Exception as err:
-            logger.error("Failed to parse LLM response: %s", str(err), exc_info=True)
-            raise
+        parsed_res = parse_llm_response(response.content)
+        viz = parsed_res.get("visualization")
+        if isinstance(viz, dict):
+            viz_dict = cast(dict[str, object], viz)
+            chat_logger.info(
+                "Chat response generated with visualization: type=%s, title=%s",
+                viz_dict.get("type"),
+                viz_dict.get("title"),
+            )
+        else:
+            chat_logger.info("Chat response generated without visualization widget")
+
+        return parsed_res

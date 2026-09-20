@@ -45,10 +45,14 @@ COPY --from=busybox /bin/wget /bin/wget
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 RUN  groupadd -g ${GROUP_ID} b-grp \
-  && useradd -l -u ${USER_ID} -g b-grp -m b-usr
+  && useradd -l -u ${USER_ID} -g b-grp -m b-usr \
+  && mkdir -p /app/logs \
+  && chown -R ${USER_ID}:${GROUP_ID} /app/logs
 
 # last-3: copy over required dependencies and library files.
 COPY --from=build /usr/local /usr/local
+
+ENV LOGS_DIR=/app/logs
 
 # last-3.5: switch user, set port and expose.
 USER b-usr

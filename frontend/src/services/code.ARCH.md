@@ -32,6 +32,12 @@ flowchart TD
    - `classService` and `templateService` handle multi-table joins (e.g. `class_materials`, `class_instructions`, `class_students`) in cohesive transactions, reconstructing flat domain objects for the UI.
 2. **Defensive Storage Paths**:
    - File uploads in `materialService` follow the canonical path pattern `/{userId}/{materialId}/{contentItemId}`, matching the PostgreSQL RLS policy restrictions.
-3. **Resilient LLM Communication (`chatService.ts`)**:
-   - Dispatches requests to the FastAPI backend at `http://localhost:8090/api/chat`.
-   - Catches connection refusals or timeouts and seamlessly falls back to `mockChat.ts`, allowing teachers to explore UI capabilities even during backend maintenance.
+3. **FastAPI & LLM Communication (`chatService.ts`)**:
+   - Dispatches requests to the FastAPI backend at `/api/chat`.
+   - Propagates backend errors transparently with structured telemetry logged through `logger.ts`, surfacing actionable errors to the user via toast notifications without synthetic mock data.
+4. **Client-Side Institute Directory Caching (`instituteService.ts`)**:
+   - Maintains an in-memory / local storage TTL cache (`edu_institutes_directory`) with 1-hour validity.
+   - Eliminates per-keystroke RPC calls to PostgreSQL by powering client-side fuzzy searching, updating synchronously when new institutes are registered.
+5. **Universal Notification & Email Engine (`notificationService.ts`)**:
+   - Offloads email distribution entirely to serverless Edge Functions (`notify-announcement`, `notify-material`, `notify-submission`) backed by Resend.
+   - Non-blocking async invocations ensure UI responsiveness; delivery states (`sent`, `delivered`, `bounced`) are tracked in `public.notification_logs` with webhook reconciliation.

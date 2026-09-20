@@ -4,11 +4,13 @@ import {
   Template,
   Material,
   Instruction,
+  ExperienceLevel,
 } from '@/types/main';
 import { classService } from '@/services/classService';
 import { templateService } from '@/services/templateService';
 import { materialService } from '@/services/materialService';
 import { instructionService } from '@/services/instructionService';
+import { logger } from '@/lib/logger';
 
 interface UseClassOperationsProps {
   classes: ClassModel[];
@@ -62,6 +64,7 @@ export function useClassOperations({
   // --- Class Selection ---
   const handleSelectClass = useCallback(
     (id: string) => {
+      logger.debug('CLASS_OPERATIONS', `Selecting active class: ${id}`);
       setActiveClassId(id);
       setViewMode('class');
       setIsEditMode(false);
@@ -75,6 +78,7 @@ export function useClassOperations({
 
   const handleSelectTemplate = useCallback(
     (id: string) => {
+      logger.debug('CLASS_OPERATIONS', `Selecting active template: ${id}`);
       setActiveTemplateId(id);
       setViewMode('template');
       setIsEditMode(false);
@@ -89,6 +93,7 @@ export function useClassOperations({
   const handleCreateClass = useCallback(
     async (name: string, templateId?: string, instituteId?: string, forkMaterials: boolean = true) => {
       try {
+        logger.info('CLASS_OPERATIONS', `Dispatch createClass: "${name}"`, { templateId, instituteId, forkMaterials });
         setProcessingMsg(`Creating class "${name}"...`);
         const matchedTemplate = templates.find((t) => t.id === templateId);
 
@@ -134,6 +139,7 @@ export function useClassOperations({
         setPreviousLayoutMode('details-only');
         triggerToast(`Created classroom: "${name}"`);
       } catch (err: any) {
+        logger.error('CLASS_OPERATIONS', `Failed to create class "${name}"`, err);
         triggerToast(`Error creating class: ${err.message}`);
       } finally {
         setProcessingMsg(null);
@@ -145,10 +151,12 @@ export function useClassOperations({
   const handleRenameClass = useCallback(
     async (id: string, newName: string) => {
       try {
+        logger.info('CLASS_OPERATIONS', `Dispatch renameClass: ${id} -> "${newName}"`);
         await classService.updateClass(id, { name: newName });
         mutateClasses(classes.map((w) => (w.id === id ? { ...w, name: newName } : w)));
         triggerToast('Class rename successfully committed.');
       } catch (err: any) {
+        logger.error('CLASS_OPERATIONS', `Failed to rename class ${id}`, err);
         triggerToast(`Failed to rename: ${err.message}`);
       }
     },
@@ -208,10 +216,11 @@ export function useClassOperations({
     async (id: string) => {
       const target = classes.find((w) => w.id === id);
       if (!target) return;
+      const nextStatus = !(target.isArchived ?? (target as any).archived);
       try {
-        await classService.updateClass(id, { archived: !target.archived });
-        mutateClasses(classes.map((w) => (w.id === id ? { ...w, archived: !w.archived } : w)));
-        triggerToast(!target.archived ? 'Archived classroom context.' : 'Restored classroom context.');
+        await classService.updateClass(id, { isArchived: nextStatus });
+        mutateClasses(classes.map((w) => (w.id === id ? { ...w, isArchived: nextStatus } : w)));
+        triggerToast(nextStatus ? 'Archived classroom context.' : 'Restored classroom context.');
       } catch (err: any) {
         triggerToast(`Failed to archive: ${err.message}`);
       }
@@ -559,7 +568,7 @@ export function useClassOperations({
         subject: activeTemplate.subject,
         teachingStyle: activeTemplate.teachingStyle,
         specialNotes: activeTemplate.description,
-        experienceLevel: 'Template Base',
+        experienceLevel: activeTemplate.experienceLevel || 'Beginner',
         academicYear: 'N/A',
         semester: 'N/A',
         teacherName: 'Template',

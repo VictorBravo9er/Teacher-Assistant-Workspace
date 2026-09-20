@@ -8,7 +8,8 @@ This directory provides the top-level page views and master view orchestration s
 
 - [`LandingPage.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/LandingPage.tsx): Public product landing page highlighting feature pillars (Class Management, Rubric Grading, AI Diagnostics, Analytics), pricing plans, and login/signup navigation buttons.
 - [`AuthPage.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/AuthPage.tsx): Authentication page handling user Sign In and Sign Up with full name, phone number, email, and password validation.
-- [`ClassApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/ClassApp.tsx): Master authenticated application workspace view. Orchestrates top navigation controls, full-screen decoupled LMS workspace (`details-only` by default, focusing on student rosters, class details, and gradebook matrix), edit mode toggling, toast alerts, and sidebar coordination. Chat/RAG pane is commented out with TODO markers for independent development.
+- [`ClassApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/ClassApp.tsx): Master authenticated application workspace view for teachers. Orchestrates top navigation controls, full-screen decoupled LMS workspace (`details-only` by default, focusing on student rosters, class details, and gradebook matrix), edit mode toggling, toast alerts, and sidebar coordination.
+- [`StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx): Dedicated student portal shell for authenticated students. Orchestrates enrolled course selection, coursework document previews, assignment turn-in workflow, and gradebook feedback review.
 
 ---
 

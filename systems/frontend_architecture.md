@@ -1,6 +1,6 @@
 # Frontend Architecture & Component Subsystem
 
-The **Frontend Subsystem** is a Single-Page Application (SPA) built with **React 18**, **TypeScript** (strict mode), **Vite**, and **Tailwind CSS**. It provides an intuitive workspace for educators to manage classes, construct curriculum rubrics, review student work with AI-assisted grading, and visualize learning analytics.
+The **Frontend Subsystem** is a Single-Page Application (SPA) built with **React 19**, **TypeScript** (strict mode), **Vite**, and **Tailwind CSS**. It provides an intuitive workspace for educators to manage classes, construct curriculum rubrics, review student work with AI-assisted grading, and visualize learning analytics.
 
 ---
 

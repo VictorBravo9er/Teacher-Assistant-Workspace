@@ -1,6 +1,7 @@
 import React from 'react';
 
 interface BrandLogoProps {
+  id?: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   showText?: boolean;
@@ -9,6 +10,7 @@ interface BrandLogoProps {
 }
 
 export default function BrandLogo({
+  id,
   size = 'md',
   className = '',
   showText = true,
@@ -35,6 +37,7 @@ export default function BrandLogo({
 
   return (
     <div
+      id={id}
       onClick={onClick}
       className={`flex items-center gap-2.5 select-none ${onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''} ${className}`}
     >

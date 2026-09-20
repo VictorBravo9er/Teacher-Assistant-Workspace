@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { secureStorage } from '@/lib/storage';
-import { Template } from '@/types/main';
+import { Template, Student } from '@/types/main';
 import { useWorkspaceData } from '@/hooks/useWorkspaceData';
 import { useTheme } from '@/hooks/useTheme';
 import { useClassOperations } from '@/hooks/useClassOperations';
@@ -46,7 +46,8 @@ export default function ClassApp() {
   // Ensure active class falls back when data loads
   useEffect(() => {
     if (!activeClassId && classes.length > 0) {
-      setActiveClassId(classes[0].id);
+      const defaultClass = classes.find((c) => !c.isArchived) || classes[0];
+      setActiveClassId(defaultClass.id);
     }
   }, [classes, activeClassId]);
 
@@ -62,7 +63,7 @@ export default function ClassApp() {
   const [previousLayoutMode, setPreviousLayoutMode] = useState<'split' | 'chat-only' | 'details-only'>('details-only');
   const [mainViewTab, setMainViewTab] = useState<'classroom' | 'gradebook'>('classroom');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'materials' | 'prompts'>('profile');
+  const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'materials' | 'prompts' | 'announcements' | 'calendar'>('profile');
   const [activeAccountModal, setActiveAccountModal] = useState<
     'profile' | 'preferences' | 'settings' | 'subscription' | null
   >(null);
@@ -138,6 +139,7 @@ export default function ClassApp() {
         activeClass.semester !== preEditClassSnapshot.semester ||
         activeClass.academicYear !== preEditClassSnapshot.academicYear ||
         activeClass.teacherName !== preEditClassSnapshot.teacherName ||
+        activeClass.instituteName !== preEditClassSnapshot.instituteName ||
         JSON.stringify(activeClass.teachingStyle) !== JSON.stringify(preEditClassSnapshot.teachingStyle) ||
         activeClass.experienceLevel !== preEditClassSnapshot.experienceLevel ||
         JSON.stringify(activeClass.assessmentPreferences) !== JSON.stringify(preEditClassSnapshot.assessmentPreferences) ||
@@ -151,6 +153,7 @@ export default function ClassApp() {
             semester: activeClass.semester,
             academicYear: activeClass.academicYear,
             teacherName: activeClass.teacherName,
+            instituteName: activeClass.instituteName,
             teachingStyle: activeClass.teachingStyle,
             experienceLevel: activeClass.experienceLevel,
             assessmentPreferences: activeClass.assessmentPreferences,
@@ -217,6 +220,21 @@ export default function ClassApp() {
     if (studentCard) {
       studentCard.click();
     }
+  };
+
+  const handleUpdateStudent = (studentId: string, updates: Partial<Student>) => {
+    if (!activeClass) return;
+    mutateClasses((prevClasses) =>
+      prevClasses.map((cls) => {
+        if (cls.id !== activeClass.id) return cls;
+        return {
+          ...cls,
+          students: (cls.students || []).map((s) =>
+            s.id === studentId ? { ...s, ...updates } : s
+          ),
+        };
+      })
+    );
   };
 
   return (
@@ -564,6 +582,7 @@ export default function ClassApp() {
           classItem={activeClass}
           initialStudentId={activeClass.students[0].id}
           onTriggerToast={triggerToast}
+          onUpdateStudent={handleUpdateStudent}
         />
       )}
 

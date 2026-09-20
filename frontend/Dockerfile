@@ -6,7 +6,7 @@ FROM node:24-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f935954
 WORKDIR /app
 
 # 2. Create directories before switching users (if any)
-RUN mkdir -p /app/node_modules /app/dist
+RUN mkdir -p /app/node_modules /app/dist /app/logs
 
 # 3. Inject build arguments into environment
 ARG VITE_SUPABASE_URL
@@ -43,6 +43,7 @@ FROM prep AS dev
 COPY --from=busybox /bin/wget /bin/wget
 
 ENV FRONTEND_PORT=8080
+ENV VITE_LOGS_DIR=/app/logs
 EXPOSE ${FRONTEND_PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

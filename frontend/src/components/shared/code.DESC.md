@@ -8,8 +8,8 @@ This directory provides composite domain-aware form controls, autocompletion fie
 
 - [`BrandLogo.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/BrandLogo.tsx): SVG-based brand logo component rendering the Teach&Learn emblem and wordmark with customizable size, typography styles, and theme variants.
 - [`CustomDialogs.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/CustomDialogs.tsx): Declarative modal dialogs for confirming destructive actions (e.g. class or template deletions) and rendering informative error/success alerts.
-- [`FuzzyAutocompleteField.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/FuzzyAutocompleteField.tsx): Generic type-ahead text input supporting fuzzy matching, custom option creation, and keyboard navigation.
-- [`InstituteAutocompleteField.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/InstituteAutocompleteField.tsx): Specialized autocomplete component for searching existing educational institutes from the database or initiating a new institute registration flow.
+- [`InstituteAutocompleteField.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/InstituteAutocompleteField.tsx): High-performance client-side autocomplete component searching cached educational institutes with multi-token fuzzy matching and keyboard navigation.
+- [`InteractiveGradingSimulator.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/InteractiveGradingSimulator.tsx): 3D isometric interactive CSS/React animated simulator modeling the end-to-end pedagogical evaluation workflow (document ingestion, laser OCR scanning, rubric diff calculation, misconception alerts, and teacher-in-the-loop approval).
 - [`MultiSelect.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/shared/MultiSelect.tsx): Tag-based multi-selection dropdown component used for selecting teaching styles, assessment preferences, and curriculum tags.
 
 ---

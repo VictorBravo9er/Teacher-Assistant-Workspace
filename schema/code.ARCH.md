@@ -33,15 +33,19 @@ flowchart TD
    - Audit columns (`created_at`, `updated_at`) are attached to all domain tables with automatic `moddatetime` update triggers.
 3. **JSONB Content Architecture**:
    - `materials.content` and `student_submissions.content` use structured JSONB arrays supporting mixed media types (`File`, `URL`, `Text`) with UUID identifiers for file path resolution.
-4. **Automated Grade Aggregation Trigger**:
+   - The `validate_content_array` check function requires `id` and valid `type` across all entries, and mandates a non-empty `path` strictly for `File` and `URL` types while allowing `Text` items to omit storage paths.
+4. **Class-Scoped Student Portfolio & Accommodations**:
+   - Student contact information, parent communication details, roll numbers, and extensible teacher accommodations are stored directly on `public.class_students` (`phone`, `address`, `parent_name`, `parent_contact`, `parent_notes`, `custom_fields`, `roll_number`).
+   - `custom_fields` stores teacher-defined key-value accommodations (e.g. IEP accommodations, medical notes) as structured JSONB (`[{"name": "...", "value": "..."}]`).
+5. **Automated Grade Aggregation Trigger**:
    - `trg_sync_student_scores` executes on `student_submissions` after INSERT, UPDATE (score), or DELETE to atomically recompute `current_score`, `current_grade`, and `performance_tier` in `public.class_students`.
-5. **Class-Scoped Material & Submission RPCs**:
+6. **Class-Scoped Material & Submission RPCs**:
    - `unlink_material_from_class`: Safely removes class-material links without destroying shared global materials or past submissions.
    - `delete_material`: Removes material DB rows and uses reference counting across all materials' `content` JSONB arrays to only return physical storage paths for deletion when no other material or class references that file.
    - `delete_submission_atomic`: Removes submission DB rows and returns storage paths for physical blob cleanup in Supabase Storage.
-6. **LangGraph Checkpoint Isolation**:
+7. **LangGraph Checkpoint Isolation**:
    - LangGraph checkpoint tables are stored in the dedicated `langgraph` schema, preventing agent execution metadata from interfering with domain queries in `public`.
-7. **Hybrid Vector & Ontological Knowledge Architecture (`ai` Schema)**:
+8. **Hybrid Vector & Ontological Knowledge Architecture (`ai` Schema)**:
    - Vector store tables (`material_embeddings`, `submission_embeddings`) use `pgvector` with HNSW cosine similarity indexing for fast RAG retrieval.
    - Ontological graph tables (`ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`) maintain directed prerequisite hierarchies and learning standards.
    - `material_concept_mappings` connects material chunks and vector embeddings directly to pedagogical concepts.

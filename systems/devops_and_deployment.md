@@ -130,19 +130,50 @@ flowchart TD
 
 ---
 
-## 5. Serverless Static Hosting (Vercel)
+## 5. Serverless Multi-Service Hosting (Vercel)
 
-For external serverless deployments, `vercel.json` defines edge routing rules to support client-side Single-Page Application (SPA) routing:
+For external serverless deployments, `vercel.json` orchestrates both the Vite frontend and Python FastAPI backend as distinct services with edge rewrites:
 
 ```json
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend/",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend/",
+      "entrypoint": "src.main:app"
+    }
+  },
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": {
+        "service": "frontend"
+      }
     }
   ]
 }
 ```
 
-This ensures that deep links (e.g. `/classes/:classId`) return the main `index.html` shell to let React Router resolve the view in the browser.
+This configuration ensures:
+1. **REST API Routing**: All `/api/*` HTTP requests are directed to the FastAPI service (`backend/src.main:app`).
+2. **SPA Client Routing**: All web and deep client-side routes (`/(.*)`) are resolved by the Vite React SPA (`frontend/`).
+
+### 5.1 Ignored Build Step Filtering (`bash-decide.sh`)
+
+To prevent unnecessary serverless builds and save Vercel build minutes, [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh) is configured as the Vercel **Ignored Build Step** command:
+
+1. **Branch Filter**: Builds only run on `preview`, `main`, and `master` branches. Other branches exit with code `0` (skipping deployment).
+2. **First-Time Deployment**: If `$VERCEL_GIT_PREVIOUS_SHA` is unset, it proceeds with build (exit code `1`).
+3. **Targeted Diff Detection**: Compares `$VERCEL_GIT_PREVIOUS_SHA` against `HEAD` scoping `frontend/`, `backend/`, and `vercel.json`:
+   - If diff is empty (e.g., changes only touch docs, root configs, or scratch files): exits `0` (deployment skipped).
+   - If changes are detected in deployable code or configuration: exits `1` (deployment proceeds).

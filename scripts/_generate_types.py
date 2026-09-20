@@ -91,6 +91,12 @@ def main(db_url: str | None = None):
 
     print("\n🎉 Type generation complete!")
 
+    from _verify_enum_tooltips import (  # pyright: ignore[reportImplicitRelativeImport]
+        audit_enum_tooltips,
+    )
+
+    audit_enum_tooltips()
+
 
 if __name__ == "__main__":
     from _env_helper import (  # pyright: ignore[reportImplicitRelativeImport]

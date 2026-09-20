@@ -67,5 +67,7 @@ classDiagram
    - `'details-only' | 'split' | 'chat-only'`: Statically dictates layout grid proportions in `ClassApp.tsx`.
 2. **Discriminator Unions for Content (`ContentItem`)**:
    - Uses `type: 'File' | 'URL' | 'Text'` to enforce conditional properties (e.g. `path` for files vs. `url` for external links).
-3. **Database Mirroring (`db.ts`)**:
+3. **Database Mirroring & Read-Only Invariant (`db.ts`)**:
+   - Generated mechanically via `supabase gen types typescript` (`scripts/_generate_types.py`).
    - Strict mapping to PostgreSQL rows ensures compile-time errors if a database migration renames or removes a column.
+   - **Manual edits are strictly prohibited** in both frontend and backend development. All custom application types must reside in separate files such as `main.ts`.

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ClassModel, Message, RAGSession } from '@/types/main';
-import { getMockChatResponse } from '@/lib/mockChat';
+import { logger } from '@/lib/logger';
 
 interface UseAIChatProps {
   classes: ClassModel[];
@@ -98,39 +98,11 @@ export function useAIChat({ classes, setClasses, triggerToast }: UseAIChatProps)
           ragSessions: finalSessions,
         };
         setClasses(processedClasses);
-      } catch (err: any) {
-        console.warn('FastAPI backend call failed. Falling back to client mock simulation...', err);
-
-        const mockCtx = {
-          prompt: text,
-          students: activeClass.students,
-          materials: activeClass.materials,
-          instructions: activeClass.instructions,
-        };
-        const mockResponse = await getMockChatResponse(mockCtx);
-
-        const serverMsg: Message = {
-          id: `m-${Date.now()}-ai`,
-          role: 'assistant',
-          text: mockResponse.text,
-          visualization: mockResponse.visualization as any,
-          timestamp: new Date().toISOString(),
-        };
-
-        const finalSessions = updatedClasses[currentClassIndex].ragSessions.map((s) => {
-          if (s.id === sessionId) {
-            return { ...s, messages: [...s.messages, serverMsg] };
-          }
-          return s;
-        });
-
-        const processedClasses = [...classes];
-        processedClasses[currentClassIndex] = {
-          ...activeClass,
-          ragSessions: finalSessions,
-        };
-        setClasses(processedClasses);
-        triggerToast('Running diagnostic model analysis...');
+      } catch (err: unknown) {
+        logger.error('APP', 'AI chat request failed', err);
+        const errMsg = err instanceof Error ? err.message : (typeof err === 'object' && err !== null && 'message' in err ? String((err as { message: unknown }).message) : 'Service unavailable');
+        triggerToast(`AI Generation failed: ${errMsg}`);
+        setIsGeneratingAI(false);
       } finally {
         setIsGeneratingAI(false);
       }

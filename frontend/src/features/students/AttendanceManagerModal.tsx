@@ -6,6 +6,7 @@ import {
 } from '@/types/main';
 import { studentService } from '@/services/studentService';
 import { calculateAttendanceRate } from '@/lib/studentCalculations';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Calendar,
   CheckCircle2,
@@ -80,6 +81,14 @@ export default function AttendanceManagerModal({
     setAttendanceMap(updated);
   };
 
+  const { user } = useAuth();
+  const defaultLateWeight = user?.user_metadata?.preferences?.lateAttendanceWeight ?? 0.5;
+  const [lateAttendanceWeight, setLateAttendanceWeight] = useState<number>(defaultLateWeight);
+
+  useEffect(() => {
+    setLateAttendanceWeight(defaultLateWeight);
+  }, [defaultLateWeight]);
+
   const values = Object.values(attendanceMap);
   const totalCount = students.length;
   const presentCount = values.filter((v) => v.status === 'Present').length;
@@ -88,7 +97,7 @@ export default function AttendanceManagerModal({
   const excusedCount = values.filter((v) => v.status === 'Excused').length;
   const effectivePresentPct =
     totalCount > 0
-      ? Math.round(((presentCount + excusedCount + lateCount * 0.5) / totalCount) * 100)
+      ? Math.round(((presentCount + excusedCount + lateCount * lateAttendanceWeight) / totalCount) * 100)
       : 100;
 
   const handleSaveAttendance = async () => {
@@ -116,7 +125,7 @@ export default function AttendanceManagerModal({
           (r) => r.date !== selectedDate
         );
         const allRecords = [...existingRecords, studentRecord];
-        const newPct = calculateAttendanceRate(allRecords);
+        const newPct = calculateAttendanceRate(allRecords, lateAttendanceWeight);
 
         return {
           ...s,
@@ -170,14 +179,31 @@ export default function AttendanceManagerModal({
         icon={<UserCheck className="w-5 h-5 text-primary" />}
         onClose={onClose}
       >
-        <div className="flex items-center gap-2 bg-surface border border-border-color rounded-xl px-3 py-1.5 shadow-sm mr-2">
-          <Calendar className="w-4 h-4 text-primary" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-transparent text-xs text-primary-text font-mono font-semibold focus:outline-none cursor-pointer"
-          />
+        <div className="flex items-center gap-2 mr-2">
+          <div className="flex items-center gap-1.5 bg-surface border border-border-color rounded-xl px-2.5 py-1.5 shadow-sm text-xs font-mono">
+            <Clock className="w-3.5 h-3.5 text-warning" />
+            <span className="text-[10px] text-muted-text uppercase font-semibold">Late Credit:</span>
+            <select
+              value={lateAttendanceWeight}
+              onChange={(e) => setLateAttendanceWeight(parseFloat(e.target.value))}
+              className="bg-transparent text-xs text-primary-text font-mono font-semibold focus:outline-none cursor-pointer"
+            >
+              <option value="0">0%</option>
+              <option value="0.25">25%</option>
+              <option value="0.5">50%</option>
+              <option value="0.75">75%</option>
+              <option value="1">100%</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 bg-surface border border-border-color rounded-xl px-3 py-1.5 shadow-sm">
+            <Calendar className="w-4 h-4 text-primary" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent text-xs text-primary-text font-mono font-semibold focus:outline-none cursor-pointer"
+            />
+          </div>
         </div>
       </ModalHeader>
 

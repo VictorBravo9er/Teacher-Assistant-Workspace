@@ -24,6 +24,10 @@ flowchart TD
         FnContext["get-class-agent-context"]
         FnInvite["invite-student"]
         FnSync["batch-sync-evaluations"]
+        FnNotifyAnn["notify-announcement"]
+        FnNotifyMat["notify-material"]
+        FnNotifySub["notify-submission"]
+        FnResendWebhook["resend-webhook"]
 
         SharedUtil --> FnSubEval
         SharedUtil --> FnMatAnalysis
@@ -32,12 +36,17 @@ flowchart TD
         SharedUtil --> FnContext
         SharedUtil --> FnInvite
         SharedUtil --> FnSync
+        SharedUtil --> FnNotifyAnn
+        SharedUtil --> FnNotifyMat
+        SharedUtil --> FnNotifySub
+        SharedUtil --> FnResendWebhook
     end
 
-    subgraph Targets["Target Subsystems"]
+    subgraph Targets["Target Subsystems & External Gateways"]
         BackendAPI["Backend FastAPI (/api/grade, /api/materials/analyze)"]
         PostgresDB[("PostgreSQL Database (public & ai Schemas)")]
         StorageBuckets[("Supabase Storage (class-materials, student-submissions)")]
+        ResendAPI["External Resend Email API (Batch & Single Sends)"]
     end
 
     DBWebhook -->|Webhook POST| FnSubEval
@@ -47,6 +56,10 @@ flowchart TD
     BrowserClient -->|Direct RPC / HTTP| FnContext
     BrowserClient -->|Direct RPC / HTTP| FnInvite
     BrowserClient -->|Direct RPC / HTTP| FnSync
+    BrowserClient -->|Direct RPC / HTTP| FnNotifyAnn
+    BrowserClient -->|Direct RPC / HTTP| FnNotifyMat
+    BrowserClient -->|Direct RPC / HTTP| FnNotifySub
+    ResendAPI -->|MTA Status Webhook| FnResendWebhook
 
     FnSubEval -->|Fetch Work File| StorageBuckets
     FnSubEval -->|POST /api/grade| BackendAPI
@@ -57,6 +70,15 @@ flowchart TD
     FnMatAnalysis -->|Update Material Insights| PostgresDB
 
     FnURL -->|Generate Signed URL| StorageBuckets
+
+    FnNotifyAnn -->|Batch Email Dispatch| ResendAPI
+    FnNotifyAnn -->|Log Queued Audits| PostgresDB
+    FnNotifyMat -->|Batch Email Dispatch| ResendAPI
+    FnNotifyMat -->|Log Queued Audits| PostgresDB
+    FnNotifySub -->|Single Email Alert| ResendAPI
+    FnNotifySub -->|Log Queued Audits| PostgresDB
+    FnResendWebhook -->|Update Delivery/Bounce Status| PostgresDB
+    FnResendWebhook -->|Send Bounce Alert to Teacher| ResendAPI
 ```
 
 ---
@@ -148,6 +170,48 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 
 ---
 
+### 3.8 `notify-announcement`
+- **Trigger**: Teacher posting a new class announcement with broadcast notifications enabled (`ClassDetails.tsx`).
+- **Workflow**:
+  - Fetches announcement title, body, and class instructor metadata.
+  - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
+  - Retrieves enrolled students and optional parent contact emails from `public.class_students`.
+  - Formats branded HTML notification templates and sets `reply_to` to the teacher's verified email.
+  - Dispatches batch emails via Resend Batch API (`https://api.resend.com/emails/batch`, max 100 per call).
+  - Inserts audit records with `status = 'queued'` and `resend_email_id` into `public.notification_logs`.
+
+---
+
+### 3.9 `notify-material`
+- **Trigger**: Teacher publishing or updating a course material or assignment.
+- **Workflow**:
+  - Retrieves material category, title, max score, and due date.
+  - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
+  - Fetches enrolled student emails from `public.class_students`.
+  - Dynamically customizes email copy based on `event_type` (`"published"` vs `"updated"`) with `reply_to` pointing to the teacher.
+  - Queues batch delivery through Resend and records audit entries in `public.notification_logs`.
+
+---
+
+### 3.10 `notify-submission`
+- **Trigger**: Student turning in an assignment via the Student Portal.
+- **Workflow**:
+  - Resolves submission ID, linked material title, and student name and email.
+  - Resolves class instructor's email privately via `auth.admin.getUserById(class.user_id)`.
+  - Dispatches an email notification to the instructor alerting them of new work ready for grading, with `reply_to` configured to the student's email for single-click instructor replies.
+  - Writes audit entry to `public.notification_logs` with `notification_type = 'submission_turned_in'`.
+
+---
+
+### 3.11 `resend-webhook`
+- **Trigger**: Inbound HTTP webhook from Resend for mail transport status events.
+- **Workflow**:
+  - Correlates `resend_email_id` against `public.notification_logs`.
+  - On `email.delivered`: Updates status to `'delivered'`.
+  - On `email.bounced` or `email.failed`: Updates status to `'bounced'`, captures MTA bounce reason, and immediately emails an automated dead-letter alert to the instructor's inbox with recipient contact details.
+
+---
+
 ## 4. Security & Deployment Standards
 
 - **Environment Variables**:
@@ -155,6 +219,8 @@ The `_shared/` directory provides common reusable utilities across all edge endp
   - `SUPABASE_ANON_KEY`: Client-facing anonymous key for public operations.
   - `SUPABASE_SERVICE_ROLE_KEY`: Secret admin key kept strictly server-side.
   - `BACKEND_API_URL`: Address of the FastAPI service (e.g., `http://backend:8090` or production hostname).
+  - `RESEND_API_KEY`: API token for dispatching emails through the Resend gateway.
+  - `RESEND_FROM_EMAIL`: Authorized sender address (defaults to `updates@teachandlearn.edu`).
 - **Zero Raw Secret Exposure**:
   - Secrets are injected via Supabase Secrets Manager and never committed to version control.
 - **Fail-Safe Webhook Responses**:

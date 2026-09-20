@@ -18,6 +18,7 @@ flowchart TD
         W4["4. Submission & AI Grading Workflows (submission_and_grading_workflows.md)"]
         W5["5. RAG Copilot Workflows (rag_copilot_workflows.md)"]
         W6["6. Instruction & Rubric Workflows (instruction_rubric_workflows.md)"]
+        W7["7. Announcement & Notification Workflows (announcement_and_notification_workflows.md)"]
     end
 
     W1 -->|Creates Blueprints| W2
@@ -27,6 +28,8 @@ flowchart TD
     W4 -->|Populates Gradebook| W5
     W6 -->|Configures Rules & Rubrics| W4
     W6 -->|Injects Personas| W5
+    W3 -->|Provides Recipients| W7
+    W2 -->|Triggers Update Alerts| W7
 ```
 
 ---
@@ -41,6 +44,7 @@ flowchart TD
 | [**`submission_and_grading_workflows.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows/submission_and_grading_workflows.md) | • Student Assignment Turn-in & Blob Upload<br>• Autonomous AI Grading Pipeline<br>• AI Diagnostic Diff Review & Grade Publishing<br>• Atomic Gradebook Recalculation | React UI (`SubmissionGradingModal`, `AIDiagnosticDiffModal`, `GradebookMatrix`), `studentService`, `trigger-submission-evaluation`, Backend `/api/grade`, `trg_sync_student_scores` |
 | [**`rag_copilot_workflows.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows/rag_copilot_workflows.md) | • Interactive Pedagogical Assistance Query<br>• Contextual Prompt Serialization<br>• Dynamic Chart & Widget Rendering<br>• Multi-turn Session Persistence | React UI (`RAGClass`, `Visualizer`), `useAIChat`, `chatService`, Backend `/api/chat`, `ChatService`, OpenRouter LLM, `public.chat_sessions`, `langgraph` checkpointer |
 | [**`instruction_rubric_workflows.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows/instruction_rubric_workflows.md) | • Creating & Applying System Personas / Policy Guidelines<br>• Interactive Rubric Construction<br>• Attaching Rubrics to Assignments | React UI (`ClassDetails`, `RubricBuilderModal`), `instructionService`, `public.instructions`, `public.class_instructions`, `ai.submission_evaluations` |
+| [**`announcement_and_notification_workflows.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/workflows/announcement_and_notification_workflows.md) | • Class Announcement Creation & Pinning<br>• Multi-Recipient Email Broadcasts<br>• Material Published/Updated Alerts<br>• Student Turn-in Instructor Notifications<br>• Resend Webhook Status & Bounce Escalation | React UI (`ClassDetails`), `announcementService`, `notificationService`, `notify-announcement`, `notify-material`, `notify-submission`, `resend-webhook`, `public.announcements`, `public.notification_logs` |
 
 ---
 

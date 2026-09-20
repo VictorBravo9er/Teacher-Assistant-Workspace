@@ -1,10 +1,15 @@
-import { Database } from "@/types/db";
+import type { Database } from "@/types/db";
 
 export type content_type = Database["public"]["Enums"]["content_type"];
+export type ContentType = content_type;
 export type ContentCategory = Database["public"]["Enums"]["content_category"];
 export type InstructionType = Database["public"]["Enums"]["instruction_type"];
 export type SubmissionStatus = Database["public"]["Enums"]["submission_status"];
 export type AttendanceStatus = Database["public"]["Enums"]["attendance_status"];
+export type TeachingStyle = Database["public"]["Enums"]["teaching_style"];
+export type AssessmentPreference = Database["public"]["Enums"]["assessment_preference"];
+export type ExperienceLevel = Database["public"]["Enums"]["experience_level"];
+export type InstituteType = Database["public"]["Enums"]["institute_type"];
 
 export type PerformanceTier = 'High' | 'Average' | 'At Risk';
 export type PerformanceIndicator = 'excellent' | 'good' | 'average' | 'critical' | PerformanceTier;
@@ -100,7 +105,7 @@ export interface Material {
 export interface Instruction {
   id: string;
   title: string;
-  type: string;
+  type: InstructionType;
   content: string;
   whenToApply?: string;
   isArchived?: boolean;
@@ -217,7 +222,6 @@ export interface RAGSession {
   selectedIds: string[];
   customInstructions?: string;
   messages: Message[];
-  archived?: boolean;
   isArchived?: boolean;
   createdAt: string;
 }
@@ -232,16 +236,15 @@ export interface ClassModel {
   semester: string;
   subject: string;
   teacherName: string;
-  teachingStyle: string[];
-  experienceLevel: string;
+  teachingStyle: TeachingStyle[];
+  experienceLevel: ExperienceLevel;
   specialNotes?: string;
-  assessmentPreferences?: string[];
+  assessmentPreferences?: AssessmentPreference[];
   materials: Material[];
   instructions: Instruction[];
   students: Student[];
   ragSessions: RAGSession[];
   attendanceRecords?: AttendanceRecord[];
-  archived?: boolean;
   isArchived?: boolean;
 }
 
@@ -250,12 +253,40 @@ export interface Template {
   name: string;
   description: string;
   subject: string;
-  teachingStyle: string[];
-  experienceLevel?: string;
-  assessmentPreferences?: string[];
+  teachingStyle: TeachingStyle[];
+  experienceLevel?: ExperienceLevel;
+  assessmentPreferences?: AssessmentPreference[];
   instructions: Omit<Instruction, 'id'>[];
   materialsPreset?: Omit<Material, 'id' | 'uploadDate'>[];
   defaultCustomFields?: CustomField[];
-  archived?: boolean;
   isArchived?: boolean;
+}
+
+export interface Announcement {
+  id: string;
+  classId: string;
+  authorId: string;
+  title: string;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationLog {
+  id: string;
+  classId: string;
+  announcementId?: string;
+  materialId?: string;
+  submissionId?: string;
+  notificationType: 'announcement' | 'material_published' | 'material_updated' | 'submission_turned_in';
+  recipientEmail: string;
+  recipientName?: string;
+  recipientType: 'student' | 'parent' | 'teacher';
+  studentId?: string;
+  resendEmailId?: string;
+  status: 'queued' | 'delivered' | 'bounced' | 'failed' | 'complained';
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
 }

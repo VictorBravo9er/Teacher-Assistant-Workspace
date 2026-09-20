@@ -7,6 +7,9 @@ import {
   RubricBreakdownItem,
   SubmissionStatus,
 } from '@/types/main';
+import { Constants } from '@/types/db';
+import { formatEnumLabel } from '@/utils/enumFormatters';
+import { getEnumTooltip } from '@/utils/enumTooltips';
 import { studentService } from '@/services/studentService';
 import AIDiagnosticDiffModal, { AISuggestionPayload } from '@/features/ai-assistant/AIDiagnosticDiffModal';
 import {
@@ -439,12 +442,14 @@ export default function SubmissionGradingModal({
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as SubmissionStatus)}
+                  title={getEnumTooltip(status)}
                   className="bg-surface border border-border-color rounded-xl px-3 py-1.5 text-xs text-primary font-semibold outline-none focus:border-primary cursor-pointer shadow-sm"
                 >
-                  <option value="Assigned">Assigned</option>
-                  <option value="Submitted">Submitted</option>
-                  <option value="Evaluated">Evaluated</option>
-                  <option value="Graded">Graded (Final)</option>
+                  {Constants.public.Enums.submission_status.map((statusOpt) => (
+                    <option key={statusOpt} value={statusOpt}>
+                      {formatEnumLabel(statusOpt)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

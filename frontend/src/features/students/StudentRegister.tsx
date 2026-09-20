@@ -20,6 +20,7 @@ import {
   UploadCloud,
 } from 'lucide-react';
 import { Button, Badge, Modal, ModalHeader, ModalBody, ModalFooter, FormField, Input } from '@/components/ui';
+import { logger } from '@/lib/logger';
 
 interface StudentRegisterProps {
   classItem: ClassModel;
@@ -106,7 +107,7 @@ export default function StudentRegister({
       setSelectedStudentId(studentWithRealId.id);
       notify('Student invitation sent and enrolled in class!');
     } catch (e: any) {
-      console.error(e);
+      logger.error('STUDENT_SERVICE', 'Failed to add student to class', e);
       notify(`Failed to add student: ${e.message}`);
     }
   };
@@ -118,14 +119,13 @@ export default function StudentRegister({
       );
       onUpdateClass(classItem.id, { students: updated });
 
-      if (updatedFields.performanceIndicator || updatedFields.submissions) {
-        const student = updated.find((s) => s.id === studentId);
-        if (student) {
-          await studentService.updateStudentClassData(classItem.id, studentId, student);
-        }
+      const student = updated.find((s) => s.id === studentId);
+      if (student) {
+        await studentService.updateStudentClassData(classItem.id, studentId, student);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      logger.error('STUDENT_SERVICE', 'Failed to persist student details', e);
+      notify(`Failed to save student details: ${e.message || e}`);
     }
   };
 
@@ -137,7 +137,7 @@ export default function StudentRegister({
       setSelectedStudentId(null);
       notify('Student portfolio removed.');
     } catch (e: any) {
-      console.error(e);
+      logger.error('STUDENT_SERVICE', 'Failed to remove student from class', e);
       notify(`Failed to delete student: ${e.message}`);
     }
   };

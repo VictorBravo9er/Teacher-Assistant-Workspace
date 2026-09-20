@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Building2, MapPin, Map, Globe, Shield, Sparkles, AlertCircle, Layers, Copy, Link2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { InstituteAutocompleteField, Institute } from '@/components/shared/InstituteAutocompleteField';
-import { FuzzyAutocompleteField } from '@/components/shared/FuzzyAutocompleteField';
+import { GEOGRAPHY_DATA, DEFAULT_COUNTRY, sanitizeLocationInput } from '@/data/geography';
+import { instituteService, InstituteSummary } from '@/services/instituteService';
+import { secureStorage } from '@/lib/storage';
 import { Constants } from '@/types/db';
 import { Template } from '@/types/main';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter, FormField, Input } from '@/components/ui';
@@ -39,10 +40,34 @@ export default function CreateClassModal({
   const [newInstDistrict, setNewInstDistrict] = useState('');
   const [newInstCity, setNewInstCity] = useState('');
   const [newInstState, setNewInstState] = useState('');
-  const [newInstCountry, setNewInstCountry] = useState('India');
+  const [newInstCountry, setNewInstCountry] = useState(DEFAULT_COUNTRY);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cascading administrative locations
+  const availableStates = useMemo(() => {
+    return Object.keys(GEOGRAPHY_DATA[newInstCountry]?.states || {}).sort();
+  }, [newInstCountry]);
+
+  const availableDistricts = useMemo(() => {
+    if (!newInstState) return [];
+    return (GEOGRAPHY_DATA[newInstCountry]?.states[newInstState] || []).slice().sort();
+  }, [newInstCountry, newInstState]);
+
+  const availableCities = useMemo(() => {
+    if (!newInstState) return [];
+    const cached = secureStorage.getCachedItemWithTTL<InstituteSummary[]>('edu_institutes_directory') || [];
+    const set = new Set<string>();
+    cached.forEach((inst) => {
+      const matchState = inst.state?.toLowerCase() === newInstState.toLowerCase();
+      const matchDistrict = !newInstDistrict || inst.district?.toLowerCase() === newInstDistrict.toLowerCase();
+      if (matchState && matchDistrict && inst.city) {
+        set.add(inst.city);
+      }
+    });
+    return Array.from(set).sort();
+  }, [newInstState, newInstDistrict]);
 
   if (!isOpen) return null;
 
@@ -76,27 +101,16 @@ export default function CreateClassModal({
           return;
         }
 
-        const { data, error: insertError } = await supabase
-          .from('institutes')
-          .insert({
-            name: newInstName.trim(),
-            type: newInstType,
-            district: newInstDistrict.trim() || null,
-            city: newInstCity.trim() || null,
-            state: newInstState.trim() || null,
-            country: newInstCountry.trim() || null,
-          })
-          .select('id')
-          .single();
+        const newInstitute = await instituteService.createInstitute({
+          name: newInstName,
+          type: newInstType,
+          district: newInstDistrict || null,
+          city: newInstCity || null,
+          state: newInstState || null,
+          country: newInstCountry || null,
+        });
 
-        if (insertError) {
-          console.error('Error inserting institute:', insertError);
-          setError(insertError.message || 'Failed to create new institute.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        finalInstituteId = data.id;
+        finalInstituteId = newInstitute.id;
         onTriggerToast('New institute registered successfully.');
       }
 
@@ -116,10 +130,12 @@ export default function CreateClassModal({
       setNewInstDistrict('');
       setNewInstCity('');
       setNewInstState('');
+      setNewInstCountry(DEFAULT_COUNTRY);
       onClose();
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'An unexpected error occurred.');
+    } catch (err: unknown) {
+      console.error('Create class/institute failed:', err);
+      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setError(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -298,41 +314,98 @@ export default function CreateClassModal({
                 </FormField>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <FuzzyAutocompleteField
-                    label="District"
-                    icon={<MapPin className="w-full h-full" />}
-                    placeholder="Search district"
-                    value={newInstDistrict}
-                    onChange={setNewInstDistrict}
-                    rpcMethod="search_districts"
-                  />
-                  <FuzzyAutocompleteField
-                    label="City"
-                    icon={<Building2 className="w-full h-full" />}
-                    placeholder="Search city"
-                    value={newInstCity}
-                    onChange={setNewInstCity}
-                    rpcMethod="search_cities"
-                  />
+                  <FormField label="Country">
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text" />
+                      <select
+                        id="create-class-country-select"
+                        value={newInstCountry}
+                        onChange={(e) => {
+                          setNewInstCountry(e.target.value);
+                          setNewInstState('');
+                          setNewInstDistrict('');
+                          setNewInstCity('');
+                        }}
+                        className="w-full bg-surface border border-border-color rounded-xl py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-primary transition-all appearance-none text-primary-text cursor-pointer"
+                      >
+                        {Object.keys(GEOGRAPHY_DATA).map((country) => (
+                          <option key={country} value={country}>
+                            {country}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </FormField>
+
+                  <FormField label="State / Province">
+                    <div className="relative">
+                      <Map className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text" />
+                      <select
+                        id="create-class-state-select"
+                        value={newInstState}
+                        onChange={(e) => {
+                          setNewInstState(e.target.value);
+                          setNewInstDistrict('');
+                          setNewInstCity('');
+                        }}
+                        className="w-full bg-surface border border-border-color rounded-xl py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-primary transition-all appearance-none text-primary-text cursor-pointer"
+                      >
+                        <option value="">Select State / UT</option>
+                        {availableStates.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </FormField>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <FuzzyAutocompleteField
-                    label="State"
-                    icon={<Map className="w-full h-full" />}
-                    placeholder="Search state"
-                    value={newInstState}
-                    onChange={setNewInstState}
-                    rpcMethod="search_states"
-                  />
-                  <FuzzyAutocompleteField
-                    label="Country"
-                    icon={<Globe className="w-full h-full" />}
-                    placeholder="Search country"
-                    value={newInstCountry}
-                    onChange={setNewInstCountry}
-                    rpcMethod="search_countries"
-                  />
+                  <FormField label="District">
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text" />
+                      <select
+                        id="create-class-district-select"
+                        value={newInstDistrict}
+                        disabled={!newInstState}
+                        onChange={(e) => {
+                          setNewInstDistrict(e.target.value);
+                        }}
+                        className="w-full bg-surface border border-border-color rounded-xl py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-primary transition-all appearance-none text-primary-text cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">
+                          {newInstState ? 'Select District' : 'Select State First'}
+                        </option>
+                        {availableDistricts.map((dist) => (
+                          <option key={dist} value={dist}>
+                            {dist}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </FormField>
+
+                  <FormField label="City / Campus">
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-text pointer-events-none" />
+                      <input
+                        id="create-class-city-input"
+                        type="text"
+                        list="available-cities-list"
+                        value={newInstCity}
+                        onChange={(e) => setNewInstCity(e.target.value)}
+                        onBlur={() => setNewInstCity(sanitizeLocationInput(newInstCity))}
+                        placeholder={newInstDistrict ? `e.g. ${newInstDistrict} Central` : 'Enter city or campus'}
+                        className="w-full bg-surface border border-border-color rounded-xl py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-primary transition-all text-primary-text"
+                      />
+                      <datalist id="available-cities-list">
+                        {availableCities.map((c) => (
+                          <option key={c} value={c} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </FormField>
                 </div>
 
                 <FormField label="Type">

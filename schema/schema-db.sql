@@ -15,7 +15,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto" with schema extensions;
 -- 2. Custom Enums
 -- ==========================================
 DO $$ BEGIN CREATE TYPE public.content_category AS ENUM ('Study Material', 'Note', 'Assigned Book', 'Link', 'Practical', 'Assignment', 'Test', 'Exam'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE public.content_type AS ENUM ('File', 'URL'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE public.content_type AS ENUM ('File', 'URL', 'Text'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE public.submission_status AS ENUM ('Assigned', 'Pending', 'Submitted', 'Evaluated', 'Graded'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE public.attendance_status AS ENUM ('Present', 'Absent', 'Late', 'Excused'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE public.institute_type AS ENUM ('Primary School', 'Middle School', 'High School', 'K-12', 'College', 'University', 'Vocational School', 'Tutoring Center', 'Private Tutor', 'Freelancer', 'Training Agency', 'Online Academy', 'Homeschool Co-op', 'Other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -40,7 +40,10 @@ BEGIN
             elem ? 'id' AND jsonb_typeof(elem->'id') = 'string' AND
             elem ? 'name' AND jsonb_typeof(elem->'name') = 'string' AND
             elem ? 'type' AND (elem->>'type' = ANY (enum_range(NULL::public.content_type)::text[])) AND
-            elem ? 'path' AND jsonb_typeof(elem->'path') = 'string' AND
+            (
+                (elem->>'type' = 'Text') OR 
+                (elem ? 'path' AND jsonb_typeof(elem->'path') = 'string')
+            ) AND
             (NOT elem ? 'description' OR jsonb_typeof(elem->'description') = 'string')
         ) THEN
             RETURN false;
@@ -96,7 +99,8 @@ CREATE TABLE IF NOT EXISTS public.templates (
     experience_level public.experience_level,
     assessment_preferences public.assessment_preference[],
     is_archived BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.students (
@@ -105,7 +109,8 @@ CREATE TABLE IF NOT EXISTS public.students (
     email TEXT,
     avatar_url TEXT,
     is_archived BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.class_students (
@@ -119,6 +124,14 @@ CREATE TABLE IF NOT EXISTS public.class_students (
     general_feedback TEXT,
     performance_tier TEXT,
     behavioral_notes TEXT,
+    phone TEXT,
+    address TEXT,
+    parent_name TEXT,
+    parent_contact TEXT,
+    parent_notes TEXT,
+    custom_fields JSONB DEFAULT '[]'::jsonb,
+    roll_number TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (class_id, student_id)
 );
 
@@ -135,6 +148,7 @@ CREATE TABLE IF NOT EXISTS public.materials (
     tags TEXT[],
     is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT valid_content_shape CHECK (validate_content_array(content)),
     CONSTRAINT check_scored_requirements CHECK (to_be_scored = false OR (due_at IS NOT NULL AND max_score IS NOT NULL))
 );
@@ -145,6 +159,7 @@ CREATE TABLE IF NOT EXISTS public.template_materials (
     custom_content JSONB DEFAULT NULL,
     custom_rubric_criteria JSONB DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (template_id, material_id),
     CONSTRAINT valid_tpl_custom_content_shape CHECK (custom_content IS NULL OR validate_content_array(custom_content))
 );
@@ -155,6 +170,7 @@ CREATE TABLE IF NOT EXISTS public.class_materials (
     custom_content JSONB DEFAULT NULL,
     custom_rubric_criteria JSONB DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (class_id, material_id),
     CONSTRAINT valid_class_custom_content_shape CHECK (custom_content IS NULL OR validate_content_array(custom_content))
 );
@@ -167,13 +183,15 @@ CREATE TABLE IF NOT EXISTS public.instructions (
     content TEXT NOT NULL,
     when_to_apply TEXT,
     is_archived BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.template_instructions (
     template_id UUID NOT NULL REFERENCES public.templates(id) ON DELETE CASCADE,
     instruction_id UUID NOT NULL REFERENCES public.instructions(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (template_id, instruction_id)
 );
 
@@ -181,6 +199,7 @@ CREATE TABLE IF NOT EXISTS public.class_instructions (
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
     instruction_id UUID NOT NULL REFERENCES public.instructions(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (class_id, instruction_id)
 );
 
@@ -201,6 +220,7 @@ CREATE TABLE IF NOT EXISTS public.student_submissions (
     submitted_at TIMESTAMP WITH TIME ZONE,
     reviewed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT valid_content_shape CHECK (validate_content_array(content))
 );
 
@@ -212,6 +232,7 @@ CREATE TABLE IF NOT EXISTS public.attendance_records (
     status public.attendance_status NOT NULL,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT unique_class_student_date UNIQUE (class_id, student_id, date)
 );
 
@@ -228,6 +249,37 @@ CREATE TABLE IF NOT EXISTS public.chat_sessions (
     is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    is_pinned BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.notification_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    announcement_id UUID REFERENCES public.announcements(id) ON DELETE CASCADE,
+    material_id UUID REFERENCES public.materials(id) ON DELETE CASCADE,
+    submission_id UUID REFERENCES public.student_submissions(id) ON DELETE CASCADE,
+    notification_type TEXT NOT NULL CHECK (
+        notification_type IN ('announcement', 'material_published', 'material_updated', 'submission_turned_in')
+    ),
+    recipient_email TEXT NOT NULL,
+    recipient_name TEXT,
+    recipient_type TEXT NOT NULL CHECK (recipient_type IN ('student', 'parent', 'teacher')),
+    student_id UUID REFERENCES public.students(id) ON DELETE SET NULL,
+    resend_email_id TEXT,
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'delivered', 'bounced', 'failed', 'complained')),
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 
@@ -252,6 +304,13 @@ CREATE INDEX IF NOT EXISTS idx_attendance_records_class_id ON public.attendance_
 CREATE INDEX IF NOT EXISTS idx_attendance_records_student_id ON public.attendance_records(student_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON public.chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_class_id ON public.chat_sessions(class_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_class_id ON public.announcements(class_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON public.announcements(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_class_id ON public.notification_logs(class_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_announcement_id ON public.notification_logs(announcement_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_material_id ON public.notification_logs(material_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_submission_id ON public.notification_logs(submission_id);
+CREATE INDEX IF NOT EXISTS idx_notification_logs_resend_email_id ON public.notification_logs(resend_email_id);
 
 
 -- ==========================================
@@ -370,6 +429,61 @@ CREATE TRIGGER trg_sync_student_scores
 AFTER INSERT OR UPDATE OF score, class_id, student_id OR DELETE
 ON public.student_submissions
 FOR EACH ROW EXECUTE FUNCTION public.sync_student_class_scores();
+
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_classes_updated_at ON public.classes;
+CREATE TRIGGER trg_classes_updated_at BEFORE UPDATE ON public.classes FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_templates_updated_at ON public.templates;
+CREATE TRIGGER trg_templates_updated_at BEFORE UPDATE ON public.templates FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_materials_updated_at ON public.materials;
+CREATE TRIGGER trg_materials_updated_at BEFORE UPDATE ON public.materials FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_instructions_updated_at ON public.instructions;
+CREATE TRIGGER trg_instructions_updated_at BEFORE UPDATE ON public.instructions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_students_updated_at ON public.students;
+CREATE TRIGGER trg_students_updated_at BEFORE UPDATE ON public.students FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_class_students_updated_at ON public.class_students;
+CREATE TRIGGER trg_class_students_updated_at BEFORE UPDATE ON public.class_students FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_attendance_records_updated_at ON public.attendance_records;
+CREATE TRIGGER trg_attendance_records_updated_at BEFORE UPDATE ON public.attendance_records FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_student_submissions_updated_at ON public.student_submissions;
+CREATE TRIGGER trg_student_submissions_updated_at BEFORE UPDATE ON public.student_submissions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_class_materials_updated_at ON public.class_materials;
+CREATE TRIGGER trg_class_materials_updated_at BEFORE UPDATE ON public.class_materials FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_class_instructions_updated_at ON public.class_instructions;
+CREATE TRIGGER trg_class_instructions_updated_at BEFORE UPDATE ON public.class_instructions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_template_materials_updated_at ON public.template_materials;
+CREATE TRIGGER trg_template_materials_updated_at BEFORE UPDATE ON public.template_materials FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_template_instructions_updated_at ON public.template_instructions;
+CREATE TRIGGER trg_template_instructions_updated_at BEFORE UPDATE ON public.template_instructions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_announcements_updated_at ON public.announcements;
+CREATE TRIGGER trg_announcements_updated_at BEFORE UPDATE ON public.announcements FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_notification_logs_updated_at ON public.notification_logs;
+CREATE TRIGGER trg_notification_logs_updated_at BEFORE UPDATE ON public.notification_logs FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_chat_sessions_updated_at ON public.chat_sessions;
+CREATE TRIGGER trg_chat_sessions_updated_at BEFORE UPDATE ON public.chat_sessions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 -- ==========================================
@@ -550,6 +664,183 @@ BEGIN
 END;
 $$;
 
+-- Granular Workspace Component Revalidation Engine
+CREATE OR REPLACE FUNCTION public.check_workspace_modifications(
+    p_client_timestamps jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_is_wiped BOOLEAN := false;
+    v_accessible_class_ids UUID[];
+    v_c_id UUID;
+    v_server_timestamps jsonb := '{}'::jsonb;
+    v_stale_components jsonb := '[]'::jsonb;
+    v_classes_max TIMESTAMPTZ;
+    v_templates_max TIMESTAMPTZ;
+    v_students_max TIMESTAMPTZ;
+    v_materials_max TIMESTAMPTZ;
+    v_instructions_max TIMESTAMPTZ;
+    v_classes_count INT;
+    v_templates_count INT;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RETURN jsonb_build_object(
+            'stale_components', jsonb_build_array(),
+            'server_timestamps', '{}'::jsonb,
+            'is_wiped', true
+        );
+    END IF;
+
+    SELECT COALESCE(array_agg(DISTINCT id), ARRAY[]::UUID[])
+    INTO v_accessible_class_ids
+    FROM (
+        SELECT id FROM public.classes WHERE user_id = v_user_id
+        UNION
+        SELECT class_id AS id FROM public.class_students WHERE student_id = v_user_id
+    ) t;
+
+    SELECT COUNT(*) INTO v_classes_count FROM unnest(v_accessible_class_ids);
+    SELECT COUNT(*) INTO v_templates_count FROM public.templates WHERE user_id = v_user_id;
+
+    IF v_classes_count = 0 AND v_templates_count = 0 THEN
+        v_is_wiped := true;
+        IF p_client_timestamps IS NOT NULL AND p_client_timestamps <> '{}'::jsonb THEN
+            SELECT jsonb_agg(key) INTO v_stale_components FROM jsonb_object_keys(p_client_timestamps) key;
+        END IF;
+        RETURN jsonb_build_object(
+            'stale_components', COALESCE(v_stale_components, '[]'::jsonb),
+            'server_timestamps', '{}'::jsonb,
+            'is_wiped', true
+        );
+    END IF;
+
+    -- 1. classes_meta
+    SELECT MAX(c.updated_at)
+    INTO v_classes_max
+    FROM public.classes c
+    WHERE c.id = ANY(v_accessible_class_ids);
+
+    IF v_classes_max IS NOT NULL THEN
+        v_server_timestamps := jsonb_set(
+            v_server_timestamps, 
+            '{classes_meta}', 
+            to_jsonb(to_char(v_classes_max, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+        );
+    END IF;
+
+    -- 2. templates (for teachers)
+    SELECT MAX(t.updated_at)
+    INTO v_templates_max
+    FROM public.templates t
+    WHERE t.user_id = v_user_id;
+
+    IF v_templates_max IS NOT NULL THEN
+        v_server_timestamps := jsonb_set(
+            v_server_timestamps, 
+            '{templates}', 
+            to_jsonb(to_char(v_templates_max, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+        );
+    END IF;
+
+    -- 3. Per-class components for accessible classes
+    FOREACH v_c_id IN ARRAY v_accessible_class_ids LOOP
+        SELECT GREATEST(
+            (SELECT MAX(cs.updated_at) FROM public.class_students cs WHERE cs.class_id = v_c_id),
+            (SELECT MAX(s.updated_at) FROM public.students s WHERE s.id IN (SELECT cs2.student_id FROM public.class_students cs2 WHERE cs2.class_id = v_c_id)),
+            (SELECT MAX(ar.updated_at) FROM public.attendance_records ar WHERE ar.class_id = v_c_id),
+            (SELECT MAX(sub.updated_at) FROM public.student_submissions sub WHERE sub.class_id = v_c_id)
+        ) INTO v_students_max;
+
+        IF v_students_max IS NOT NULL THEN
+            v_server_timestamps := jsonb_set(
+                v_server_timestamps,
+                ARRAY['class_students:' || v_c_id::text],
+                to_jsonb(to_char(v_students_max, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+            );
+        END IF;
+
+        SELECT GREATEST(
+            (SELECT MAX(cm.updated_at) FROM public.class_materials cm WHERE cm.class_id = v_c_id),
+            (SELECT MAX(m.updated_at) FROM public.materials m WHERE m.id IN (SELECT cm2.material_id FROM public.class_materials cm2 WHERE cm2.class_id = v_c_id))
+        ) INTO v_materials_max;
+
+        IF v_materials_max IS NOT NULL THEN
+            v_server_timestamps := jsonb_set(
+                v_server_timestamps,
+                ARRAY['class_materials:' || v_c_id::text],
+                to_jsonb(to_char(v_materials_max, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+            );
+        END IF;
+
+        SELECT GREATEST(
+            (SELECT MAX(ci.updated_at) FROM public.class_instructions ci WHERE ci.class_id = v_c_id),
+            (SELECT MAX(i.updated_at) FROM public.instructions i WHERE i.id IN (SELECT ci2.instruction_id FROM public.class_instructions ci2 WHERE ci2.class_id = v_c_id))
+        ) INTO v_instructions_max;
+
+        IF v_instructions_max IS NOT NULL THEN
+            v_server_timestamps := jsonb_set(
+                v_server_timestamps,
+                ARRAY['class_instructions:' || v_c_id::text],
+                to_jsonb(to_char(v_instructions_max, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+            );
+        END IF;
+    END LOOP;
+
+    SELECT COALESCE(jsonb_agg(comp_key), '[]'::jsonb)
+    INTO v_stale_components
+    FROM (
+        SELECT key AS comp_key
+        FROM jsonb_each_text(p_client_timestamps)
+        WHERE (
+            NOT (v_server_timestamps ? key)
+            OR
+            value IS NULL
+            OR
+            value = ''
+            OR
+            (CASE 
+                WHEN value ~ '^\d{4}-\d{2}-\d{2}' THEN value::timestamptz 
+                ELSE '1970-01-01T00:00:00Z'::timestamptz 
+             END) < (v_server_timestamps->>key)::timestamptz
+        )
+        UNION
+        SELECT key AS comp_key
+        FROM jsonb_each_text(v_server_timestamps)
+        WHERE NOT (p_client_timestamps ? key)
+    ) comp_diff;
+
+    RETURN jsonb_build_object(
+        'stale_components', v_stale_components,
+        'server_timestamps', v_server_timestamps,
+        'is_wiped', false
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_workspace_last_modified(
+    p_client_timestamps jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+BEGIN
+    RETURN public.check_workspace_modifications(p_client_timestamps);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.set_updated_at() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.check_workspace_modifications(jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_workspace_last_modified(jsonb) TO authenticated, service_role;
+
 
 -- ==========================================
 -- 8. Row Level Security (RLS) Policies
@@ -562,7 +853,14 @@ CREATE POLICY "Authenticated users can insert institutes" ON public.institutes F
 
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own classes" ON public.classes;
-CREATE POLICY "Users can only view their own classes" ON public.classes FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can view classes" ON public.classes;
+CREATE POLICY "Users can view classes" ON public.classes FOR SELECT USING (
+    (SELECT auth.uid()) = user_id 
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs 
+        WHERE cs.class_id = classes.id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 DROP POLICY IF EXISTS "Users can only insert their own classes" ON public.classes;
 CREATE POLICY "Users can only insert their own classes" ON public.classes FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own classes" ON public.classes;
@@ -586,13 +884,35 @@ CREATE POLICY "Users can view students" ON public.students FOR SELECT USING ( (S
 DROP POLICY IF EXISTS "Students can update their own profile" ON public.students;
 CREATE POLICY "Students can update their own profile" ON public.students FOR UPDATE USING ((SELECT auth.uid()) = id);
 
+-- Security Definer helper to check class ownership without RLS recursion
+CREATE OR REPLACE FUNCTION public.is_class_teacher(lookup_class_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.classes
+    WHERE id = lookup_class_id AND user_id = (SELECT auth.uid())
+  );
+$$;
+
 ALTER TABLE public.class_students ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_students" ON public.class_students;
-CREATE POLICY "Users can access class_students" ON public.class_students FOR ALL USING ( student_id = (SELECT auth.uid()) OR EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = class_students.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+CREATE POLICY "Users can access class_students" ON public.class_students FOR ALL USING ( student_id = (SELECT auth.uid()) OR public.is_class_teacher(class_id) );
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own materials" ON public.materials;
-CREATE POLICY "Users can only view their own materials" ON public.materials FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can view materials" ON public.materials;
+CREATE POLICY "Users can view materials" ON public.materials FOR SELECT USING (
+    (SELECT auth.uid()) = user_id
+    OR EXISTS (
+        SELECT 1 FROM public.class_materials cm
+        JOIN public.class_students cs ON cs.class_id = cm.class_id
+        WHERE cm.material_id = materials.id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 DROP POLICY IF EXISTS "Users can only insert their own materials" ON public.materials;
 CREATE POLICY "Users can only insert their own materials" ON public.materials FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own materials" ON public.materials;
@@ -606,11 +926,29 @@ CREATE POLICY "Users can access template_materials via template ownership" ON pu
 
 ALTER TABLE public.class_materials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_materials via class ownership" ON public.class_materials;
-CREATE POLICY "Users can access class_materials via class ownership" ON public.class_materials FOR ALL USING ( EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = class_materials.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+DROP POLICY IF EXISTS "Users can access class_materials" ON public.class_materials;
+CREATE POLICY "Users can access class_materials" ON public.class_materials FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.classes c
+        WHERE c.id = class_materials.class_id AND c.user_id = (SELECT auth.uid())
+    )
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs
+        WHERE cs.class_id = class_materials.class_id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 
 ALTER TABLE public.instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own instructions" ON public.instructions;
-CREATE POLICY "Users can only view their own instructions" ON public.instructions FOR SELECT USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can view instructions" ON public.instructions;
+CREATE POLICY "Users can view instructions" ON public.instructions FOR SELECT USING (
+    (SELECT auth.uid()) = user_id
+    OR EXISTS (
+        SELECT 1 FROM public.class_instructions ci
+        JOIN public.class_students cs ON cs.class_id = ci.class_id
+        WHERE ci.instruction_id = instructions.id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 DROP POLICY IF EXISTS "Users can only insert their own instructions" ON public.instructions;
 CREATE POLICY "Users can only insert their own instructions" ON public.instructions FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only update their own instructions" ON public.instructions;
@@ -624,15 +962,25 @@ CREATE POLICY "Users can access template_instructions via template ownership" ON
 
 ALTER TABLE public.class_instructions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access class_instructions via class ownership" ON public.class_instructions;
-CREATE POLICY "Users can access class_instructions via class ownership" ON public.class_instructions FOR ALL USING ( EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = class_instructions.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+DROP POLICY IF EXISTS "Users can access class_instructions" ON public.class_instructions;
+CREATE POLICY "Users can access class_instructions" ON public.class_instructions FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.classes c
+        WHERE c.id = class_instructions.class_id AND c.user_id = (SELECT auth.uid())
+    )
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs
+        WHERE cs.class_id = class_instructions.class_id AND cs.student_id = (SELECT auth.uid())
+    )
+);
 
 ALTER TABLE public.student_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access student_submissions" ON public.student_submissions;
-CREATE POLICY "Users can access student_submissions" ON public.student_submissions FOR ALL USING ( student_id = (SELECT auth.uid()) OR EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = student_submissions.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+CREATE POLICY "Users can access student_submissions" ON public.student_submissions FOR ALL USING ( student_id = (SELECT auth.uid()) OR public.is_class_teacher(class_id) );
 
 ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can access attendance" ON public.attendance_records;
-CREATE POLICY "Users can access attendance" ON public.attendance_records FOR ALL USING ( student_id = (SELECT auth.uid()) OR EXISTS ( SELECT 1 FROM public.classes WHERE classes.id = attendance_records.class_id AND classes.user_id = (SELECT auth.uid()) ) );
+CREATE POLICY "Users can access attendance" ON public.attendance_records FOR ALL USING ( student_id = (SELECT auth.uid()) OR public.is_class_teacher(class_id) );
 
 ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own chat sessions" ON public.chat_sessions;
@@ -643,6 +991,32 @@ DROP POLICY IF EXISTS "Users can only update their own chat sessions" ON public.
 CREATE POLICY "Users can only update their own chat sessions" ON public.chat_sessions FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 DROP POLICY IF EXISTS "Users can only delete their own chat sessions" ON public.chat_sessions;
 CREATE POLICY "Users can only delete their own chat sessions" ON public.chat_sessions FOR DELETE USING ((SELECT auth.uid()) = user_id);
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Teachers manage class announcements" ON public.announcements;
+CREATE POLICY "Teachers manage class announcements"
+    ON public.announcements FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = announcements.class_id AND classes.user_id = (SELECT auth.uid())
+    ));
+
+DROP POLICY IF EXISTS "Enrolled students read class announcements" ON public.announcements;
+CREATE POLICY "Enrolled students read class announcements"
+    ON public.announcements FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.class_students 
+        WHERE class_students.class_id = announcements.class_id AND class_students.student_id = (SELECT auth.uid())
+    ));
+
+ALTER TABLE public.notification_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Teachers view notification logs for their classes" ON public.notification_logs;
+CREATE POLICY "Teachers view notification logs for their classes"
+    ON public.notification_logs FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE classes.id = notification_logs.class_id AND classes.user_id = (SELECT auth.uid())
+    ));
 
 
 -- ==========================================
@@ -731,8 +1105,11 @@ COMMENT ON COLUMN public.attendance_records.notes IS 'Teacher notes for why the 
 COMMENT ON COLUMN public.chat_sessions.title IS 'Auto-generated or custom title for the AI chat session.';
 COMMENT ON COLUMN public.chat_sessions.class_id IS 'Optional link to restrict the AI context to a specific class.';
 
+COMMENT ON COLUMN public.class_students.custom_fields IS 'Custom key-value accommodations and IEP tags configured by the teacher.';
+COMMENT ON COLUMN public.class_students.parent_notes IS 'Private teacher observations and notes regarding parent communications.';
+
 COMMENT ON TYPE public.content_category IS 'Broad classification of teaching materials.';
-COMMENT ON TYPE public.content_type IS 'The physical medium of the material (File upload or URL link).';
+COMMENT ON TYPE public.content_type IS 'The physical medium of the material (File upload, URL link, or Text body).';
 COMMENT ON TYPE public.submission_status IS 'Lifecycle state of a student submission.';
 COMMENT ON TYPE public.attendance_status IS 'Standard attendance states.';
 COMMENT ON TYPE public.institute_type IS 'The classification of the educational organization.';

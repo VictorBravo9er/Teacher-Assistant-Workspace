@@ -1,6 +1,23 @@
-import React, { useState } from 'react';
-import { ClassModel, Material, Instruction, ContentCategory, RubricCriterion } from "@/types/main";
+import React, { useState, useEffect, useCallback } from 'react';
+import { Constants } from "@/types/db";
+import {
+  ClassModel,
+  Material,
+  Instruction,
+  Announcement,
+  ContentCategory,
+  RubricCriterion,
+  InstructionType,
+  TeachingStyle,
+  AssessmentPreference,
+  ExperienceLevel,
+} from "@/types/main";
+import { formatEnumLabel } from "@/utils/enumFormatters";
+import { getEnumTooltip } from "@/utils/enumTooltips";
 import { materialService } from "@/services/materialService";
+import { announcementService } from "@/services/announcementService";
+import { notificationService } from "@/services/notificationService";
+import { CalendarView } from "@/features/calendar/CalendarView";
 import { ConfirmModal, PromptModal, LoadingOverlay } from "@/components/shared/CustomDialogs";
 import { MultiSelect } from '@/components/shared/MultiSelect';
 import MaterialPreviewModal from '@/features/classroom/MaterialPreviewModal';
@@ -29,6 +46,9 @@ import {
   Eye,
   Sliders,
   Lock,
+  Bell,
+  Pin,
+  Send,
 } from "lucide-react";
 import { Button, Badge, Modal, FormField, Input, Textarea } from '@/components/ui';
 
@@ -48,8 +68,8 @@ interface ClassDetailsProps {
   ) => void;
   onDeleteInstruction: (wsId: string, promptId: string) => void;
   onTriggerToast: (text: string) => void;
-  activeSubTab?: "profile" | "materials" | "prompts";
-  onSubTabChange?: (tab: "profile" | "materials" | "prompts") => void;
+  activeSubTab?: "profile" | "materials" | "prompts" | "announcements" | "calendar";
+  onSubTabChange?: (tab: "profile" | "materials" | "prompts" | "announcements" | "calendar") => void;
 }
 
 export default function ClassDetails({
@@ -65,11 +85,11 @@ export default function ClassDetails({
   onSubTabChange,
 }: ClassDetailsProps) {
   const [internalSubTab, setInternalSubTab] = useState<
-    "profile" | "materials" | "prompts"
+    "profile" | "materials" | "prompts" | "announcements" | "calendar"
   >("profile");
 
   const activeSubTab = externalSubTab !== undefined ? externalSubTab : internalSubTab;
-  const setActiveSubTab = (tab: "profile" | "materials" | "prompts") => {
+  const setActiveSubTab = (tab: "profile" | "materials" | "prompts" | "announcements" | "calendar") => {
     if (onSubTabChange) onSubTabChange(tab);
     setInternalSubTab(tab);
   };
@@ -87,7 +107,7 @@ export default function ClassDetails({
   // Local form states for reusable instructions
   const [newPromptTitle, setNewPromptTitle] = useState("");
   const [newPromptType, setNewPromptType] =
-    useState<Instruction["type"]>("criteria");
+    useState<InstructionType>("System Persona");
   const [newPromptContent, setNewPromptContent] = useState("");
   const [showPromptForm, setShowPromptForm] = useState(false);
 
@@ -99,6 +119,75 @@ export default function ClassDetails({
   // Material Preview & Rubric Builder states
   const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
   const [rubricModalMaterial, setRubricModalMaterial] = useState<Material | null>(null);
+
+  // Announcements state
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(false);
+  const [newAnnTitle, setNewAnnTitle] = useState("");
+  const [newAnnContent, setNewAnnContent] = useState("");
+  const [newAnnPinned, setNewAnnPinned] = useState(false);
+  const [newAnnNotifyStudents, setNewAnnNotifyStudents] = useState(true);
+  const [newAnnNotifyParents, setNewAnnNotifyParents] = useState(false);
+  const [isPostingAnn, setIsPostingAnn] = useState(false);
+  const [notifyOnCreateMaterial, setNotifyOnCreateMaterial] = useState(true);
+
+  const loadAnnouncements = useCallback(async () => {
+    if (!classItem.id) return;
+    try {
+      setIsLoadingAnnouncements(true);
+      const data = await announcementService.fetchAnnouncements(classItem.id);
+      setAnnouncements(data);
+    } catch (e) {
+      console.error("Failed to load announcements:", e);
+    } finally {
+      setIsLoadingAnnouncements(false);
+    }
+  }, [classItem.id]);
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  const handlePostAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAnnTitle.trim() || !newAnnContent.trim()) return;
+    try {
+      setIsPostingAnn(true);
+      const created = await announcementService.createAnnouncement(classItem.id, {
+        title: newAnnTitle.trim(),
+        content: newAnnContent.trim(),
+        isPinned: newAnnPinned,
+      });
+      setAnnouncements((prev) => [created, ...prev]);
+      if (newAnnNotifyStudents) {
+        await notificationService.notifyAnnouncement(
+          created.id,
+          classItem.id,
+          newAnnNotifyParents
+        );
+        onTriggerToast("Announcement posted. Notification emails queued.");
+      } else {
+        onTriggerToast("Announcement posted successfully.");
+      }
+      setNewAnnTitle("");
+      setNewAnnContent("");
+      setNewAnnPinned(false);
+    } catch (err: any) {
+      onTriggerToast(`Failed to post announcement: ${err.message}`);
+    } finally {
+      setIsPostingAnn(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    try {
+      await announcementService.deleteAnnouncement(id);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      onTriggerToast("Announcement removed.");
+    } catch (err: any) {
+      onTriggerToast(`Failed to delete announcement: ${err.message}`);
+    }
+  };
 
   const handleSaveRubric = (materialId: string, criteria: RubricCriterion[], maxScore: number) => {
     const updated = classItem.materials.map((m) =>
@@ -136,6 +225,13 @@ export default function ClassDetails({
       },
       newFileObj || undefined,
     );
+
+    if (notifyOnCreateMaterial) {
+      notificationService.notifyMaterial(classItem.id, classItem.id, 'published', false).catch((err) => {
+        console.warn('Material publication notification dispatch failed:', err);
+      });
+      onTriggerToast("Material published and notification emails queued.");
+    }
 
     setNewFileName("");
     setNewFileTags("");
@@ -236,6 +332,33 @@ export default function ClassDetails({
             </span>
           )}
         </button>
+        <button
+          onClick={() => setActiveSubTab("announcements")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeSubTab === "announcements"
+              ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+              : "text-muted-text hover:text-secondary-text"
+          }`}
+        >
+          <Bell className="w-3.5 h-3.5" />
+          Announcements
+          {announcements.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.2 bg-warning/15 text-warning text-[10px] rounded-full font-mono border border-warning/25 font-bold">
+              {announcements.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveSubTab("calendar")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeSubTab === "calendar"
+              ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+              : "text-muted-text hover:text-secondary-text"
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          Schedule
+        </button>
       </div>
 
       {/* Tab Contents Area */}
@@ -243,25 +366,35 @@ export default function ClassDetails({
         {/* Profile Tab */}
         <div className={activeSubTab === "profile" ? "space-y-4" : "hidden"}>
           {/* Lead Class Metrics Cards */}
-          <div className={`grid ${isEditMode ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
-            {!isEditMode && (
-              <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
-                <span className="text-[10px] font-mono text-muted-text block uppercase">
-                  Institution / School
-                </span>
-                <span
-                  className="text-xs font-semibold text-primary-text block mt-1 truncate"
-                  title={classItem.instituteName || "Independent"}
-                >
-                  {classItem.instituteName || "Independent"}
-                </span>
-                {classItem.instituteAddress && (
-                  <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
-                    {classItem.instituteAddress}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
+              <span className="text-[10px] font-mono text-muted-text block uppercase">
+                Institution / School
+              </span>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={classItem.instituteName || ''}
+                  onChange={(e) => onUpdateClass(classItem.id, { instituteName: e.target.value })}
+                  placeholder="e.g. Lincoln High School"
+                  className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all mt-1"
+                />
+              ) : (
+                <>
+                  <span
+                    className="text-xs font-semibold text-primary-text block mt-1 truncate"
+                    title={classItem.instituteName || "Independent"}
+                  >
+                    {classItem.instituteName || "Independent"}
                   </span>
-                )}
-              </div>
-            )}
+                  {classItem.instituteAddress && (
+                    <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
+                      {classItem.instituteAddress}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
             <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
               <span className="text-[10px] font-mono text-muted-text block uppercase">
                 Curriculum Course
@@ -324,16 +457,24 @@ export default function ClassDetails({
                   </label>
                   {isEditMode ? (
                     <MultiSelect
-                      options={['Socratic', 'Lecture', 'Project-Based', 'Flipped Classroom', 'Discussion', 'Montessori', 'Direct Instruction']}
+                      options={[...Constants.public.Enums.teaching_style]}
                       selectedValues={classItem.teachingStyle}
-                      onChange={(values) => onUpdateClass(classItem.id, { teachingStyle: values })}
+                      onChange={(values) =>
+                        onUpdateClass(classItem.id, {
+                          teachingStyle: values as TeachingStyle[],
+                        })
+                      }
                       placeholder="Select teaching styles"
                     />
                   ) : (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {classItem.teachingStyle.length > 0 ? (
-                        classItem.teachingStyle.map(ts => (
-                          <span key={ts} className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-full border border-primary/20">
+                        classItem.teachingStyle.map((ts) => (
+                          <span
+                            key={ts}
+                            title={getEnumTooltip(ts)}
+                            className="cursor-help px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-full border border-primary/20"
+                          >
                             {ts}
                           </span>
                         ))
@@ -344,13 +485,34 @@ export default function ClassDetails({
                   )}
                 </div>
 
-                <div className={isEditMode ? "opacity-75 cursor-not-allowed bg-surface/50 border border-border-color rounded-md p-1.5 mt-0.5" : ""}>
-                  <label className={`text-[10px] uppercase font-mono text-muted-text ${isEditMode ? "pointer-events-none" : ""}`}>
+                <div>
+                  <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">
                     Experience scale
                   </label>
-                  <p className={`text-xs font-medium text-secondary-text pt-0.5 ${isEditMode ? "pointer-events-none" : ""}`}>
-                    {classItem.experienceLevel}
-                  </p>
+                  {isEditMode ? (
+                    <select
+                      value={classItem.experienceLevel}
+                      onChange={(e) =>
+                        onUpdateClass(classItem.id, {
+                          experienceLevel: e.target.value as ExperienceLevel,
+                        })
+                      }
+                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                      {Constants.public.Enums.experience_level.map((level) => (
+                        <option key={level} value={level}>
+                          {formatEnumLabel(level)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p
+                      title={getEnumTooltip(classItem.experienceLevel)}
+                      className="text-xs font-medium text-secondary-text pt-0.5 cursor-help"
+                    >
+                      {classItem.experienceLevel}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -359,16 +521,24 @@ export default function ClassDetails({
                   </label>
                   {isEditMode ? (
                     <MultiSelect
-                      options={['Formative', 'Summative', 'Peer Review', 'Self Assessment', 'Portfolio', 'Criteria-based', 'Multiple Choice']}
-                      selectedValues={classItem.assessmentPreferences}
-                      onChange={(values) => onUpdateClass(classItem.id, { assessmentPreferences: values })}
+                      options={[...Constants.public.Enums.assessment_preference]}
+                      selectedValues={classItem.assessmentPreferences || []}
+                      onChange={(values) =>
+                        onUpdateClass(classItem.id, {
+                          assessmentPreferences: values as AssessmentPreference[],
+                        })
+                      }
                       placeholder="Select assessment preferences"
                     />
                   ) : (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {classItem.assessmentPreferences.length > 0 ? (
-                        classItem.assessmentPreferences.map(ap => (
-                          <span key={ap} className="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-semibold rounded-full border border-secondary/20">
+                      {(classItem.assessmentPreferences || []).length > 0 ? (
+                        (classItem.assessmentPreferences || []).map((ap) => (
+                          <span
+                            key={ap}
+                            title={getEnumTooltip(ap)}
+                            className="cursor-help px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-semibold rounded-full border border-secondary/20"
+                          >
                             {ap}
                           </span>
                         ))
@@ -471,14 +641,11 @@ export default function ClassDetails({
                       }
                       className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
                     >
-                      <option value="Study Material">Study Material</option>
-                      <option value="Note">Class Note</option>
-                      <option value="Assigned Book">Assigned Book</option>
-                      <option value="Link">Web Link</option>
-                      <option value="Practical">Practical Lab</option>
-                      <option value="Assignment">Assignment</option>
-                      <option value="Test">Test Paper</option>
-                      <option value="Exam">Final Exam</option>
+                      {Constants.public.Enums.content_category.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {formatEnumLabel(cat)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -537,6 +704,19 @@ export default function ClassDetails({
                     </div>
                   </div>
                 )}
+
+                <div className="flex items-center gap-2 pt-1 pb-1">
+                  <input
+                    type="checkbox"
+                    id="notify-students-material"
+                    checked={notifyOnCreateMaterial}
+                    onChange={(e) => setNotifyOnCreateMaterial(e.target.checked)}
+                    className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                  />
+                  <label htmlFor="notify-students-material" className="text-xs text-secondary-text cursor-pointer select-none">
+                    Notify enrolled students via email
+                  </label>
+                </div>
 
                 <button
                   type="submit"
@@ -692,17 +872,21 @@ export default function ClassDetails({
                   <select
                     value={newPromptType}
                     onChange={(e) =>
-                      setNewPromptType(e.target.value as Instruction["type"])
+                      setNewPromptType(e.target.value as InstructionType)
                     }
                     className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-secondary cursor-pointer"
                   >
-                    <option value="criteria">Evaluation Criteria</option>
-                    <option value="marking">Marking Instructions</option>
-                    <option value="preference">Classroom Preferences</option>
-                    <option value="global">
-                      Global Assistant system prompt
-                    </option>
+                    {Constants.public.Enums.instruction_type.map((typeOption) => (
+                      <option key={typeOption} value={typeOption}>
+                        {formatEnumLabel(typeOption)}
+                      </option>
+                    ))}
                   </select>
+                  {getEnumTooltip(newPromptType) && (
+                    <p className="text-[11px] text-muted-text italic mt-1 bg-surface/50 p-2 rounded border border-border-color/50">
+                      💡 {getEnumTooltip(newPromptType)}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -740,8 +924,11 @@ export default function ClassDetails({
                     className="bg-surface border border-border-color rounded-xl p-3.5 space-y-2 shadow-sm transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-background text-secondary border border-secondary/30 rounded-full font-semibold">
-                        {inst.type}
+                      <span
+                        title={getEnumTooltip(inst.type)}
+                        className="text-[10px] uppercase font-mono px-2 py-0.5 bg-background text-secondary border border-secondary/30 rounded-full font-semibold cursor-help"
+                      >
+                        {formatEnumLabel(inst.type)}
                       </span>
                       {isEditMode && (
                         <button
@@ -766,6 +953,160 @@ export default function ClassDetails({
               )}
             </div>
           </div>
+
+        {/* Announcements Tab */}
+        <div className={activeSubTab === "announcements" ? "space-y-4" : "hidden"}>
+          {/* Post Announcement Composer Card */}
+          <div className="bg-surface border border-border-color rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-border-color">
+              <Bell className="w-4 h-4 text-primary" />
+              <h4 className="text-xs font-bold font-display text-primary-text">
+                Post Class Announcement
+              </h4>
+            </div>
+
+            <form onSubmit={handlePostAnnouncement} className="space-y-3">
+              <div>
+                <label className="text-[10px] font-mono text-muted-text block mb-1">
+                  ANNOUNCEMENT TITLE
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Midterm Exam Schedule & Room Change"
+                  value={newAnnTitle}
+                  onChange={(e) => setNewAnnTitle(e.target.value)}
+                  className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono text-muted-text block mb-1">
+                  CONTENT / DETAILS
+                </label>
+                <textarea
+                  placeholder="Broadcast instructions, exam locations, homework reminders, or syllabus updates..."
+                  value={newAnnContent}
+                  onChange={(e) => setNewAnnContent(e.target.value)}
+                  rows={3}
+                  className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text resize-none focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-border-color/60">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-1.5 text-xs text-secondary-text cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newAnnPinned}
+                      onChange={(e) => setNewAnnPinned(e.target.checked)}
+                      className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    <Pin className="w-3 h-3 text-warning" />
+                    Pin to top
+                  </label>
+
+                  <label className="flex items-center gap-1.5 text-xs text-secondary-text cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newAnnNotifyStudents}
+                      onChange={(e) => setNewAnnNotifyStudents(e.target.checked)}
+                      className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    Email students
+                  </label>
+
+                  <label className="flex items-center gap-1.5 text-xs text-secondary-text cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newAnnNotifyParents}
+                      onChange={(e) => setNewAnnNotifyParents(e.target.checked)}
+                      className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    Notify parents
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isPostingAnn}
+                  leftIcon={<Send className="w-3.5 h-3.5" />}
+                >
+                  Post Notice
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* Announcements Feed List */}
+          <div className="space-y-2.5">
+            {isLoadingAnnouncements ? (
+              <div className="text-center py-6 text-xs text-muted-text font-mono">
+                Loading announcements...
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="text-center py-8 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
+                No announcements posted yet. Post a notice to notify enrolled students.
+              </div>
+            ) : (
+              announcements.map((ann) => (
+                <div
+                  key={ann.id}
+                  className={`bg-surface border rounded-xl p-4 space-y-2 shadow-sm transition-all ${
+                    ann.isPinned
+                      ? "border-warning/40 bg-warning/5"
+                      : "border-border-color hover:border-primary/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {ann.isPinned && (
+                        <Badge variant="warning" size="sm">
+                          <Pin className="w-2.5 h-2.5 mr-1 inline" />
+                          Pinned
+                        </Badge>
+                      )}
+                      <h4 className="text-xs font-bold text-primary-text font-display">
+                        {ann.title}
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-text font-mono">
+                        {new Date(ann.createdAt).toLocaleDateString()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnouncement(ann.id)}
+                        className="text-muted-text hover:text-danger p-1 rounded hover:bg-elevated transition-colors"
+                        title="Delete Announcement"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-secondary-text leading-relaxed whitespace-pre-line bg-elevated/40 rounded-lg p-2.5 border border-border-color/60">
+                    {ann.content}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Academic Calendar Tab */}
+        <div className={activeSubTab === "calendar" ? "space-y-4" : "hidden"}>
+          <CalendarView
+            materials={classItem.materials}
+            attendanceRecords={classItem.attendanceRecords}
+            announcements={announcements}
+            onSelectMaterial={(m) => setPreviewMaterial(m)}
+          />
+        </div>
       </div>
 
       {/* Version History Modal Overlay (simulated overlay) */}

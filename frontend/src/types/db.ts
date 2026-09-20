@@ -12,6 +12,65 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      _schema_migrations: {
+        Row: {
+          applied_at: string
+          name: string
+          version: string
+        }
+        Insert: {
+          applied_at?: string
+          name: string
+          version: string
+        }
+        Update: {
+          applied_at?: string
+          name?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          author_id: string
+          class_id: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          class_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          class_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           class_id: string
@@ -21,6 +80,7 @@ export type Database = {
           notes: string | null
           status: Database["public"]["Enums"]["attendance_status"]
           student_id: string
+          updated_at: string
         }
         Insert: {
           class_id: string
@@ -30,6 +90,7 @@ export type Database = {
           notes?: string | null
           status: Database["public"]["Enums"]["attendance_status"]
           student_id: string
+          updated_at?: string
         }
         Update: {
           class_id?: string
@@ -39,6 +100,7 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["attendance_status"]
           student_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -115,16 +177,19 @@ export type Database = {
           class_id: string
           created_at: string
           instruction_id: string
+          updated_at: string
         }
         Insert: {
           class_id: string
           created_at?: string
           instruction_id: string
+          updated_at?: string
         }
         Update: {
           class_id?: string
           created_at?: string
           instruction_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -150,6 +215,7 @@ export type Database = {
           custom_content: Json | null
           custom_rubric_criteria: Json | null
           material_id: string
+          updated_at: string
         }
         Insert: {
           class_id: string
@@ -157,6 +223,7 @@ export type Database = {
           custom_content?: Json | null
           custom_rubric_criteria?: Json | null
           material_id: string
+          updated_at?: string
         }
         Update: {
           class_id?: string
@@ -164,6 +231,7 @@ export type Database = {
           custom_content?: Json | null
           custom_rubric_criteria?: Json | null
           material_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -184,39 +252,63 @@ export type Database = {
       }
       class_students: {
         Row: {
+          address: string | null
           behavioral_notes: string | null
           class_id: string
           current_grade: string | null
           current_score: number | null
+          custom_fields: Json | null
           general_feedback: string | null
           learning_style: string | null
+          parent_contact: string | null
+          parent_name: string | null
+          parent_notes: string | null
           performance_tier: string | null
+          phone: string | null
+          roll_number: string | null
           strengths: string[] | null
           student_id: string
+          updated_at: string
           weaknesses: string[] | null
         }
         Insert: {
+          address?: string | null
           behavioral_notes?: string | null
           class_id: string
           current_grade?: string | null
           current_score?: number | null
+          custom_fields?: Json | null
           general_feedback?: string | null
           learning_style?: string | null
+          parent_contact?: string | null
+          parent_name?: string | null
+          parent_notes?: string | null
           performance_tier?: string | null
+          phone?: string | null
+          roll_number?: string | null
           strengths?: string[] | null
           student_id: string
+          updated_at?: string
           weaknesses?: string[] | null
         }
         Update: {
+          address?: string | null
           behavioral_notes?: string | null
           class_id?: string
           current_grade?: string | null
           current_score?: number | null
+          custom_fields?: Json | null
           general_feedback?: string | null
           learning_style?: string | null
+          parent_contact?: string | null
+          parent_name?: string | null
+          parent_notes?: string | null
           performance_tier?: string | null
+          phone?: string | null
+          roll_number?: string | null
           strengths?: string[] | null
           student_id?: string
+          updated_at?: string
           weaknesses?: string[] | null
         }
         Relationships: [
@@ -355,6 +447,7 @@ export type Database = {
           is_archived: boolean | null
           title: string
           type: Database["public"]["Enums"]["instruction_type"]
+          updated_at: string
           user_id: string
           when_to_apply: string | null
         }
@@ -365,6 +458,7 @@ export type Database = {
           is_archived?: boolean | null
           title: string
           type?: Database["public"]["Enums"]["instruction_type"]
+          updated_at?: string
           user_id: string
           when_to_apply?: string | null
         }
@@ -375,6 +469,7 @@ export type Database = {
           is_archived?: boolean | null
           title?: string
           type?: Database["public"]["Enums"]["instruction_type"]
+          updated_at?: string
           user_id?: string
           when_to_apply?: string | null
         }
@@ -393,6 +488,7 @@ export type Database = {
           rubric_criteria: Json | null
           tags: string[] | null
           to_be_scored: boolean | null
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -407,6 +503,7 @@ export type Database = {
           rubric_criteria?: Json | null
           tags?: string[] | null
           to_be_scored?: boolean | null
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -421,9 +518,100 @@ export type Database = {
           rubric_criteria?: Json | null
           tags?: string[] | null
           to_be_scored?: boolean | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      notification_logs: {
+        Row: {
+          announcement_id: string | null
+          class_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          material_id: string | null
+          notification_type: string
+          recipient_email: string
+          recipient_name: string | null
+          recipient_type: string
+          resend_email_id: string | null
+          status: string
+          student_id: string | null
+          submission_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          announcement_id?: string | null
+          class_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          notification_type: string
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_type: string
+          resend_email_id?: string | null
+          status?: string
+          student_id?: string | null
+          submission_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          announcement_id?: string | null
+          class_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          notification_type?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_type?: string
+          resend_email_id?: string | null
+          status?: string
+          student_id?: string | null
+          submission_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "student_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_submissions: {
         Row: {
@@ -443,6 +631,7 @@ export type Database = {
           status: Database["public"]["Enums"]["submission_status"]
           student_id: string
           submitted_at: string | null
+          updated_at: string
         }
         Insert: {
           class_id: string
@@ -461,6 +650,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"]
           student_id: string
           submitted_at?: string | null
+          updated_at?: string
         }
         Update: {
           class_id?: string
@@ -479,6 +669,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"]
           student_id?: string
           submitted_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -512,6 +703,7 @@ export type Database = {
           id: string
           is_archived: boolean | null
           name: string
+          updated_at: string
         }
         Insert: {
           avatar_url?: string | null
@@ -520,6 +712,7 @@ export type Database = {
           id: string
           is_archived?: boolean | null
           name: string
+          updated_at?: string
         }
         Update: {
           avatar_url?: string | null
@@ -528,6 +721,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -536,16 +730,19 @@ export type Database = {
           created_at: string
           instruction_id: string
           template_id: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           instruction_id: string
           template_id: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           instruction_id?: string
           template_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -571,6 +768,7 @@ export type Database = {
           custom_rubric_criteria: Json | null
           material_id: string
           template_id: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -578,6 +776,7 @@ export type Database = {
           custom_rubric_criteria?: Json | null
           material_id: string
           template_id: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -585,6 +784,7 @@ export type Database = {
           custom_rubric_criteria?: Json | null
           material_id?: string
           template_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -619,6 +819,7 @@ export type Database = {
           name: string
           subject: string | null
           teaching_style: Database["public"]["Enums"]["teaching_style"][] | null
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -638,6 +839,7 @@ export type Database = {
           teaching_style?:
             | Database["public"]["Enums"]["teaching_style"][]
             | null
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -657,6 +859,7 @@ export type Database = {
           teaching_style?:
             | Database["public"]["Enums"]["teaching_style"][]
             | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -690,11 +893,20 @@ export type Database = {
         Returns: string
       }
       archive_material: { Args: { p_material_id: string }; Returns: boolean }
+      check_workspace_modifications: {
+        Args: { p_client_timestamps?: Json }
+        Returns: Json
+      }
       delete_material: { Args: { p_material_id: string }; Returns: string[] }
       delete_submission_atomic: {
         Args: { p_submission_id: string }
         Returns: string[]
       }
+      get_workspace_last_modified: {
+        Args: { p_client_timestamps?: Json }
+        Returns: Json
+      }
+      is_class_teacher: { Args: { lookup_class_id: string }; Returns: boolean }
       search_cities: {
         Args: { search_term: string }
         Returns: {
@@ -768,7 +980,7 @@ export type Database = {
         | "Assignment"
         | "Test"
         | "Exam"
-      content_type: "File" | "URL"
+      content_type: "File" | "URL" | "Text"
       experience_level: "Beginner" | "Intermediate" | "Advanced" | "Mixed"
       institute_type:
         | "Primary School"
@@ -823,12 +1035,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -852,11 +1064,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -877,11 +1089,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -902,11 +1114,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -919,11 +1131,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -956,7 +1168,7 @@ export const Constants = {
         "Test",
         "Exam",
       ],
-      content_type: ["File", "URL"],
+      content_type: ["File", "URL", "Text"],
       experience_level: ["Beginner", "Intermediate", "Advanced", "Mixed"],
       institute_type: [
         "Primary School",
