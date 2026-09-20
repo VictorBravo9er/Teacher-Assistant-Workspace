@@ -157,7 +157,10 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 - **Workflow**:
   - Checks if student record exists in `public.students`.
   - Creates enrollment row in `public.class_students` with status `'Enrolled'`.
-  - Generates secure invitation token for student onboarding.
+  - Generates secure invitation token/link for student onboarding (`adminSupabase.auth.admin.generateLink`).
+  - Dispatches invitation email via Resend from `signup@teach.glipse.tech` (override via `STUDENT_INVITE_FROM_EMAIL`).
+  - Explicitly configures the email as non-repliable with `reply_to: "no-reply@teach.glipse.tech"`, `Auto-Submitted: auto-generated` headers, and footer notice.
+  - Returns `{ success: true, student_id, invite_url }` (gracefully falling back to native auth invite if Resend is unconfigured).
 
 ---
 
@@ -220,7 +223,9 @@ The `_shared/` directory provides common reusable utilities across all edge endp
   - `SUPABASE_SERVICE_ROLE_KEY`: Secret admin key kept strictly server-side.
   - `BACKEND_API_URL`: Address of the FastAPI service (e.g., `http://backend:8090` or production hostname).
   - `RESEND_API_KEY`: API token for dispatching emails through the Resend gateway.
-  - `RESEND_FROM_EMAIL`: Authorized sender address (defaults to `updates@teachandlearn.edu`).
+  - `RESEND_FROM_EMAIL`: Authorized sender address for broadcast notifications (defaults to `updates@teachandlearn.edu`).
+  - `STUDENT_INVITE_FROM_EMAIL`: Authorized sender address for student invites (defaults to `signup@teach.glipse.tech`).
+  - `STUDENT_INVITE_REPLY_TO`: Explicit non-repliable address for student invites (defaults to `no-reply@teach.glipse.tech`).
 - **Zero Raw Secret Exposure**:
   - Secrets are injected via Supabase Secrets Manager and never committed to version control.
 - **Fail-Safe Webhook Responses**:
