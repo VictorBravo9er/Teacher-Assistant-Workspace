@@ -233,8 +233,8 @@ export default function InteractiveGradingSimulator({
               <div className="bg-surface/80 border border-border-color/50 rounded-lg p-3 text-xs leading-relaxed text-secondary-text font-mono space-y-2 relative">
                 <p>
                   <span className="text-primary font-bold">1. Hypothesis:</span> The total initial
-                  momentum \(\sum \vec{p}_i\) of two isolated gliders will equal the final momentum
-                  \(\sum \vec{p}_f\) within a 5% experimental tolerance margin.
+                  momentum &Sigma;p_i of two isolated gliders will equal the final momentum
+                  &Sigma;p_f within a 5% experimental tolerance margin.
                 </p>
 
                 <p
@@ -245,9 +245,9 @@ export default function InteractiveGradingSimulator({
                   }`}
                 >
                   <span className="font-bold">2. Observations:</span> Photogate timers recorded glider
-                  A (\(m_1 = 250\text{g}\)) entering the collision zone at \(1.42\text{ m/s}\).
-                  After inelastic coupling with stationary glider B (\(m_2 = 250\text{g}\)), the
-                  combined velocity was measured at \(0.68\text{ m/s}\).
+                  A (m₁ = 250g) entering the collision zone at 1.42 m/s.
+                  After inelastic coupling with stationary glider B (m₂ = 250g), the
+                  combined velocity was measured at 0.68 m/s.
                 </p>
 
                 <p
