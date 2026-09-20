@@ -1,7 +1,7 @@
 # -----------------------------------
 # Stage 1: Build the Frontend
 # -----------------------------------
-FROM node:20-alpine AS frontend-builder
+FROM node:24-slim AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -17,7 +17,7 @@ RUN npm run build
 # -----------------------------------
 # Stage 2: Serve via FastAPI Backend
 # -----------------------------------
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app/backend
 

@@ -11,7 +11,10 @@ export default defineConfig({
     {
       name: 'client-log-broadcaster',
       configureServer(server) {
-        const rootLogsDir = path.resolve(__dirname, '../logs');
+        const envLogsDir = process.env.VITE_LOGS_DIR;
+        const rootLogsDir = envLogsDir
+          ? path.resolve(envLogsDir)
+          : path.resolve(__dirname, '../logs');
         if (!fs.existsSync(rootLogsDir)) {
           fs.mkdirSync(rootLogsDir, { recursive: true });
         }
@@ -33,11 +36,18 @@ export default defineConfig({
 
         const getLogPaths = (ts: string) => ({
           appLog: path.join(rootLogsDir, `frontend-${ts}.log`),
-          errorLog: path.join(rootLogsDir, `frontend-error-${ts}.log`),
+          errorLog: path.join(rootLogsDir, `frontend-${ts}-error.log`),
           jsonlLog: path.join(rootLogsDir, `frontend-${ts}.jsonl`),
         });
 
+        const ensureCohortFiles = (paths: { appLog: string; errorLog: string; jsonlLog: string }) => {
+          if (!fs.existsSync(paths.appLog)) fs.writeFileSync(paths.appLog, '', 'utf-8');
+          if (!fs.existsSync(paths.jsonlLog)) fs.writeFileSync(paths.jsonlLog, '', 'utf-8');
+          if (!fs.existsSync(paths.errorLog)) fs.writeFileSync(paths.errorLog, '', 'utf-8');
+        };
+
         let currentPaths = getLogPaths(currentSessionTs);
+        ensureCohortFiles(currentPaths);
 
         server.ws.on('client:log', (entry: {
           timestamp: string;
@@ -52,6 +62,7 @@ export default defineConfig({
           if (currentLogCount > MAX_LOG_ENTRIES) {
             currentSessionTs = formatLogTimestamp();
             currentPaths = getLogPaths(currentSessionTs);
+            ensureCohortFiles(currentPaths);
             currentLogCount = 1;
           }
 
@@ -76,7 +87,7 @@ export default defineConfig({
           // 4. Append JSON Lines to logs/frontend-<timestamp>.jsonl (For AI Agent and Tooling Analysis)
           fs.appendFileSync(currentPaths.jsonlLog, JSON.stringify(entry) + '\n', 'utf-8');
 
-          // 5. If error, append to logs/frontend-error-<timestamp>.log for rapid error triaging
+          // 5. If error, append to logs/frontend-<timestamp>-error.log for rapid error triaging
           if (entry.level === 'ERROR') {
             fs.appendFileSync(currentPaths.errorLog, formattedLine, 'utf-8');
           }
@@ -133,7 +144,12 @@ export default defineConfig({
       },
     },
     hmr: process.env.DISABLE_HMR !== "true",
-    watch: process.env.DISABLE_HMR === "true" ? null : {},
+    watch:
+      process.env.DISABLE_HMR === "true"
+        ? null
+        : {
+            ignored: ["**/logs/**", "**/.git/**", "**/dist/**"],
+          },
   },
   build: {
     // Switch to terser for JS minification (slower but more configurable)

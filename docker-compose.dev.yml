@@ -16,6 +16,9 @@ services:
     volumes:
       # Mount source code for live-reloading (read-only for security)
       - ./backend/src:/app/src:ro
+      - ./logs:/app/logs
+    environment:
+      - LOG_MAX_ENTRIES=${LOG_MAX_ENTRIES:-5000}
 
   # ==========================================
   # Frontend Web Service (Dev Override)
@@ -33,3 +36,9 @@ services:
       - ./frontend/index.html:/app/index.html:ro
       - ./frontend/tsconfig.json:/app/tsconfig.json:ro
       - ./frontend/vite.config.ts:/app/vite.config.ts:ro
+      - ./logs:/app/logs
+    environment:
+      - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-DEBUG}
+      - VITE_LOG_MAX_ENTRIES=${VITE_LOG_MAX_ENTRIES:-5000}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}

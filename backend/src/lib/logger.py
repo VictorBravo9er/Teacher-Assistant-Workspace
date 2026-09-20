@@ -19,10 +19,20 @@ from typing import TypeVar, final, override
 # Correlation ContextVar: holds current HTTP request ID across async tasks
 request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="-")
 
-# Locate root ./logs directory (relative to workspace root)
+# Environment-aware logging flags
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "production").lower()
+ENABLE_FILE_LOGGING = os.environ.get(
+    "ENABLE_FILE_LOGGING", "true" if ENVIRONMENT != "production" else "false"
+).lower() in ("true", "1", "yes")
+
+# Determine log directory: check env var first, fall back to coded relative path
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent
-LOGS_DIR = ROOT_DIR / "logs"
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+_env_logs = os.environ.get("LOGS_DIR")
+LOGS_DIR: Path = Path(_env_logs) if _env_logs else (ROOT_DIR / "logs")
+
+# Ensure log directory exists only when file logging is enabled
+if ENABLE_FILE_LOGGING:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_LOG_ENTRIES = int(os.environ.get("LOG_MAX_ENTRIES", "5000"))
 
@@ -81,13 +91,24 @@ class TimestampedFileHandler(logging.FileHandler):
             self.release()
 
 
+def _ensure_cohort_files(logs_dir: Path, layer: str, ts: str) -> tuple[Path, Path, Path]:
+    """Instantly creates the 3 log cohort files at boot or rotation time."""
+    app_path = logs_dir / f"{layer}-{ts}.log"
+    jsonl_path = logs_dir / f"{layer}-{ts}.jsonl"
+    error_path = logs_dir / f"{layer}-{ts}-error.log"
+    app_path.touch(exist_ok=True)
+    jsonl_path.touch(exist_ok=True)
+    error_path.touch(exist_ok=True)
+    return app_path, error_path, jsonl_path
+
+
 @final
 class CoordinatedLogRotator:
     """Tracks entry counts on the primary non-error log stream.
 
     When entries exceed max_entries, coordinates a simultaneous rotation of all
     streams (.log, -error.log, .jsonl) to a matching timestamped cohort name:
-    backend[-error]-YYYY-MM-DD-HH-mm-ss.log/.jsonl.
+    backend-YYYY-MM-DD-HH-mm-ss[-error].log/.jsonl.
     """
 
     logs_dir: Path
@@ -125,12 +146,15 @@ class CoordinatedLogRotator:
             if self.count >= self.max_entries:
                 self.current_ts = get_log_timestamp()
                 self.count = 0
+                app_path, error_path, jsonl_path = _ensure_cohort_files(
+                    self.logs_dir, "backend", self.current_ts
+                )
                 if self.app_handler is not None:
-                    self.app_handler.rotate_to(self.logs_dir / f"backend-{self.current_ts}.log")
+                    self.app_handler.rotate_to(app_path)
                 if self.error_handler is not None:
-                    self.error_handler.rotate_to(self.logs_dir / f"backend-error-{self.current_ts}.log")
+                    self.error_handler.rotate_to(error_path)
                 if self.jsonl_handler is not None:
-                    self.jsonl_handler.rotate_to(self.logs_dir / f"backend-{self.current_ts}.jsonl")
+                    self.jsonl_handler.rotate_to(jsonl_path)
 
 
 @final
@@ -178,33 +202,33 @@ def setup_logger(name: str = "teach-learn") -> logging.Logger:
     stdout_handler.addFilter(req_filter)
     logger_instance.addHandler(stdout_handler)
 
-    # 2. Coordinated Rotator & Timestamped Handlers
-    rotator = CoordinatedLogRotator(LOGS_DIR, max_entries=MAX_LOG_ENTRIES)
-    init_ts = rotator.current_ts
+    # 2. Coordinated Rotator & Timestamped Handlers (Dev / File Logging Enabled Only)
+    if ENABLE_FILE_LOGGING:
+        rotator = CoordinatedLogRotator(LOGS_DIR, max_entries=MAX_LOG_ENTRIES)
+        init_ts = rotator.current_ts
 
-    app_path = LOGS_DIR / f"backend-{init_ts}.log"
-    app_handler = PrimaryCountingFileHandler(rotator, app_path, encoding="utf-8")
-    app_handler.setLevel(logging.INFO)
-    app_handler.setFormatter(stdout_formatter)
-    app_handler.addFilter(req_filter)
+        app_path, error_path, jsonl_path = _ensure_cohort_files(LOGS_DIR, "backend", init_ts)
 
-    error_path = LOGS_DIR / f"backend-error-{init_ts}.log"
-    error_handler = TimestampedFileHandler(error_path, encoding="utf-8")
-    error_handler.setLevel(logging.ERROR)
-    error_handler.setFormatter(stdout_formatter)
-    error_handler.addFilter(req_filter)
+        app_handler = PrimaryCountingFileHandler(rotator, app_path, encoding="utf-8")
+        app_handler.setLevel(logging.INFO)
+        app_handler.setFormatter(stdout_formatter)
+        app_handler.addFilter(req_filter)
 
-    jsonl_path = LOGS_DIR / f"backend-{init_ts}.jsonl"
-    jsonl_handler = TimestampedFileHandler(jsonl_path, encoding="utf-8")
-    jsonl_handler.setLevel(logging.DEBUG)
-    jsonl_handler.setFormatter(JSONLinesFormatter())
-    jsonl_handler.addFilter(req_filter)
+        error_handler = TimestampedFileHandler(error_path, encoding="utf-8")
+        error_handler.setLevel(logging.ERROR)
+        error_handler.setFormatter(stdout_formatter)
+        error_handler.addFilter(req_filter)
 
-    rotator.register_handlers(app_handler, error_handler, jsonl_handler)
+        jsonl_handler = TimestampedFileHandler(jsonl_path, encoding="utf-8")
+        jsonl_handler.setLevel(logging.DEBUG)
+        jsonl_handler.setFormatter(JSONLinesFormatter())
+        jsonl_handler.addFilter(req_filter)
 
-    logger_instance.addHandler(app_handler)
-    logger_instance.addHandler(error_handler)
-    logger_instance.addHandler(jsonl_handler)
+        rotator.register_handlers(app_handler, error_handler, jsonl_handler)
+
+        logger_instance.addHandler(app_handler)
+        logger_instance.addHandler(error_handler)
+        logger_instance.addHandler(jsonl_handler)
 
     return logger_instance
 
