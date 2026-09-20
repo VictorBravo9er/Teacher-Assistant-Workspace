@@ -21,7 +21,7 @@ This root directory contains the workspace configuration, multi-container orches
 - [`metadata.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/metadata.json): Workspace identifiers, project titles, and indexing properties.
 - [`pyrightconfig.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/pyrightconfig.json): Root BasedPyright configuration defining Python version (`3.13`), search paths, and analysis modes for type verification.
 - [`tsconfig.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/tsconfig.json): Root TypeScript project reference and workspace resolution configuration.
-- [`vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/vercel.json): Vercel deployment routing and build configurations for static web hosting.
+- [`vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/vercel.json): Vercel multi-service deployment routing `/api/*` to the FastAPI backend (`backend/src.main:app`) and all other routes to the Vite frontend (`frontend/`).
 - [`.gitignore`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/.gitignore): Root Git exclusion rules for node modules, python virtual environments, secrets, caches, scratch files (`.scratch/`), and build artifacts.
 
 ---

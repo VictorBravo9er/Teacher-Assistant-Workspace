@@ -130,19 +130,40 @@ flowchart TD
 
 ---
 
-## 5. Serverless Static Hosting (Vercel)
+## 5. Serverless Multi-Service Hosting (Vercel)
 
-For external serverless deployments, `vercel.json` defines edge routing rules to support client-side Single-Page Application (SPA) routing:
+For external serverless deployments, `vercel.json` orchestrates both the Vite frontend and Python FastAPI backend as distinct services with edge rewrites:
 
 ```json
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend/",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend/",
+      "entrypoint": "src.main:app"
+    }
+  },
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": {
+        "service": "frontend"
+      }
     }
   ]
 }
 ```
 
-This ensures that deep links (e.g. `/classes/:classId`) return the main `index.html` shell to let React Router resolve the view in the browser.
+This configuration ensures:
+1. **REST API Routing**: All `/api/*` HTTP requests are directed to the FastAPI service (`backend/src.main:app`).
+2. **SPA Client Routing**: All web and deep client-side routes (`/(.*)`) are resolved by the Vite React SPA (`frontend/`).
