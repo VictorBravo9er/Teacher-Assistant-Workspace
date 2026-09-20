@@ -125,3 +125,24 @@ This document organizes and lists all important element `id` attributes assigned
 | `auth-password-input` | Input field for user password |
 | `auth-submit-button` | Primary button for Sign In / Sign Up submission |
 | `auth-toggle-mode-button` | Link/button to switch between Sign In and Sign Up modes |
+
+---
+
+## 8. Public Landing Page (`LandingPage.tsx`)
+
+| Element ID | Description / Component Role |
+| :--- | :--- |
+| `landing-nav-logo` | Brand logo in top navigation header |
+| `landing-nav-features-link` | Nav anchor button jumping to features section |
+| `landing-nav-workflow-link` | Nav anchor button jumping to workflow section |
+| `landing-nav-architecture-link` | Nav anchor button jumping to architecture section |
+| `landing-nav-glipse-link` | External link badge to Glipse Technologies website |
+| `landing-nav-auth-btn` | Header button to launch Dashboard or Sign In modal |
+| `landing-hero-get-started-btn` | Primary hero CTA button to get started / go to dashboard |
+| `landing-hero-explore-btn` | Secondary hero button to explore platform capabilities |
+| `landing-glipse-about-link` | Link to Glipse Technologies in architecture overview section |
+| `landing-cta-launch-btn` | Bottom banner primary CTA to launch workspace |
+| `landing-footer-brand-logo` | Footer brand logo button |
+| `landing-footer-glipse-link` | Footer link to Glipse Technologies Pvt. Ltd. |
+| `landing-footer-clerko-link` | Footer link to Clerko AI companion |
+
