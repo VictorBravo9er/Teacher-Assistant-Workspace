@@ -145,4 +145,10 @@ This document organizes and lists all important element `id` attributes assigned
 | `landing-footer-brand-logo` | Footer brand logo button |
 | `landing-footer-glipse-link` | Footer link to Glipse Technologies Pvt. Ltd. |
 | `landing-footer-clerko-link` | Footer link to Clerko AI companion |
+| `grading-simulator-container` | Root container for the 3D animated grading simulator |
+| `grading-simulator-play-toggle-btn` | Button to toggle auto-play and pause on the simulator |
+| `grading-simulator-reset-btn` | Button to reset simulator back to Step 1 |
+| `grading-simulator-step-btn-${stepId}` | Quick-jump stepper buttons (0-5) across simulation phases |
+| `grading-simulator-accept-action-btn` | Simulated teacher approval action button |
+
 

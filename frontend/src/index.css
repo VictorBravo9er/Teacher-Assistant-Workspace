@@ -145,3 +145,23 @@
 .live-dot-ring {
   animation: pulse-ring 1.25s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
 }
+
+/* 3D Perspective & Laser Scanning for Interactive Simulator */
+.perspective-1200 {
+  perspective: 1200px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+@keyframes laser-sweep {
+  0% { top: 0%; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 96%; opacity: 0; }
+}
+
+.animate-laser-scan {
+  animation: laser-sweep 2.2s ease-in-out infinite;
+}
+

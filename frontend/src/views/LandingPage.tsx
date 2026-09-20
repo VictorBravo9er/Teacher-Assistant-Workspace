@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import BrandLogo from '@/components/shared/BrandLogo';
+import InteractiveGradingSimulator from '@/components/shared/InteractiveGradingSimulator';
 import { Button, Badge } from '@/components/ui';
 
 interface LandingPageProps {
@@ -138,81 +139,8 @@ export default function LandingPage({ onNavigate, isLoggedIn }: LandingPageProps
             </Button>
           </div>
 
-          {/* Interactive UI Mockup Preview */}
-          <div className="mt-16 w-full max-w-4xl rounded-2xl border border-border-color/80 bg-surface/70 shadow-2xl backdrop-blur-xl overflow-hidden text-left p-6 sm:p-8">
-            <div className="flex items-center justify-between border-b border-border-color/60 pb-4 mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400/80" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
-                <div className="w-3 h-3 rounded-full bg-green-400/80" />
-                <span className="ml-2 text-xs font-mono text-muted-text">
-                  teach-and-learn / ap-physics-mechanics / rubric-review
-                </span>
-              </div>
-              <Badge variant="success" size="sm" dot>
-                AI Diagnostic Diff Active
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* Submission Context Box */}
-              <div className="p-5 rounded-xl bg-elevated/50 border border-border-color/50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-text">
-                    Student Submission
-                  </span>
-                  <span className="text-xs font-mono text-primary font-medium">
-                    Maya Chen · Roll #14
-                  </span>
-                </div>
-                <h4 className="text-base font-semibold text-primary-text">
-                  Lab Report 03: Conservation of Linear Momentum
-                </h4>
-                <p className="text-xs text-secondary-text leading-relaxed bg-surface/80 p-3 rounded-lg border border-border-color/40 italic">
-                  "...Initial momentum vectors were matched against two-body gliders on an air track. Inelastic collisions exhibited expected kinetic dissipation..."
-                </p>
-                <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-text font-mono">
-                  <FileCheck className="w-3.5 h-3.5 text-secondary" />
-                  <span>OCR Processed · 4 Pages · Plagiarism Score: 0%</span>
-                </div>
-              </div>
-
-              {/* Rubric Evaluation Diff Box */}
-              <div className="p-5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-                    AI Rubric Evaluation Diff
-                  </span>
-                  <span className="text-xs font-bold text-success font-mono bg-success/15 px-2 py-0.5 rounded-full">
-                    38 / 40 (95%)
-                  </span>
-                </div>
-                
-                <div className="space-y-2 text-xs">
-                  <div className="p-2.5 rounded-lg bg-surface/90 border border-border-color/40 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold block text-primary-text">Hypothesis &amp; Theory</span>
-                      <span className="text-[11px] text-muted-text">Criteria matched with high confidence</span>
-                    </div>
-                    <span className="font-mono font-bold text-primary">10/10</span>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-surface/90 border border-border-color/40 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold block text-primary-text">Uncertainty Propagation</span>
-                      <span className="text-[11px] text-warning font-medium">Minor discrepancy in photogate calibration</span>
-                    </div>
-                    <span className="font-mono font-bold text-warning">8/10</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-primary/10 flex items-center justify-between text-[11px]">
-                  <span className="text-muted-text">Diagnostic Recommendation:</span>
-                  <span className="text-primary font-medium">Accept Suggestion or Edit Slider</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Interactive 3D Animated Rubric Grading Simulator */}
+          <InteractiveGradingSimulator className="mt-16" />
 
           {/* Value Metrics Strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl w-full mt-16 pt-10 border-t border-border-color/50 text-center">
