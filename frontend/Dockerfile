@@ -47,7 +47,7 @@ ENV VITE_LOGS_DIR=/app/logs
 EXPOSE ${FRONTEND_PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q --spider http://localhost:${FRONTEND_PORT}/ || exit 1
+  CMD wget -q --spider http://127.0.0.1:${FRONTEND_PORT}/ || exit 1
 
 # Dev deployment command (moved from docker-compose.dev.yml)
 CMD ["sh", "-c", "exec npm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT}"]
@@ -67,7 +67,7 @@ ENV BACKEND_HOST=backend
 EXPOSE ${FRONTEND_PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q --spider http://localhost:${FRONTEND_PORT}/ || exit 1
+  CMD wget -q --spider http://127.0.0.1:${FRONTEND_PORT}/ || exit 1
 
 # Nginx handles env substitution in templates via its default entrypoint
 CMD ["nginx", "-g", "daemon off;"]
