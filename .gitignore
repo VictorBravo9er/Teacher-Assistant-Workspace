@@ -17,6 +17,7 @@ Thumbs.db
 *.sln
 *.sw?
 *~
+.vercel
 
 # Logs
 *.log

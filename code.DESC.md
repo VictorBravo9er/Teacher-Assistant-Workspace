@@ -21,7 +21,7 @@ This root directory contains the workspace configuration, multi-container orches
 - [`metadata.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/metadata.json): Workspace identifiers, project titles, and indexing properties.
 - [`pyrightconfig.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/pyrightconfig.json): Root BasedPyright configuration defining Python version (`3.13`), search paths, and analysis modes for type verification.
 - [`tsconfig.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/tsconfig.json): Root TypeScript project reference and workspace resolution configuration.
-- [`vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/vercel.json): Vercel multi-service deployment routing `/api/*` to the FastAPI backend (`backend/src.main:app`) and all other routes to the Vite frontend (`frontend/`).
+- [`vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/vercel.json): Vercel multi-service deployment configuration routing `/api/*` to the FastAPI backend (`backend/src.main:app`) and all other requests to the Vite frontend (`frontend/`), including a service-level SPA fallback to the built `index.html`.
 - [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh): Vercel Ignored Build Step script conditionally triggering deployments based on target branch and diffs in `frontend/`, `backend/`, or `vercel.json`.
 - [`.gitignore`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/.gitignore): Root Git exclusion rules for node modules, python virtual environments, secrets, caches, scratch files (`.scratch/`), and build artifacts.
 
