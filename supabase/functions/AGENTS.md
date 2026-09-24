@@ -1,24 +1,10 @@
 # Supabase Edge Functions Rules — Deno / TypeScript
 
-Cascades from root `/AGENTS.md`. Each function lives in `supabase/functions/<name>/index.ts`. Shared utilities in `supabase/functions/_shared/` (`cors.ts`, `supabaseAdmin.ts`).
+Inherits from root `/AGENTS.md`. Functions live in `supabase/functions/<name>/index.ts`; shared utilities in `supabase/functions/_shared/` (`cors.ts`, `supabaseAdmin.ts`).
 
-## 1. Request Handling & CORS
-Every browser-facing function must handle `OPTIONS` preflight first:
-```ts
-import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  // ...
-});
-```
-Use `jsonResponse` helper for all JSON responses with appropriate status codes (`200/400/401/403/404/500`).
-
-## 2. Authentication & Security
-- **User functions**: Parse JWT from `Authorization` header; validate with `supabaseClient.auth.getUser(token)`.
-- **Service role**: Use `SUPABASE_SERVICE_ROLE_KEY` only for admin actions that require RLS bypass. Never expose to clients.
-- **Secrets**: Access via `Deno.env.get("SECRET_NAME")`. Never commit `.env` or raw secret strings.
-
-## 3. Performance & Hygiene
-- **Imports**: Use ESM/Deno imports (`npm:<pkg>`, `jsr:<pkg>`, `esm.sh`). Avoid bloated deps — cold-start cost is real.
-- **Error Handling**: Wrap processing in `try/catch`; return structured JSON error payloads via `jsonResponse`.
-- **Docs**: Update [`code.DESC.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/code.DESC.md) and [`code.ARCH.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/code.ARCH.md) when adding or significantly modifying edge functions.
+- **Docs-First Inspection**: Before reading any `index.ts`, read `systems/edge_functions.md` and `supabase/functions/code.DESC.md` + `supabase/functions/code.ARCH.md`.
+- **Pre-Completion Sync**: Update `systems/edge_functions.md`, affected `systems/workflows[-atomic]/*.md`, and `supabase/functions/code.ARCH.md` / `code.DESC.md` when modifying functions.
+- **Runtime Invariants**:
+  1. Handle `OPTIONS` preflight first using `corsHeaders` and return responses via `jsonResponse` from `../_shared/cors.ts`.
+  2. Validate user JWTs via `supabaseClient.auth.getUser(token)`; reserve `SUPABASE_SERVICE_ROLE_KEY` strictly for server-side RLS bypass.
+  3. Read secrets via `Deno.env.get(...)` and keep ESM/Deno imports minimal to minimize cold starts.
