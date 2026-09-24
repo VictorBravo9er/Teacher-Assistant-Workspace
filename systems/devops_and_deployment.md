@@ -136,7 +136,7 @@ flowchart TD
 
 ## 5. Serverless Multi-Service Hosting (Vercel)
 
-For external serverless deployments, `vercel.json` orchestrates both the Vite frontend and Python FastAPI backend as distinct services with edge rewrites:
+For external serverless deployments, the repository-level `vercel.json` orchestrates both the Vite frontend and Python FastAPI backend as distinct services. The top-level rules select the backend for `/api/*` and the frontend for all other public paths; the frontend service then owns its SPA fallback so every client-side route returns the built `index.html` shell. The `frontend/vercel.json` file remains the standalone-project equivalent when `frontend/` is configured as the Vercel project root.
 
 ```json
 {
@@ -144,7 +144,15 @@ For external serverless deployments, `vercel.json` orchestrates both the Vite fr
   "services": {
     "frontend": {
       "root": "frontend/",
-      "framework": "vite"
+      "framework": "vite",
+      "outputDirectory": "dist",
+      "cleanUrls": false,
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
     },
     "backend": {
       "root": "backend/",
@@ -170,7 +178,8 @@ For external serverless deployments, `vercel.json` orchestrates both the Vite fr
 
 This configuration ensures:
 1. **REST API Routing**: All `/api/*` HTTP requests are directed to the FastAPI service (`backend/src.main:app`).
-2. **SPA Client Routing**: All web and deep client-side routes (`/(.*)`) are resolved by the Vite React SPA (`frontend/`).
+2. **SPA Client Routing**: All web and deep client-side routes (`/(.*)`) are first routed to the frontend service, whose service-level rewrite serves `dist/index.html` for requests that do not resolve to a built asset. `cleanUrls` remains disabled so the explicit `.html` fallback is not transformed unexpectedly.
+3. **Standalone Frontend Compatibility**: When `frontend/` itself is the Vercel project root, `frontend/vercel.json` applies the same SPA fallback at the project level.
 
 ### 5.1 Ignored Build Step Filtering (`bash-decide.sh`)
 
