@@ -45,3 +45,7 @@ flowchart TD
    - Posting an announcement immediately prepends a `temp-ann-*` card (`isPending: true`, rendering an animated `"Publishing..."` badge) to the feed and clears the composer in `0ms`.
    - `announcementService.createAnnouncement()` and `notificationService.notifyAnnouncement()` execute in the background; if insertion fails, `temp-ann-*` is evicted and the teacher's draft title/content are restored to the composer.
    - Deleting an announcement filters it out of the feed in `0ms` and restores the snapshot if `announcementService.deleteAnnouncement()` fails.
+5. **Profile Tab Edit/Save/Cancel Controls & Always-Visible Materials/Guidelines CRUD (`ClassDetails.tsx`)**:
+   - `isEditMode` in `ClassDetails.tsx` governs **only** the **Class Profile** tab (`class-details-tab-profile`).
+   - The Edit, Save, and Cancel controls (`class-profile-edit-button`, `class-profile-save-button`, `class-profile-cancel-button`) are located directly inside the **Class Profile** tab header, completely isolating profile configuration from upper view navigation.
+   - Add, edit, rubric-builder, and delete controls in the **Materials** tab (`materials-upload-file-button`, `Trash2` remove button) and **Class Guidelines** tab (`instructions-new-guideline-button`, `Trash2` delete button) are always visible and accessible without requiring Edit Mode.

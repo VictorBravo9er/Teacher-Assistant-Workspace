@@ -234,7 +234,6 @@ export type Database = {
       }
       class_students: {
         Row: {
-          address: string | null
           behavioral_notes: string | null
           class_id: string
           current_grade: string | null
@@ -242,11 +241,8 @@ export type Database = {
           custom_fields: Json | null
           general_feedback: string | null
           learning_style: string | null
-          parent_contact: string | null
-          parent_name: string | null
           parent_notes: string | null
           performance_tier: string | null
-          phone: string | null
           roll_number: string | null
           strengths: string[] | null
           student_id: string
@@ -254,7 +250,6 @@ export type Database = {
           weaknesses: string[] | null
         }
         Insert: {
-          address?: string | null
           behavioral_notes?: string | null
           class_id: string
           current_grade?: string | null
@@ -262,11 +257,8 @@ export type Database = {
           custom_fields?: Json | null
           general_feedback?: string | null
           learning_style?: string | null
-          parent_contact?: string | null
-          parent_name?: string | null
           parent_notes?: string | null
           performance_tier?: string | null
-          phone?: string | null
           roll_number?: string | null
           strengths?: string[] | null
           student_id: string
@@ -274,7 +266,6 @@ export type Database = {
           weaknesses?: string[] | null
         }
         Update: {
-          address?: string | null
           behavioral_notes?: string | null
           class_id?: string
           current_grade?: string | null
@@ -282,11 +273,8 @@ export type Database = {
           custom_fields?: Json | null
           general_feedback?: string | null
           learning_style?: string | null
-          parent_contact?: string | null
-          parent_name?: string | null
           parent_notes?: string | null
           performance_tier?: string | null
-          phone?: string | null
           roll_number?: string | null
           strengths?: string[] | null
           student_id?: string
@@ -679,30 +667,42 @@ export type Database = {
       }
       students: {
         Row: {
+          address: string | null
           avatar_url: string | null
           created_at: string
           email: string | null
           id: string
           is_archived: boolean | null
           name: string
+          parent_contact: string | null
+          parent_name: string | null
+          phone: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           id: string
           is_archived?: boolean | null
           name: string
+          parent_contact?: string | null
+          parent_name?: string | null
+          phone?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_archived?: boolean | null
           name?: string
+          parent_contact?: string | null
+          parent_name?: string | null
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []

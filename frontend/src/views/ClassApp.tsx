@@ -23,8 +23,6 @@ import { LoadingOverlay } from '@/components/shared/CustomDialogs';
 import {
   X,
   Check,
-  Edit3,
-  Save,
   Award,
   BookOpen,
   Table,
@@ -394,35 +392,6 @@ export default function ClassApp() {
                       <Check className="w-4 h-4" />
                     </button>
                   )}
-                  {isEditMode ? (
-                    <>
-                      <button
-                        id="top-nav-save-button"
-                        onClick={handleSaveEditChanges}
-                        className="flex items-center justify-center w-7 h-7 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90"
-                        title="Save Changes"
-                      >
-                        <Save className="w-4 h-4" />
-                      </button>
-                      <button
-                        id="top-nav-cancel-button"
-                        onClick={handleCancelEdit}
-                        className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
-                        title="Cancel Editing"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      id="top-nav-edit-button"
-                      onClick={handleStartEdit}
-                      className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
-                      title="Edit"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  )}
                   {/* TODO: Uncomment when AI / RAG services are reintegrated */}
                   {/* {viewMode === 'class' && (
                     <div
@@ -477,7 +446,7 @@ export default function ClassApp() {
                     {layoutMode === 'details-only' ? (
                       <>
                         {/* Roster students top row */}
-                        {viewMode === 'class' && !isEditMode && (
+                        {viewMode === 'class' && (
                           <div className="w-full">
                             <StudentRegister
                               classItem={adapterClassItem}
@@ -491,9 +460,17 @@ export default function ClassApp() {
                         <div className="w-full h-full min-h-0">
                           <ClassDetails
                             classItem={adapterClassItem}
-                            isEditMode={isEditMode}
+                            isEditMode={isEditMode && activeDetailsTab === 'profile'}
                             activeSubTab={activeDetailsTab}
-                            onSubTabChange={setActiveDetailsTab}
+                            onSubTabChange={(tab) => {
+                              if (tab !== 'profile' && isEditMode) {
+                                handleCancelEdit();
+                              }
+                              setActiveDetailsTab(tab);
+                            }}
+                            onStartEdit={handleStartEdit}
+                            onSaveEdit={handleSaveEditChanges}
+                            onCancelEdit={handleCancelEdit}
                             onUpdateClass={handleAdapterUpdate}
                             onAddMaterial={handleAdapterAddMaterial}
                             onDeleteMaterial={handleAdapterDeleteMaterial}
@@ -509,9 +486,17 @@ export default function ClassApp() {
                         <div className="lg:col-span-5 h-full min-h-0">
                           <ClassDetails
                             classItem={adapterClassItem}
-                            isEditMode={isEditMode}
+                            isEditMode={isEditMode && activeDetailsTab === 'profile'}
                             activeSubTab={activeDetailsTab}
-                            onSubTabChange={setActiveDetailsTab}
+                            onSubTabChange={(tab) => {
+                              if (tab !== 'profile' && isEditMode) {
+                                handleCancelEdit();
+                              }
+                              setActiveDetailsTab(tab);
+                            }}
+                            onStartEdit={handleStartEdit}
+                            onSaveEdit={handleSaveEditChanges}
+                            onCancelEdit={handleCancelEdit}
                             onUpdateClass={handleAdapterUpdate}
                             onAddMaterial={handleAdapterAddMaterial}
                             onDeleteMaterial={handleAdapterDeleteMaterial}
@@ -523,7 +508,7 @@ export default function ClassApp() {
 
                         {/* Roster students top right section */}
                         <div className="lg:col-span-7 h-full min-h-0">
-                          {viewMode === 'class' && !isEditMode && (
+                          {viewMode === 'class' && (
                             <StudentRegister
                               classItem={adapterClassItem}
                               onUpdateClass={handleAdapterUpdate}

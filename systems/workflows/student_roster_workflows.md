@@ -118,9 +118,9 @@ flowchart TD
 ```
 
 ### Buffered Contact & Guardian Dossier Persistence:
-- In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx), edits to Contact Dossier and Family/Guardian fields (`phone`, `address`, `parentName`, `parentContact`, `parentNotes`, `statusIndicator`) are held in local `dossierDraft` state without firing per-keystroke network requests.
+- In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx), the **Contact Dossier** (`phone`, `address`) and **Family & Guardians** (`parentName`, `parentContact`, `parentNotes`) fields are read-only by default and guarded by a section-scoped `Edit3` (`student-detail-edit-dossier-button`) / `Save` (`student-detail-save-dossier-button`) / `X` (`student-detail-cancel-dossier-button`) toggle bar styled identically to `top-nav-controls`.
 - Student `email` is displayed as `readOnly` (linked to the student's Supabase Auth identity).
-- Clicking **Save Dossier** (`student-detail-save-dossier-button`) dispatches a single diff payload through `handleUpdateStudentDetails` $\rightarrow$ [`studentService.updateStudentClassData()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts), while local roster state synchronization via `onUpdateClass({ students })` updates React state without triggering `classService.updateClass`.
+- Clicking **Save** (`student-detail-save-dossier-button`) dispatches a single diff payload through `handleUpdateStudentDetails` $\rightarrow$ [`studentService.updateStudentClassData()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) (which persists identity-level `phone`, `address`, `parent_name`, `parent_contact` to `public.students` and class-scoped `parent_notes` to `public.class_students`), while local roster state synchronization via `onUpdateClass({ students })` updates React state without triggering `classService.updateClass`.
 
 ---
 

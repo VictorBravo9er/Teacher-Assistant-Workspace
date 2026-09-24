@@ -78,7 +78,7 @@ flowchart TD
 ## 3. Core Feature Modules
 
 ### 3.1 Classroom Management (`features/classroom/`)
-- **`ClassDetails.tsx`**: Central hub displaying class metadata, syllabus materials, active AI instructions, and quick action bars.
+- **`ClassDetails.tsx`**: Central hub displaying class metadata, syllabus materials, active AI instructions, and quick action bars. Profile Edit/Save/Cancel controls (`class-profile-edit-button`, `class-profile-save-button`, `class-profile-cancel-button`) reside directly inside the **Class Profile** tab header (`class-details-tab-profile`), while CRUD buttons for **Materials** (`materials-upload-file-button`, remove `Trash2`) and **Class Guidelines** (`instructions-new-guideline-button`, delete `Trash2`) are always visible.
 - **`CreateClassModal.tsx`**: Multi-step modal for creating new classes from scratch or cloning reusable templates.
 - **`GradebookMatrix.tsx`**: Realtime spreadsheet-style matrix cross-referencing enrolled students against assigned materials, displaying current scores, submission badges (`Submitted`, `Evaluated`, `Graded`), and class averages.
 - **`MaterialPreviewModal.tsx`**: Interactive document viewer displaying extracted content, syllabus topic tags, prerequisite gap warnings, and sample questions from the AI analysis engine.
@@ -88,7 +88,7 @@ flowchart TD
 
 ### 3.2 Student Portfolios & Assessment (`features/students/`)
 - **`StudentRegister.tsx`**: Comprehensive student directory with search, performance tier filters (`Advanced`, `Proficient`, `Developing`, `Critical Support`), and batch enrollment actions.
-- **`StudentDetailModal.tsx`**: 360-degree student portfolio showing cumulative GPA, assignment history, attendance trajectory, and identified concept mastery gaps.
+- **`StudentDetailModal.tsx`**: 360-degree student portfolio showing cumulative GPA, assignment history, attendance trajectory, identified concept mastery gaps, and a section-scoped `Edit / Save / Cancel` toggle (`student-detail-edit-dossier-button`, `student-detail-save-dossier-button`, `student-detail-cancel-dossier-button`) governing **Contact Dossier** and **Family & Guardians**.
 - **`AttendanceManagerModal.tsx`**: Fast daily roll-call modal supporting quick status marking (`Present`, `Absent`, `Late`, `Excused`) with aggregate attendance rate recalculation.
 - **`ReportCardModal.tsx`**: Printable and exportable student report card generator compiling grades, attendance records, teacher comments, and AI-assisted performance summaries.
 - **`SubmissionGradingModal.tsx`**: Side-by-side grading workbench allowing teachers to review student work, view AI-suggested criterion scores, adjust points, and author student feedback.

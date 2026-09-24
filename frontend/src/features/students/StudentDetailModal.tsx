@@ -23,6 +23,7 @@ import {
   Award,
   UploadCloud,
   Save,
+  Edit3,
 } from 'lucide-react';
 import { Button, Badge, Modal } from '@/components/ui';
 
@@ -64,24 +65,24 @@ export default function StudentDetailModal({
     show: false,
   });
 
-  // Buffered Contact & Guardian Dossier state (prevents per-keystroke DB writes)
+  // Scoped Edit/Save mode strictly for Contact Dossier & Family/Guardians
+  const [isEditingDossier, setIsEditingDossier] = useState(false);
   const [dossierDraft, setDossierDraft] = useState({
     phone: student.phone || '',
     address: student.address || '',
     parentName: student.parentName || '',
     parentContact: student.parentContact || '',
     parentNotes: student.parentNotes || '',
-    statusIndicator: (student.statusIndicator || 'active') as NonNullable<Student['statusIndicator']>,
   });
 
   useEffect(() => {
+    setIsEditingDossier(false);
     setDossierDraft({
       phone: student.phone || '',
       address: student.address || '',
       parentName: student.parentName || '',
       parentContact: student.parentContact || '',
       parentNotes: student.parentNotes || '',
-      statusIndicator: (student.statusIndicator || 'active') as NonNullable<Student['statusIndicator']>,
     });
   }, [
     student.id,
@@ -90,30 +91,45 @@ export default function StudentDetailModal({
     student.parentName,
     student.parentContact,
     student.parentNotes,
-    student.statusIndicator,
   ]);
 
-  const hasDossierChanges =
-    dossierDraft.phone !== (student.phone || '') ||
-    dossierDraft.address !== (student.address || '') ||
-    dossierDraft.parentName !== (student.parentName || '') ||
-    dossierDraft.parentContact !== (student.parentContact || '') ||
-    dossierDraft.parentNotes !== (student.parentNotes || '') ||
-    dossierDraft.statusIndicator !== (student.statusIndicator || 'active');
+  const handleStartEditDossier = () => {
+    setDossierDraft({
+      phone: student.phone || '',
+      address: student.address || '',
+      parentName: student.parentName || '',
+      parentContact: student.parentContact || '',
+      parentNotes: student.parentNotes || '',
+    });
+    setIsEditingDossier(true);
+  };
+
+  const handleCancelEditDossier = () => {
+    setDossierDraft({
+      phone: student.phone || '',
+      address: student.address || '',
+      parentName: student.parentName || '',
+      parentContact: student.parentContact || '',
+      parentNotes: student.parentNotes || '',
+    });
+    setIsEditingDossier(false);
+  };
 
   const handleSaveDossier = () => {
-    if (!hasDossierChanges) return;
-    onUpdateStudentDetails(student.id, {
-      phone: dossierDraft.phone,
-      address: dossierDraft.address,
-      parentName: dossierDraft.parentName,
-      parentContact: dossierDraft.parentContact,
-      parentNotes: dossierDraft.parentNotes,
-      statusIndicator: dossierDraft.statusIndicator,
-    });
-    if (onTriggerToast) {
-      onTriggerToast('Student dossier saved.');
+    const changedFields: Partial<Student> = {};
+    if (dossierDraft.phone !== (student.phone || '')) changedFields.phone = dossierDraft.phone;
+    if (dossierDraft.address !== (student.address || '')) changedFields.address = dossierDraft.address;
+    if (dossierDraft.parentName !== (student.parentName || '')) changedFields.parentName = dossierDraft.parentName;
+    if (dossierDraft.parentContact !== (student.parentContact || '')) changedFields.parentContact = dossierDraft.parentContact;
+    if (dossierDraft.parentNotes !== (student.parentNotes || '')) changedFields.parentNotes = dossierDraft.parentNotes;
+
+    if (Object.keys(changedFields).length > 0) {
+      onUpdateStudentDetails(student.id, changedFields);
+      if (onTriggerToast) {
+        onTriggerToast('Student contact & guardian dossier saved.');
+      }
     }
+    setIsEditingDossier(false);
   };
 
   // Grade operations
@@ -280,12 +296,11 @@ export default function StudentDetailModal({
             <div className="flex items-center gap-2 mt-1.5">
               <select
                 id="student-detail-status-select"
-                value={dossierDraft.statusIndicator}
+                value={student.statusIndicator || 'active'}
                 onChange={(e) =>
-                  setDossierDraft((prev) => ({
-                    ...prev,
-                    statusIndicator: e.target.value as NonNullable<Student['statusIndicator']>,
-                  }))
+                  onUpdateStudentDetails(student.id, {
+                    statusIndicator: e.target.value as Student['statusIndicator'],
+                  })
                 }
                 className="bg-surface border border-border-color rounded px-2 py-0.5 text-[10px] font-mono text-primary outline-none cursor-pointer focus:border-primary"
               >
@@ -346,17 +361,40 @@ export default function StudentDetailModal({
                 <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
                   Contact Dossier
                 </h4>
-                <Button
-                  id="student-detail-save-dossier-button"
-                  variant={hasDossierChanges ? 'primary' : 'secondary'}
-                  size="xs"
-                  disabled={!hasDossierChanges}
-                  onClick={handleSaveDossier}
-                  leftIcon={<Save className="w-3 h-3" />}
-                  title={hasDossierChanges ? 'Save modified contact and guardian dossier' : 'No unsaved dossier changes'}
-                >
-                  Save Dossier
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  {isEditingDossier ? (
+                    <>
+                      <button
+                        id="student-detail-save-dossier-button"
+                        type="button"
+                        onClick={handleSaveDossier}
+                        className="flex items-center justify-center w-6 h-6 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90"
+                        title="Save Contact & Guardian Dossier"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        id="student-detail-cancel-dossier-button"
+                        type="button"
+                        onClick={handleCancelEditDossier}
+                        className="flex items-center justify-center w-6 h-6 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
+                        title="Cancel Dossier Editing"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      id="student-detail-edit-dossier-button"
+                      type="button"
+                      onClick={handleStartEditDossier}
+                      className="flex items-center justify-center w-6 h-6 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
+                      title="Edit Contact & Guardian Dossier"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3.5">
@@ -378,8 +416,13 @@ export default function StudentDetailModal({
                     type="text"
                     placeholder="Add phone number..."
                     value={dossierDraft.phone}
+                    readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, phone: e.target.value }))}
-                    className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full"
+                    className={`w-full text-secondary-text focus:outline-none transition-all ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent cursor-default'
+                    }`}
                   />
                 </div>
                 <div className="flex items-start gap-2.5 text-xs">
@@ -388,8 +431,13 @@ export default function StudentDetailModal({
                     id="student-detail-address-input"
                     placeholder="Add residential address..."
                     value={dossierDraft.address}
+                    readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, address: e.target.value }))}
-                    className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full h-11 resize-none"
+                    className={`w-full text-secondary-text h-11 resize-none focus:outline-none transition-all ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent cursor-default'
+                    }`}
                   />
                 </div>
               </div>
@@ -410,8 +458,13 @@ export default function StudentDetailModal({
                     type="text"
                     placeholder="Guardian full name..."
                     value={dossierDraft.parentName}
+                    readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentName: e.target.value }))}
-                    className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
+                    className={`w-full text-xs text-secondary-text focus:outline-none transition-all mt-0.5 ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent pt-0.5 cursor-default'
+                    }`}
                   />
                 </div>
                 <div>
@@ -423,8 +476,13 @@ export default function StudentDetailModal({
                     type="text"
                     placeholder="Guardian email or phone..."
                     value={dossierDraft.parentContact}
+                    readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentContact: e.target.value }))}
-                    className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
+                    className={`w-full text-xs text-secondary-text focus:outline-none transition-all mt-0.5 ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent pt-0.5 cursor-default'
+                    }`}
                   />
                 </div>
                 <div>
@@ -435,8 +493,13 @@ export default function StudentDetailModal({
                     id="student-detail-parent-notes-input"
                     placeholder="Notes shared with guardian..."
                     value={dossierDraft.parentNotes}
+                    readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentNotes: e.target.value }))}
-                    className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none focus:border-primary/50 shadow-sm"
+                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none shadow-sm transition-all mt-0.5 ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 focus:border-primary'
+                        : 'bg-elevated/50 border border-border-color cursor-default opacity-85'
+                    }`}
                   />
                 </div>
               </div>

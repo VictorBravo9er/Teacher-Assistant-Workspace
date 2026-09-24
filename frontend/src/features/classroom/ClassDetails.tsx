@@ -49,6 +49,8 @@ import {
   Bell,
   Pin,
   Send,
+  Edit3,
+  Save,
 } from "lucide-react";
 import { Button, Badge, Modal, FormField, Input, Textarea } from '@/components/ui';
 
@@ -70,6 +72,9 @@ interface ClassDetailsProps {
   onTriggerToast: (text: string) => void;
   activeSubTab?: "profile" | "materials" | "prompts" | "announcements" | "calendar";
   onSubTabChange?: (tab: "profile" | "materials" | "prompts" | "announcements" | "calendar") => void;
+  onStartEdit?: () => void;
+  onSaveEdit?: () => void;
+  onCancelEdit?: () => void;
 }
 
 export default function ClassDetails({
@@ -83,6 +88,9 @@ export default function ClassDetails({
   onTriggerToast,
   activeSubTab: externalSubTab,
   onSubTabChange,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
 }: ClassDetailsProps) {
   const [internalSubTab, setInternalSubTab] = useState<
     "profile" | "materials" | "prompts" | "announcements" | "calendar"
@@ -402,6 +410,48 @@ export default function ClassDetails({
       <div className="flex-1 overflow-y-auto p-4">
         {/* Profile Tab */}
         <div className={activeSubTab === "profile" ? "space-y-4" : "hidden"}>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-primary-text font-display">
+              Class Profile & Methodology
+            </h4>
+            {(onStartEdit || onSaveEdit || onCancelEdit) && (
+              <div className="flex items-center gap-1.5">
+                {isEditMode ? (
+                  <>
+                    <button
+                      id="class-profile-save-button"
+                      data-element-id="top-nav-save-button"
+                      onClick={onSaveEdit}
+                      className="flex items-center justify-center w-7 h-7 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90 shadow-sm"
+                      title="Save Class Profile Changes"
+                    >
+                      <Save className="w-4 h-4" />
+                    </button>
+                    <button
+                      id="class-profile-cancel-button"
+                      data-element-id="top-nav-cancel-button"
+                      onClick={onCancelEdit}
+                      className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text shadow-sm"
+                      title="Cancel Class Profile Editing"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    id="class-profile-edit-button"
+                    data-element-id="top-nav-edit-button"
+                    onClick={onStartEdit}
+                    className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text shadow-sm"
+                    title="Edit Class Profile"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Lead Class Metrics Cards */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
@@ -623,17 +673,15 @@ export default function ClassDetails({
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Classroom Document Repo
               </h4>
-              {isEditMode && (
-                <Button
-                  id="materials-upload-file-button"
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => setShowFileForm(!showFileForm)}
-                  leftIcon={showFileForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                >
-                  {showFileForm ? "Cancel" : "Upload File"}
-                </Button>
-              )}
+              <Button
+                id="materials-upload-file-button"
+                variant="secondary"
+                size="xs"
+                onClick={() => setShowFileForm(!showFileForm)}
+                leftIcon={showFileForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              >
+                {showFileForm ? "Cancel" : "Upload File"}
+              </Button>
             </div>
 
             {/* Simulated file upload form */}
@@ -847,15 +895,13 @@ export default function ClassDetails({
                       >
                         <History className="w-3.5 h-3.5" />
                       </button>
-                      {isEditMode && (
-                        <button
-                          onClick={() => onDeleteMaterial(classItem.id, mat.id)}
-                          title="Remove Material from Class"
-                          className="p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded cursor-pointer transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => onDeleteMaterial(classItem.id, mat.id)}
+                        title="Remove Material from Class"
+                        className="p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -869,17 +915,15 @@ export default function ClassDetails({
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Class Guidelines & Rubric Rules
               </h4>
-              {isEditMode && (
-                <Button
-                  id="instructions-new-guideline-button"
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => setShowPromptForm(!showPromptForm)}
-                  leftIcon={showPromptForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                >
-                  {showPromptForm ? "Cancel" : "New Guideline"}
-                </Button>
-              )}
+              <Button
+                id="instructions-new-guideline-button"
+                variant="secondary"
+                size="xs"
+                onClick={() => setShowPromptForm(!showPromptForm)}
+                leftIcon={showPromptForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              >
+                {showPromptForm ? "Cancel" : "New Guideline"}
+              </Button>
             </div>
 
             {/* Prompt design form */}
@@ -967,17 +1011,15 @@ export default function ClassDetails({
                       >
                         {formatEnumLabel(inst.type)}
                       </span>
-                      {isEditMode && (
-                        <button
-                          onClick={() =>
-                            onDeleteInstruction(classItem.id, inst.id)
-                          }
-                          className="text-muted-text hover:text-red-500 p-1 rounded hover:bg-background transition-colors cursor-pointer"
-                          title="Delete Guideline"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() =>
+                          onDeleteInstruction(classItem.id, inst.id)
+                        }
+                        className="text-muted-text hover:text-red-500 p-1 rounded hover:bg-background transition-colors cursor-pointer"
+                        title="Delete Guideline"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <h5 className="text-xs font-bold text-primary-text">
                       {inst.title}

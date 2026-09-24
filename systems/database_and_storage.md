@@ -100,12 +100,12 @@ erDiagram
 1. **`institutes`**: Educational organization or institutional boundary (`id`, `name`, `type`, `settings`, `user_id`, `created_at`, `updated_at`).
 2. **`classes`**: Active pedagogical course instances (`id`, `institute_id`, `teacher_id`, `name`, `subject`, `grade_level`, `experience_level`, `teaching_style`, `assessment_preference`, `term`, `schedule`, `settings`, `created_at`, `updated_at`).
 3. **`templates`**: Reusable curriculum blueprints that can instantiate new classes (`id`, `institute_id`, `name`, `subject`, `grade_level`, `experience_level`, `teaching_style`, `assessment_preference`, `settings`, `user_id`, `created_at`, `updated_at`).
-4. **`students`**: Master student identity registry (`id`, `user_id`, `name`, `email`, `avatar_url`, `enrollment_number`, `parent_contact`, `created_at`, `updated_at`).
+4. **`students`**: Master student identity registry (`id`, `name`, `email`, `phone`, `address`, `parent_name`, `parent_contact`, `avatar_url`, `is_archived`, `created_at`, `updated_at`).
 5. **`materials`**: Global repository of learning resources and assignments (`id`, `name`, `description`, `category`, `content` JSONB, `user_id`, `created_at`, `updated_at`).
 6. **`instructions`**: Assistant prompts, system personas, and grading rubrics (`id`, `title`, `description`, `type`, `content`, `user_id`, `created_at`, `updated_at`).
 
 #### Junction & Execution Entities:
-1. **`class_students`**: Class enrollment junction linking `class_id` and `student_id`, storing portfolio details (`phone`, `address`, `parent_name`, `parent_contact`, `parent_notes`, `custom_fields`, `roll_number`), and calculated running metrics (`current_score`, `current_grade`, `performance_tier`, `attendance_rate`, `status`, `joined_at`).
+1. **`class_students`**: Class enrollment junction linking `class_id` and `student_id`, storing class-scoped portfolio details (`parent_notes`, `custom_fields`, `roll_number`), and calculated running metrics (`current_score`, `current_grade`, `performance_tier`, `attendance_rate`, `status`, `joined_at`).
 2. **`class_materials`**: Connects reusable `material_id` to `class_id` with ordering indices (`order_index`), class-specific content overlays (`custom_content`), and augmented criteria (`custom_rubric_criteria`).
 3. **`class_instructions`**: Connects system instructions or rubrics to `class_id` with execution priority (`order_index`).
 4. **`student_submissions`**: Student work records targeting an assignment material (`id`, `class_id`, `student_id`, `material_id`, `status`, `score`, `max_score`, `feedback`, `content` JSONB, `submitted_at`, `evaluated_at`).

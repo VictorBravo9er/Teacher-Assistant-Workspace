@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     // 2. Fetch enrolled students and parent contact
     const { data: enrollments, error: enrollError } = await adminSupabase
       .from("class_students")
-      .select("student_id, parent_contact, parent_name, students(id, name, email)")
+      .select("student_id, students(id, name, email, parent_name, parent_contact)")
       .eq("class_id", class_id);
 
     if (enrollError) {
@@ -81,10 +81,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (notify_parents && en.parent_contact && en.parent_contact.includes("@")) {
+      const parentContact = student?.parent_contact;
+      const parentName = student?.parent_name;
+      if (notify_parents && parentContact && parentContact.includes("@")) {
         recipients.push({
           from: senderEmail,
-          to: [en.parent_contact],
+          to: [parentContact],
           ...(teacherEmail ? { reply_to: teacherEmail } : {}),
           subject: `[${classItem.name}] Announcement for Parents: ${announcement.title}`,
           html: `<div style="font-family: sans-serif; padding: 20px;">
@@ -100,8 +102,8 @@ Deno.serve(async (req) => {
           class_id,
           announcement_id,
           notification_type: "announcement",
-          recipient_email: en.parent_contact,
-          recipient_name: en.parent_name || "Parent/Guardian",
+          recipient_email: parentContact,
+          recipient_name: parentName || "Parent/Guardian",
           recipient_type: "parent",
           student_id: student?.id,
           status: "queued",

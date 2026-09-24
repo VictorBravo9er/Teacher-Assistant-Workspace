@@ -161,3 +161,19 @@ interface BatchAttendancePayload {
    - Executes `studentService.deleteStudent(studentId)` in the background (`DELETE FROM public.class_students`).
 3. **Rollback on Failure**:
    - If the deletion fails, restores `previousClassSnapshot` to `classItemRef` and displays an error toast.
+
+---
+
+## ATOM-STU-07: Buffered Student Contact & Guardian Dossier Update
+
+### 1. Trigger
+- **Event**: Teacher clicks the `Edit3` icon button (`student-detail-edit-dossier-button`) on the **Contact Dossier** & **Family & Guardians** section in [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx), modifies fields (`phone`, `address`, `parentName`, `parentContact`, `parentNotes`), and clicks `Save` (`student-detail-save-dossier-button`).
+
+### 2. Execution Pipeline
+1. **Local Draft Buffering**:
+   - Inputs are disabled (`disabled={!isEditingDossier}`) until `student-detail-edit-dossier-button` sets `isEditingDossier = true`.
+   - Changes are held in `dossierDraft` without triggering per-keystroke queries; clicking `X` (`student-detail-cancel-dossier-button`) resets `dossierDraft` and exits edit mode.
+2. **Split Table Persistence (`studentService.updateStudentClassData`)**:
+   - Identity-level contact and guardian fields (`phone`, `address`, `parent_name`, `parent_contact`) execute `UPDATE public.students WHERE id = :studentId`.
+   - Class-scoped feedback notes (`parent_notes`) execute `UPDATE public.class_students WHERE class_id = :classId AND student_id = :studentId`.
+   - Each query runs only if its respective diff payload is non-empty.

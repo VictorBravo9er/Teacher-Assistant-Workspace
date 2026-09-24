@@ -34,7 +34,7 @@ sequenceDiagram
         opt If Notifications Enabled
             UI->>NotifyService: Background notifyAnnouncement({ announcement_id, class_id, notify_parents })
             NotifyService->>Edge: POST /functions/v1/notify-announcement
-            Edge->>DB: SELECT students, parent_contact FROM class_students
+            Edge->>DB: SELECT student_id, students(id, name, email, parent_name, parent_contact) FROM class_students
             Edge->>Resend: POST https://api.resend.com/emails/batch (max 100)
             Resend-->>Edge: Returns batch IDs
             Edge->>DB: INSERT INTO public.notification_logs (status='queued', resend_email_id)

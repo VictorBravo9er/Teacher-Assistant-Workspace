@@ -9,10 +9,6 @@ export const studentService = {
       .from('class_students')
       .select(`
         roll_number,
-        phone,
-        address,
-        parent_name,
-        parent_contact,
         parent_notes,
         custom_fields,
         learning_style,
@@ -66,10 +62,10 @@ export const studentService = {
         name: student.name || 'Unknown Student',
         rollNumber: row.roll_number || '',
         email: student.email || '',
-        phone: row.phone || '',
-        address: row.address || '',
-        parentName: row.parent_name || '',
-        parentContact: row.parent_contact || '',
+        phone: student.phone || '',
+        address: student.address || '',
+        parentName: student.parent_name || '',
+        parentContact: student.parent_contact || '',
         parentNotes: row.parent_notes || '',
         customFields: row.custom_fields || [],
         learningStyle: row.learning_style || '',
@@ -395,37 +391,63 @@ export const studentService = {
   },
 
   async updateStudentClassData(classId: string, studentId: string, updates: Partial<Student>): Promise<void> {
-    const dbUpdates: Record<string, any> = {};
-    if (updates.rollNumber !== undefined) dbUpdates.roll_number = updates.rollNumber;
-    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
-    if (updates.address !== undefined) dbUpdates.address = updates.address;
-    if (updates.parentName !== undefined) dbUpdates.parent_name = updates.parentName;
-    if (updates.parentContact !== undefined) dbUpdates.parent_contact = updates.parentContact;
-    if (updates.parentNotes !== undefined) dbUpdates.parent_notes = updates.parentNotes;
-    if (updates.customFields !== undefined) dbUpdates.custom_fields = updates.customFields;
-    if (updates.performanceTier !== undefined) dbUpdates.performance_tier = updates.performanceTier;
-    if (updates.currentScore !== undefined) dbUpdates.current_score = updates.currentScore;
-    if (updates.currentGrade !== undefined) dbUpdates.current_grade = updates.currentGrade;
-    if (updates.generalFeedback !== undefined) dbUpdates.general_feedback = updates.generalFeedback;
-    if (updates.behavioralNotes !== undefined) dbUpdates.behavioral_notes = updates.behavioralNotes;
-    if (updates.learningStyle !== undefined) dbUpdates.learning_style = updates.learningStyle;
-    if (updates.strengths !== undefined) dbUpdates.strengths = updates.strengths;
-    if (updates.weaknesses !== undefined) dbUpdates.weaknesses = updates.weaknesses;
+    const studentUpdates: Record<string, unknown> = {};
+    if (updates.phone !== undefined) studentUpdates.phone = updates.phone;
+    if (updates.address !== undefined) studentUpdates.address = updates.address;
+    if (updates.parentName !== undefined) studentUpdates.parent_name = updates.parentName;
+    if (updates.parentContact !== undefined) studentUpdates.parent_contact = updates.parentContact;
 
-    if (Object.keys(dbUpdates).length === 0) {
+    const classStudentUpdates: Record<string, unknown> = {};
+    if (updates.rollNumber !== undefined) classStudentUpdates.roll_number = updates.rollNumber;
+    if (updates.parentNotes !== undefined) classStudentUpdates.parent_notes = updates.parentNotes;
+    if (updates.customFields !== undefined) classStudentUpdates.custom_fields = updates.customFields;
+    if (updates.performanceTier !== undefined) classStudentUpdates.performance_tier = updates.performanceTier;
+    if (updates.currentScore !== undefined) classStudentUpdates.current_score = updates.currentScore;
+    if (updates.currentGrade !== undefined) classStudentUpdates.current_grade = updates.currentGrade;
+    if (updates.generalFeedback !== undefined) classStudentUpdates.general_feedback = updates.generalFeedback;
+    if (updates.behavioralNotes !== undefined) classStudentUpdates.behavioral_notes = updates.behavioralNotes;
+    if (updates.learningStyle !== undefined) classStudentUpdates.learning_style = updates.learningStyle;
+    if (updates.strengths !== undefined) classStudentUpdates.strengths = updates.strengths;
+    if (updates.weaknesses !== undefined) classStudentUpdates.weaknesses = updates.weaknesses;
+
+    const tasks: PromiseLike<unknown>[] = [];
+
+    if (Object.keys(studentUpdates).length > 0) {
+      tasks.push(
+        supabase
+          .from('students')
+          .update(studentUpdates)
+          .eq('id', studentId)
+          .then(({ error }) => {
+            if (error) {
+              logger.error('STUDENT_SERVICE', `Failed to update student identity data for ${studentId}`, error);
+              throw error;
+            }
+          })
+      );
+    }
+
+    if (Object.keys(classStudentUpdates).length > 0) {
+      tasks.push(
+        supabase
+          .from('class_students')
+          .update(classStudentUpdates)
+          .eq('class_id', classId)
+          .eq('student_id', studentId)
+          .then(({ error }) => {
+            if (error) {
+              logger.error('STUDENT_SERVICE', `Failed to update student class data for ${studentId}`, error);
+              throw error;
+            }
+          })
+      );
+    }
+
+    if (tasks.length === 0) {
       return;
     }
 
-    const { error } = await supabase
-      .from('class_students')
-      .update(dbUpdates)
-      .eq('class_id', classId)
-      .eq('student_id', studentId);
-      
-    if (error) {
-      logger.error('STUDENT_SERVICE', `Failed to update student class data for ${studentId}`, error);
-      throw error;
-    }
+    await Promise.all(tasks);
   },
 
   async removeStudentFromClass(classId: string, studentId: string): Promise<void> {

@@ -24,8 +24,8 @@ flowchart TD
    - Manages top-level routing between `LandingPage`, `AuthPage`, and authenticated workspace shells.
    - For authenticated users, inspects `role` from `useAuth()`: renders `<StudentApp />` for students and `<ClassApp />` for educators.
 2. **Top Navigation Controls (`ClassApp.tsx`)**:
-   - Houses the master top navigation bar with interactive element IDs (`top-nav-preset-template-button`, `top-nav-edit-button`, `top-nav-save-button`, `top-nav-cancel-button`, `view-mode-split-button`).
-   - Manages an `isEditing` dirty-state flag that warns users or provides Save/Cancel buttons when configuring classroom parameters.
+   - Houses the master top navigation bar with interactive element IDs (`top-nav-preset-template-button`, `top-nav-view-mode-group`, `view-mode-split-button`).
+   - Profile Edit/Save/Cancel controls are delegated directly inside `ClassDetails.tsx` within the **Class Profile** tab header (`class-profile-edit-button`, `class-profile-save-button`, `class-profile-cancel-button`), automatically exiting edit mode if the user switches away from the Profile tab while keeping `<StudentRegister />` visible.
 3. **Toast Notifications**:
    - Centralizes notification popups (`toast-notification`, `toast-dismiss-button`) for async operations across all feature modules.
 4. **Instant Submission Reflection (`StudentApp.tsx`)**:
