@@ -33,6 +33,12 @@ sequenceDiagram
     DBSetup->>TypeGen: generate_types(db_url)
     TypeGen->>Filesystem: Write frontend/src/types/db.ts & backend/src/types/db.py
     TypeGen->>Filesystem: Audit tooltips via _verify_enum_tooltips.py
+    DBSetup->>EdgeDeploy: deploy_modified_functions() (Step 6)
+    EdgeDeploy->>SupabaseCLI: npx -y supabase functions list & compare SHA-256 vs .edge_functions_state.json
+    opt Modified or Undeployed Functions Detected
+        EdgeDeploy->>SupabaseCLI: npx -y supabase functions deploy <fn_name>
+        EdgeDeploy->>Filesystem: Update scripts/.edge_functions_state.json
+    end
 ```
 
 ---
@@ -42,8 +48,9 @@ sequenceDiagram
 ### Accidental Data Loss Prevention:
 In [`db_setup.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/db_setup.py), destructive database drops via `schema-reset.sql` are strictly guarded behind the `--reset` flag and require interactive typed confirmation (`RESET`) unless `-y` / `--yes` is explicitly provided. Regular execution is strictly non-destructive.
 
-### Incremental Migration Tracking:
-[`migrate.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/migrate.py) maintains a `public._schema_migrations` catalog table in PostgreSQL, ensuring that scripts in `schema/migrations/` are applied in sorted order exactly once, while allowing `--status` inspections and `--fake` recordings.
+### Zero `public` Schema Pollution (`migrate.py` & `deploy_edge_functions.py`):
+- **Migration Tracking via `supabase_migrations` (`migrate.py`)**: Uses `npx -y supabase db push --include-all` and `migration list`. Migration state is stored in Supabase's native `supabase_migrations.schema_migrations` schema rather than `public`, keeping `frontend/src/types/db.ts` and `backend/src/types/db.py` free of helper table pollution.
+- **Edge Function Deployment via Supabase CLI (`deploy_edge_functions.py`)**: Uses `npx -y supabase functions list` and `npx -y supabase functions deploy` alongside a gitignored local manifest (`scripts/.edge_functions_state.json`). Each function's SHA-256 digest combines `supabase/functions/_shared/` and `supabase/functions/<name>/` (excluding `.md` docs). Modifying `_shared/` automatically triggers redeployment of all dependent functions, and webhook functions (`resend-webhook`, `trigger-submission-evaluation`, `trigger-material-analysis`) automatically receive `--no-verify-jwt`.
 
 ### Redundant LangGraph Initialization Bypass:
 LangGraph checkpoint and store table initialization (`PostgresSaver.setup()` and `PostgresStore.setup()`) takes noticeable execution time and issues DDL transactions. `db_setup.py` detects if `langgraph.checkpoints` already exists in PostgreSQL, bypassing setup unless `--with-langgraph` or `--reset` is requested.

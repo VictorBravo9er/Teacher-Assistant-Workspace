@@ -64,33 +64,52 @@ def check_langgraph_configured(conn: psycopg.Connection) -> bool:
         return False
 
 
+class _DBSetupArgs(argparse.Namespace):
+    reset: bool = False
+    yes: bool = False
+    with_langgraph: bool = False
+    no_types: bool = False
+    no_functions: bool = False
+    force_functions: bool = False
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Teach&Learn Database Setup & Initialization",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--reset",
         action="store_true",
         help="DESTRUCTIVE: Drop all tables, enums, triggers, and data before re-initializing.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-y",
         "--yes",
         action="store_true",
         help="Skip interactive confirmation when running with --reset.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--with-langgraph",
         action="store_true",
         help="Force re-running LangGraph PostgresSaver and PostgresStore table setup.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--no-types",
         action="store_true",
         help="Skip generating TypeScript and Python types after setup.",
     )
+    _ = parser.add_argument(
+        "--no-functions",
+        action="store_true",
+        help="Skip deploying modified Supabase Edge Functions.",
+    )
+    _ = parser.add_argument(
+        "--force-functions",
+        action="store_true",
+        help="Force redeploying all Supabase Edge Functions even if unmodified.",
+    )
 
-    args = parser.parse_args()
+    args = parser.parse_args(namespace=_DBSetupArgs())
     root_dir = Path(__file__).resolve().parent.parent
 
     # Interactive confirmation guard for destructive reset
@@ -117,6 +136,10 @@ def main():
     db_url = _env_helper.POSTGRES_URI
     db_langgraph_url = _env_helper.DB_OPTIONS_URI
 
+    from deploy_edge_functions import (  # pyright: ignore[reportImplicitRelativeImport]
+        deploy_modified_functions,
+    )
+
     with psycopg.connect(db_url, autocommit=True) as conn:
         schema_reset = root_dir / "schema" / "schema-reset.sql"
         schema_db = root_dir / "schema" / "schema-db.sql"
@@ -142,7 +165,7 @@ def main():
         run_sql_file(bucket_materials, conn)
         run_sql_file(bucket_submissions, conn)
 
-        # Step 3: Run pending incremental migrations from schema/migrations/
+        # Step 3: Run pending incremental migrations from schema/migrations/ via Supabase CLI
         print("\n▶️ Checking incremental schema migrations...")
         import migrate  # pyright: ignore[reportImplicitRelativeImport]
 
@@ -170,6 +193,13 @@ def main():
             )
 
             generate_types(db_url)
+
+        # Step 6: Deploy modified Supabase Edge Functions
+        if not args.no_functions:
+            print("\n▶️ Checking Supabase Edge Functions for modifications...")
+            _ = deploy_modified_functions(force=bool(args.force_functions))
+        else:
+            print("⏩ Skipping Supabase Edge Functions deployment (--no-functions).")
 
     print("\n" + "=" * 60)
     print("🎉 Database Setup Complete!")

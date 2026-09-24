@@ -60,21 +60,6 @@ RealtimeEqualityOp: TypeAlias = Literal["eq", "neq", "lt", "lte", "gt", "gte", "
 
 StorageBuckettype: TypeAlias = Literal["STANDARD", "ANALYTICS", "VECTOR"]
 
-class PublicSchemaMigrations(BaseModel):
-    applied_at: datetime.datetime = Field(alias="applied_at")
-    name: str = Field(alias="name")
-    version: str = Field(alias="version")
-
-class PublicSchemaMigrationsInsert(TypedDict):
-    applied_at: NotRequired[Annotated[datetime.datetime, Field(alias="applied_at")]]
-    name: Annotated[str, Field(alias="name")]
-    version: Annotated[str, Field(alias="version")]
-
-class PublicSchemaMigrationsUpdate(TypedDict):
-    applied_at: NotRequired[Annotated[datetime.datetime, Field(alias="applied_at")]]
-    name: NotRequired[Annotated[str, Field(alias="name")]]
-    version: NotRequired[Annotated[str, Field(alias="version")]]
-
 class PublicAnnouncements(BaseModel):
     author_id: uuid.UUID = Field(alias="author_id")
     class_id: uuid.UUID = Field(alias="class_id")

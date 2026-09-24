@@ -12,24 +12,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      _schema_migrations: {
-        Row: {
-          applied_at: string
-          name: string
-          version: string
-        }
-        Insert: {
-          applied_at?: string
-          name: string
-          version: string
-        }
-        Update: {
-          applied_at?: string
-          name?: string
-          version?: string
-        }
-        Relationships: []
-      }
       announcements: {
         Row: {
           author_id: string

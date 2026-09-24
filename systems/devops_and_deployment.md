@@ -102,17 +102,21 @@ flowchart TD
     SetupDB["db_setup.py (Master Provisioner)"]
     LangGraphInit["_setup_langchain_postgres.py"]
     GenTypes["_generate_types.py"]
+    EdgeDeploy["deploy_edge_functions.py (Incremental Edge Deployer)"]
     EnvCollector["collect_env_files.sh"]
 
     EnvHelper --> SetupDB
     EnvHelper --> LangGraphInit
+    EnvHelper --> EdgeDeploy
 
     SetupDB -->|Executes DDL| PostgreSQL[("PostgreSQL Database")]
     SetupDB --> LangGraphInit
     SetupDB --> GenTypes
+    SetupDB --> EdgeDeploy
 
     GenTypes -->|Supabase CLI| TypeScriptTypes["frontend/src/types/db.ts"]
     GenTypes -->|SQLAlchemy Model Codegen| PythonTypes["backend/src/types/db.py"]
+    EdgeDeploy -->|SHA-256 Diff + Supabase CLI| SupabaseEdge["Supabase Edge Functions Runtime"]
 
     EnvCollector -->|Merges .env.local + sub-envs| RootEnv[".env"]
 ```
