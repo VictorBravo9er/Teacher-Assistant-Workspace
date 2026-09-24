@@ -117,6 +117,11 @@ flowchart TD
     • AI Identified Concept Gaps & Recommended Practice"]
 ```
 
+### Buffered Contact & Guardian Dossier Persistence:
+- In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx), edits to Contact Dossier and Family/Guardian fields (`phone`, `address`, `parentName`, `parentContact`, `parentNotes`, `statusIndicator`) are held in local `dossierDraft` state without firing per-keystroke network requests.
+- Student `email` is displayed as `readOnly` (linked to the student's Supabase Auth identity).
+- Clicking **Save Dossier** (`student-detail-save-dossier-button`) dispatches a single diff payload through `handleUpdateStudentDetails` $\rightarrow$ [`studentService.updateStudentClassData()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts), while local roster state synchronization via `onUpdateClass({ students })` updates React state without triggering `classService.updateClass`.
+
 ---
 
 ## 4. Workflow: Generating & Exporting Report Cards

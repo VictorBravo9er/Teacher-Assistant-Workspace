@@ -18,6 +18,7 @@ export type LogNamespace =
   | 'SUBMISSION'
   | 'STORAGE'
   | 'ROUTER'
+  | 'WORKSPACE_DATA'
   | 'APP';
 
 export interface LogEntry {
@@ -58,6 +59,7 @@ const NAMESPACE_COLORS: Record<LogNamespace, string> = {
   SUBMISSION: '#14b8a6', // Teal
   STORAGE: '#eab308', // Yellow
   ROUTER: '#a855f7', // Purple
+  WORKSPACE_DATA: '#3b82f6', // Blue
   APP: '#64748b', // Slate
 };
 

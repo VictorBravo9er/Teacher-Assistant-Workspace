@@ -178,3 +178,12 @@ For operations where browser cancellation or premature tab closure corrupts stat
 - **Account Password Updates & Sensitive Authentication** (`AuthPage.tsx`, `StudentApp.tsx`, `AccountModals.tsx`):
   - Renders an indeterminate security progress bar (`"Encrypting credentials and refreshing session tokens — please wait..."`) and locks form inputs until Supabase Auth finishes rotating session tokens.
 
+### 5.3 Decoupled Local State Sync vs. Database Persistence & Buffered Dossier Editing
+- **Column-Filtered Class Updates (`useClassOperations.handleUpdateClass` & `classService.updateClass`)**:
+  - `handleUpdateClass` checks whether `updatedFields` includes any persisted `public.classes` columns before calling `classService.updateClass`, and `classService.updateClass` short-circuits immediately when `Object.keys(dbUpdates).length === 0`. Synchronizing child collections (`students`, `materials`, `instructions`, `ragSessions`) in local React state dispatches **zero** `UPDATE public.classes` queries.
+- **Buffered Student Dossier Drafts (`StudentDetailModal.tsx` & `StudentRegister.tsx`)**:
+  - Contact Dossier and Family/Guardian fields (`phone`, `address`, `parentName`, `parentContact`, `parentNotes`, `statusIndicator`) are buffered in local `dossierDraft` state and persisted once via the **Save Dossier** button (`student-detail-save-dossier-button`).
+  - `handleUpdateStudentDetails` forwards only `updatedFields` to `studentService.updateStudentClassData`, which short-circuits when `dbUpdates` is empty, preventing submission list updates (`{ submissions }`) from firing redundant `UPDATE public.class_students` queries.
+  - Inline class renaming in `Sidebar.tsx` guards `handleSaveRename` with `renameCommittedRef` and a dirty check (`trimmed !== ws.name`) to prevent `Enter` + `onBlur` double-firing and skip unchanged class names.
+
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Student,
   ClassModel,
@@ -22,6 +22,7 @@ import {
   Sliders,
   Award,
   UploadCloud,
+  Save,
 } from 'lucide-react';
 import { Button, Badge, Modal } from '@/components/ui';
 
@@ -62,6 +63,58 @@ export default function StudentDetailModal({
     value: '',
     show: false,
   });
+
+  // Buffered Contact & Guardian Dossier state (prevents per-keystroke DB writes)
+  const [dossierDraft, setDossierDraft] = useState({
+    phone: student.phone || '',
+    address: student.address || '',
+    parentName: student.parentName || '',
+    parentContact: student.parentContact || '',
+    parentNotes: student.parentNotes || '',
+    statusIndicator: (student.statusIndicator || 'active') as NonNullable<Student['statusIndicator']>,
+  });
+
+  useEffect(() => {
+    setDossierDraft({
+      phone: student.phone || '',
+      address: student.address || '',
+      parentName: student.parentName || '',
+      parentContact: student.parentContact || '',
+      parentNotes: student.parentNotes || '',
+      statusIndicator: (student.statusIndicator || 'active') as NonNullable<Student['statusIndicator']>,
+    });
+  }, [
+    student.id,
+    student.phone,
+    student.address,
+    student.parentName,
+    student.parentContact,
+    student.parentNotes,
+    student.statusIndicator,
+  ]);
+
+  const hasDossierChanges =
+    dossierDraft.phone !== (student.phone || '') ||
+    dossierDraft.address !== (student.address || '') ||
+    dossierDraft.parentName !== (student.parentName || '') ||
+    dossierDraft.parentContact !== (student.parentContact || '') ||
+    dossierDraft.parentNotes !== (student.parentNotes || '') ||
+    dossierDraft.statusIndicator !== (student.statusIndicator || 'active');
+
+  const handleSaveDossier = () => {
+    if (!hasDossierChanges) return;
+    onUpdateStudentDetails(student.id, {
+      phone: dossierDraft.phone,
+      address: dossierDraft.address,
+      parentName: dossierDraft.parentName,
+      parentContact: dossierDraft.parentContact,
+      parentNotes: dossierDraft.parentNotes,
+      statusIndicator: dossierDraft.statusIndicator,
+    });
+    if (onTriggerToast) {
+      onTriggerToast('Student dossier saved.');
+    }
+  };
 
   // Grade operations
   const handleAddGrade = async (e: React.FormEvent) => {
@@ -226,11 +279,13 @@ export default function StudentDetailModal({
 
             <div className="flex items-center gap-2 mt-1.5">
               <select
-                value={student.statusIndicator || 'active'}
+                id="student-detail-status-select"
+                value={dossierDraft.statusIndicator}
                 onChange={(e) =>
-                  onUpdateStudentDetails(student.id, {
-                    statusIndicator: e.target.value as Student['statusIndicator'],
-                  })
+                  setDossierDraft((prev) => ({
+                    ...prev,
+                    statusIndicator: e.target.value as NonNullable<Student['statusIndicator']>,
+                  }))
                 }
                 className="bg-surface border border-border-color rounded px-2 py-0.5 text-[10px] font-mono text-primary outline-none cursor-pointer focus:border-primary"
               >
@@ -287,34 +342,53 @@ export default function StudentDetailModal({
           {/* Left: Contact Dossier & Custom Fields */}
           <div className="w-full md:w-80 border-r border-border-color p-6 overflow-y-auto space-y-6 shrink-0 bg-background/50">
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
-                Contact Dossier
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
+                  Contact Dossier
+                </h4>
+                <Button
+                  id="student-detail-save-dossier-button"
+                  variant={hasDossierChanges ? 'primary' : 'secondary'}
+                  size="xs"
+                  disabled={!hasDossierChanges}
+                  onClick={handleSaveDossier}
+                  leftIcon={<Save className="w-3 h-3" />}
+                  title={hasDossierChanges ? 'Save modified contact and guardian dossier' : 'No unsaved dossier changes'}
+                >
+                  Save Dossier
+                </Button>
+              </div>
 
               <div className="space-y-3.5">
                 <div className="flex items-center gap-2.5 text-xs">
                   <Mail className="w-3.5 h-3.5 text-muted-text shrink-0" />
                   <input
+                    id="student-detail-email-input"
                     type="text"
                     value={student.email || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { email: e.target.value })}
-                    className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 truncate w-full"
+                    readOnly
+                    title="Student login email (managed via account identity)"
+                    className="bg-transparent text-muted-text cursor-not-allowed focus:outline-none truncate w-full"
                   />
                 </div>
                 <div className="flex items-center gap-2.5 text-xs">
                   <Phone className="w-3.5 h-3.5 text-muted-text shrink-0" />
                   <input
+                    id="student-detail-phone-input"
                     type="text"
-                    value={student.phone || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { phone: e.target.value })}
+                    placeholder="Add phone number..."
+                    value={dossierDraft.phone}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, phone: e.target.value }))}
                     className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full"
                   />
                 </div>
                 <div className="flex items-start gap-2.5 text-xs">
                   <MapPin className="w-3.5 h-3.5 text-muted-text shrink-0 mt-0.5" />
                   <textarea
-                    value={student.address || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { address: e.target.value })}
+                    id="student-detail-address-input"
+                    placeholder="Add residential address..."
+                    value={dossierDraft.address}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, address: e.target.value }))}
                     className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full h-11 resize-none"
                   />
                 </div>
@@ -332,9 +406,11 @@ export default function StudentDetailModal({
                     PARENT GUARDIAN NAMES
                   </label>
                   <input
+                    id="student-detail-parent-name-input"
                     type="text"
-                    value={student.parentName || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { parentName: e.target.value })}
+                    placeholder="Guardian full name..."
+                    value={dossierDraft.parentName}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentName: e.target.value }))}
                     className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
                   />
                 </div>
@@ -343,9 +419,11 @@ export default function StudentDetailModal({
                     URGENT CONTACT PREFERENCES
                   </label>
                   <input
+                    id="student-detail-parent-contact-input"
                     type="text"
-                    value={student.parentContact || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { parentContact: e.target.value })}
+                    placeholder="Guardian email or phone..."
+                    value={dossierDraft.parentContact}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentContact: e.target.value }))}
                     className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
                   />
                 </div>
@@ -354,8 +432,10 @@ export default function StudentDetailModal({
                     PARENT PORTAL FEEDBACK NOTES
                   </label>
                   <textarea
-                    value={student.parentNotes || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { parentNotes: e.target.value })}
+                    id="student-detail-parent-notes-input"
+                    placeholder="Notes shared with guardian..."
+                    value={dossierDraft.parentNotes}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentNotes: e.target.value }))}
                     className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none focus:border-primary/50 shadow-sm"
                   />
                 </div>

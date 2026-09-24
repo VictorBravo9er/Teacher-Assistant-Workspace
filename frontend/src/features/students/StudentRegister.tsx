@@ -138,18 +138,15 @@ export default function StudentRegister({
     classItemRef.current = { ...classItemRef.current, students: updated };
     onUpdateClass(classItem.id, { students: updated });
 
-    const student = updated.find((s) => s.id === studentId);
-    if (student) {
-      studentService
-        .updateStudentClassData(classItem.id, studentId, student)
-        .catch((e: unknown) => {
-          logger.error('STUDENT_SERVICE', 'Failed to persist student details', e);
-          classItemRef.current = { ...classItemRef.current, students: previousStudents };
-          onUpdateClass(classItem.id, { students: previousStudents });
-          const errMsg = e instanceof Error ? e.message : String(e);
-          notify(`Failed to save student details: ${errMsg}`);
-        });
-    }
+    studentService
+      .updateStudentClassData(classItem.id, studentId, updatedFields)
+      .catch((e: unknown) => {
+        logger.error('STUDENT_SERVICE', 'Failed to persist student details', e);
+        classItemRef.current = { ...classItemRef.current, students: previousStudents };
+        onUpdateClass(classItem.id, { students: previousStudents });
+        const errMsg = e instanceof Error ? e.message : String(e);
+        notify(`Failed to save student details: ${errMsg}`);
+      });
   };
 
   const handleDeleteStudent = (studId: string) => {

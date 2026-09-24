@@ -224,10 +224,17 @@ export const classService = {
       if (updates.teachingStyle !== undefined) dbUpdates.teaching_style = updates.teachingStyle;
       if (updates.experienceLevel !== undefined) dbUpdates.experience_level = updates.experienceLevel;
       if (updates.specialNotes !== undefined) dbUpdates.special_notes = updates.specialNotes;
+      if (updates.assessmentPreferences !== undefined) {
+        dbUpdates.assessment_preferences = updates.assessmentPreferences;
+      }
       const targetArchived = updates.isArchived !== undefined
         ? updates.isArchived
-        : (updates as any).archived;
+        : (updates as Record<string, unknown>).archived;
       if (targetArchived !== undefined) dbUpdates.is_archived = targetArchived;
+
+      if (Object.keys(dbUpdates).length === 0) {
+        return;
+      }
 
       const { error } = await supabase
         .from('classes')

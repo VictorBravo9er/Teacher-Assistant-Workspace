@@ -71,4 +71,10 @@ sequenceDiagram
 3. **Hybrid Submission Upload (`StudentSubmissionUploadModal.tsx`)**:
    - **Text/URL Submissions**: Dismiss the modal in `0ms`, emit a synthetic `StudentSubmission` to update the roster immediately, and persist in the background.
    - **Binary File Uploads (`file !== null`)**: Lock modal dismissal (`!isSubmitting`) and render an in-modal Blocking Progress Bar Overlay (`15% → 92% → 100%`) with formatted file size (`MB`/`KB`) and a wait warning until Supabase Storage receives the file bytes.
+4. **Buffered Dossier Draft State (`StudentDetailModal.tsx`)**:
+   - Contact Dossier & Family/Guardian fields (`phone`, `address`, `parentName`, `parentContact`, `parentNotes`, `statusIndicator`) are buffered in local `dossierDraft` state instead of firing per-keystroke `onChange` database writes.
+   - Student `email` is rendered `readOnly` (bound to the student's Supabase Auth identity).
+   - Clicking **Save Dossier** (`student-detail-save-dossier-button`) dispatches a single `onUpdateStudentDetails(student.id, dossierDraft)` call when `hasDossierChanges` is `true`.
+5. **Diff-Only Student Persistence (`handleUpdateStudentDetails` in `StudentRegister.tsx`)**:
+   - Forwards only `updatedFields` (rather than the entire `Student` object) to `studentService.updateStudentClassData(classItem.id, studentId, updatedFields)`, ensuring submission list updates (`{ submissions }`) never trigger redundant `UPDATE public.class_students` queries.
 

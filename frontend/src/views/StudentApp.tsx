@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import {
   BookOpen,
   Calendar,
+  Loader2,
   CheckCircle2,
   Clock,
   Download,

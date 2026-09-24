@@ -41,3 +41,5 @@ flowchart TD
 5. **Universal Notification & Email Engine (`notificationService.ts`)**:
    - Offloads email distribution entirely to serverless Edge Functions (`notify-announcement`, `notify-material`, `notify-submission`) backed by Resend.
    - Non-blocking async invocations ensure UI responsiveness; delivery states (`sent`, `delivered`, `bounced`) are tracked in `public.notification_logs` with webhook reconciliation.
+6. **Empty-Diff Short-Circuit Guards (`classService.ts` & `studentService.ts`)**:
+   - Both `classService.updateClass` and `studentService.updateStudentClassData` verify `Object.keys(dbUpdates).length > 0` before calling PostgREST `.update(dbUpdates)`. Any call containing only client-side fields (`statusIndicator`) or nested collection references (`students`, `submissions`, `materials`, `ragSessions`) returns immediately as a zero-network no-op.

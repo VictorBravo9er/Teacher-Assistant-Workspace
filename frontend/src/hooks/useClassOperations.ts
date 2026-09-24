@@ -283,6 +283,25 @@ export function useClassOperations({
       if (isEditMode) {
         return;
       }
+      const hasPersistedClassColumn =
+        updatedFields.name !== undefined ||
+        updatedFields.instituteId !== undefined ||
+        updatedFields.instituteName !== undefined ||
+        updatedFields.academicYear !== undefined ||
+        updatedFields.semester !== undefined ||
+        updatedFields.subject !== undefined ||
+        updatedFields.teacherName !== undefined ||
+        updatedFields.teachingStyle !== undefined ||
+        updatedFields.experienceLevel !== undefined ||
+        updatedFields.specialNotes !== undefined ||
+        updatedFields.assessmentPreferences !== undefined ||
+        updatedFields.isArchived !== undefined ||
+        (updatedFields as Record<string, unknown>).archived !== undefined;
+
+      if (!hasPersistedClassColumn) {
+        return;
+      }
+
       classService
         .updateClass(id, updatedFields)
         .catch((err: unknown) => {

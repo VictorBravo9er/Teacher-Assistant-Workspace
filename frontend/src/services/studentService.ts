@@ -412,6 +412,10 @@ export const studentService = {
     if (updates.strengths !== undefined) dbUpdates.strengths = updates.strengths;
     if (updates.weaknesses !== undefined) dbUpdates.weaknesses = updates.weaknesses;
 
+    if (Object.keys(dbUpdates).length === 0) {
+      return;
+    }
+
     const { error } = await supabase
       .from('class_students')
       .update(dbUpdates)

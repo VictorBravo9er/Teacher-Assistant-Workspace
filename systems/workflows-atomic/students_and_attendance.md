@@ -68,6 +68,7 @@ interface AddStudentPayload {
 ### 3. Reconciliation & Rollback
 - **On Success**: Replaces `tempId` with `realId` in `classItemRef.current.students`, clears `isPending`, and shows a success toast.
 - **On Failure**: Evicts `tempId` from `classItemRef.current.students` and displays an error toast.
+- **State Sync Invariant**: Calls to `onUpdateClass(classItem.id, { students })` during optimistic insert, reconciliation, and rollback update local React state (`useClassOperations.handleUpdateClass`) without dispatching `UPDATE public.classes` queries.
 
 ---
 

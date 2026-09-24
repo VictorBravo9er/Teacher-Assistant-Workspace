@@ -96,6 +96,14 @@ This document organizes and lists all important element `id` attributes assigned
 | `student-detail-modal-overlay` | Modal backdrop for student portfolio details |
 | `student-detail-modal` | Card modal for inspecting/editing student details |
 | `student-detail-close-button` | Button to close student portfolio modal |
+| `student-detail-status-select` | Dropdown to buffer student roster status indicator (`active`, `inactive`, `needs-attention`) |
+| `student-detail-save-dossier-button` | Button to persist buffered Contact Dossier & Family/Guardian field edits |
+| `student-detail-email-input` | Read-only student login email field in Contact Dossier |
+| `student-detail-phone-input` | Buffered input field for student phone number |
+| `student-detail-address-input` | Buffered textarea for student residential address |
+| `student-detail-parent-name-input` | Buffered input field for parent/guardian names |
+| `student-detail-parent-contact-input` | Buffered input field for urgent guardian contact preferences |
+| `student-detail-parent-notes-input` | Buffered textarea for parent portal feedback notes |
 
 ---
 
