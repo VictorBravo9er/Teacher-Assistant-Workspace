@@ -100,48 +100,53 @@ export default function AttendanceManagerModal({
       ? Math.round(((presentCount + excusedCount + lateCount * lateAttendanceWeight) / totalCount) * 100)
       : 100;
 
-  const handleSaveAttendance = async () => {
-    setIsSaving(true);
-    try {
-      const recordsToInsert = students.map((s) => ({
+  const handleSaveAttendance = () => {
+    const previousStudentsSnapshot = [...students];
+
+    const recordsToInsert = students.map((s) => ({
+      studentId: s.id,
+      date: selectedDate,
+      status: attendanceMap[s.id]?.status || 'Present',
+      notes: attendanceMap[s.id]?.notes || undefined,
+    }));
+
+    const updatedStudents = students.map((s) => {
+      const studentRecord: AttendanceRecord = {
+        classId,
         studentId: s.id,
         date: selectedDate,
         status: attendanceMap[s.id]?.status || 'Present',
         notes: attendanceMap[s.id]?.notes || undefined,
-      }));
+      };
 
-      await studentService.bulkLogAttendance(classId, recordsToInsert);
+      const existingRecords = (s.attendanceRecords || []).filter(
+        (r) => r.date !== selectedDate
+      );
+      const allRecords = [...existingRecords, studentRecord];
+      const newPct = calculateAttendanceRate(allRecords, lateAttendanceWeight);
 
-      const updatedStudents = students.map((s) => {
-        const studentRecord: AttendanceRecord = {
-          classId,
-          studentId: s.id,
-          date: selectedDate,
-          status: attendanceMap[s.id]?.status || 'Present',
-          notes: attendanceMap[s.id]?.notes || undefined,
-        };
+      return {
+        ...s,
+        attendance: newPct,
+        attendanceRecords: allRecords,
+      };
+    });
 
-        const existingRecords = (s.attendanceRecords || []).filter(
-          (r) => r.date !== selectedDate
-        );
-        const allRecords = [...existingRecords, studentRecord];
-        const newPct = calculateAttendanceRate(allRecords, lateAttendanceWeight);
+    // 1. Optimistically update roster attendance and dismiss modal immediately (0ms)
+    onAttendanceUpdated(updatedStudents);
+    onClose();
 
-        return {
-          ...s,
-          attendance: newPct,
-          attendanceRecords: allRecords,
-        };
+    // 2. Persist in background with automatic snapshot rollback on failure
+    studentService
+      .bulkLogAttendance(classId, recordsToInsert)
+      .then(() => {
+        if (onTriggerToast) onTriggerToast(`Attendance saved for ${selectedDate}!`);
+      })
+      .catch((err: unknown) => {
+        onAttendanceUpdated(previousStudentsSnapshot);
+        const msg = err instanceof Error ? err.message : String(err);
+        if (onTriggerToast) onTriggerToast(`Failed to save attendance: ${msg}`);
       });
-
-      onAttendanceUpdated(updatedStudents);
-      if (onTriggerToast) onTriggerToast(`Attendance saved for ${selectedDate}!`);
-      onClose();
-    } catch (err: any) {
-      if (onTriggerToast) onTriggerToast(`Failed to save attendance: ${err.message}`);
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const statusOptions: { label: AttendanceStatus; color: string; activeColor: string; icon: any }[] = [

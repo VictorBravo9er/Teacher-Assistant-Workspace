@@ -29,6 +29,6 @@ stateDiagram-v2
 2. **`MultiSelect.tsx`**:
    - Controlled component accepting `selected: string[]` and emitting `onChange(newValues: string[])`.
    - Renders removable badge chips inline and handles keyboard tag deletion via Backspace.
-3. **`CustomDialogs.tsx`**:
-   - Encapsulates confirmation dialogs (`title`, `message`, `confirmLabel`, `cancelLabel`, `isDestructive`) on top of atomic `<Modal>` primitives.
-   - Prevents accidental background closure during async pending operations.
+3. **`CustomDialogs.tsx` (`ConfirmModal`, `AlertModal` & `LoadingOverlay`)**:
+   - Encapsulates confirmation and alert dialogs (`title`, `message`, `confirmLabel`, `cancelLabel`, `isDestructive`) on top of atomic `<Modal>` primitives.
+   - `LoadingOverlay` supports `showProgressBar?: boolean`, `subMessage?: string`, and `progress?: number`, rendering an asymptotic progress bar (`15% → 92%`) with a percentage badge and an amber wait warning banner (`"Please do not close or refresh this window while the operation completes"`) for binary file uploads.

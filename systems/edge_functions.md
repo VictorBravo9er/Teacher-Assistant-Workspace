@@ -153,11 +153,12 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 ---
 
 ### 3.6 `invite-student`
-- **Trigger**: Teacher inviting a new student via email.
+- **Trigger**: Teacher inviting a new student via email (`POST`) or updating an unconfirmed student's email (`PATCH`).
 - **Workflow**:
   - Checks if student record exists in `public.students`.
-  - Creates enrollment row in `public.class_students` with status `'Enrolled'`.
-  - Generates secure invitation token for student onboarding.
+  - Dispatches the student invitation via Supabase Auth SMTP (`adminSupabase.auth.admin.inviteUserByEmail` or `adminSupabase.auth.resend`) using the project's configured Supabase Auth email template, passing `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` in `data` (`user_metadata`).
+  - Creates/updates enrollment row in `public.class_students` via `add_student_to_class` RPC.
+  - Returns `{ success: true, student_id }`.
 
 ---
 
@@ -220,7 +221,9 @@ The `_shared/` directory provides common reusable utilities across all edge endp
   - `SUPABASE_SERVICE_ROLE_KEY`: Secret admin key kept strictly server-side.
   - `BACKEND_API_URL`: Address of the FastAPI service (e.g., `http://backend:8090` or production hostname).
   - `RESEND_API_KEY`: API token for dispatching emails through the Resend gateway.
-  - `RESEND_FROM_EMAIL`: Authorized sender address (defaults to `updates@teachandlearn.edu`).
+  - `RESEND_FROM_EMAIL`: Authorized sender address for broadcast notifications (defaults to `updates@teachandlearn.edu`).
+  - `STUDENT_INVITE_FROM_EMAIL`: Authorized sender address for student invites (defaults to `signup@teach.glipse.tech`).
+  - `STUDENT_INVITE_REPLY_TO`: Explicit non-repliable address for student invites (defaults to `no-reply@teach.glipse.tech`).
 - **Zero Raw Secret Exposure**:
   - Secrets are injected via Supabase Secrets Manager and never committed to version control.
 - **Fail-Safe Webhook Responses**:

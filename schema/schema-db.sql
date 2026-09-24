@@ -107,6 +107,10 @@ CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT,
+    phone TEXT,
+    address TEXT,
+    parent_name TEXT,
+    parent_contact TEXT,
     avatar_url TEXT,
     is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -124,10 +128,6 @@ CREATE TABLE IF NOT EXISTS public.class_students (
     general_feedback TEXT,
     performance_tier TEXT,
     behavioral_notes TEXT,
-    phone TEXT,
-    address TEXT,
-    parent_name TEXT,
-    parent_contact TEXT,
     parent_notes TEXT,
     custom_fields JSONB DEFAULT '[]'::jsonb,
     roll_number TEXT,
@@ -882,7 +882,22 @@ ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view students" ON public.students;
 CREATE POLICY "Users can view students" ON public.students FOR SELECT USING ( (SELECT auth.uid()) = id OR EXISTS ( SELECT 1 FROM public.class_students cs JOIN public.classes c ON cs.class_id = c.id WHERE cs.student_id = students.id AND c.user_id = (SELECT auth.uid()) ) );
 DROP POLICY IF EXISTS "Students can update their own profile" ON public.students;
-CREATE POLICY "Students can update their own profile" ON public.students FOR UPDATE USING ((SELECT auth.uid()) = id);
+DROP POLICY IF EXISTS "Students and enrolled class teachers can update student profile" ON public.students;
+CREATE POLICY "Students and enrolled class teachers can update student profile" ON public.students FOR UPDATE USING (
+    (SELECT auth.uid()) = id
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs
+        JOIN public.classes c ON cs.class_id = c.id
+        WHERE cs.student_id = students.id AND c.user_id = (SELECT auth.uid())
+    )
+) WITH CHECK (
+    (SELECT auth.uid()) = id
+    OR EXISTS (
+        SELECT 1 FROM public.class_students cs
+        JOIN public.classes c ON cs.class_id = c.id
+        WHERE cs.student_id = students.id AND c.user_id = (SELECT auth.uid())
+    )
+);
 
 -- Security Definer helper to check class ownership without RLS recursion
 CREATE OR REPLACE FUNCTION public.is_class_teacher(lookup_class_id UUID)

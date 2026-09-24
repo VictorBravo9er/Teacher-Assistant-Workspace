@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Student,
   Material,
@@ -12,6 +12,7 @@ import {
   Link as LinkIcon,
   Check,
   Paperclip,
+  Loader2,
 } from 'lucide-react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter, FormField, Input, Textarea } from '@/components/ui';
 
@@ -34,8 +35,6 @@ export default function StudentSubmissionUploadModal({
   onSubmissionCreated,
   onTriggerToast,
 }: StudentSubmissionUploadModalProps) {
-  if (!isOpen) return null;
-
   const [mode, setMode] = useState<'file' | 'url' | 'text'>('file');
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>(
     materials.find((m) => m.toBeScored)?.id || (materials[0]?.id || '')
@@ -46,64 +45,107 @@ export default function StudentSubmissionUploadModal({
   const [textContent, setTextContent] = useState('');
   const [status, setStatus] = useState<'Submitted' | 'Pending'>('Submitted');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(15);
+
+  useEffect(() => {
+    if (!isSubmitting || mode !== 'file') {
+      setUploadProgress(15);
+      return;
+    }
+    const timer = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 92) return prev;
+        return Math.min(92, Math.round(prev + Math.max(2, (92 - prev) * 0.16)));
+      });
+    }, 350);
+    return () => clearInterval(timer);
+  }, [isSubmitting, mode]);
+
+  if (!isOpen) return null;
 
   const selectedMaterial = materials.find((m) => m.id === selectedMaterialId);
   const displayTitle = selectedMaterial ? selectedMaterial.name : customTitle || 'Untitled Assignment';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Optimistic non-blocking flow for URL or Text entries
+    if (mode === 'url' || mode === 'text') {
+      const itemId = crypto.randomUUID();
+      const contentItems: ContentItem[] =
+        mode === 'url'
+          ? [
+              {
+                id: itemId,
+                name: displayTitle,
+                type: 'URL',
+                value: urlInput.trim() || 'https://docs.google.com/document/d/example',
+                path: urlInput.trim() || 'https://docs.google.com/document/d/example',
+                description: `Online link submission`,
+              },
+            ]
+          : [
+              {
+                id: itemId,
+                name: `${displayTitle} (Text Excerpt)`,
+                type: 'Text',
+                value: textContent.trim(),
+                path: '',
+                description: textContent.trim() || 'Student provided written answers directly.',
+              },
+            ];
+
+      const optimisticSub: StudentSubmission = {
+        id: crypto.randomUUID(),
+        classId,
+        studentId: student.id,
+        materialId: selectedMaterialId || undefined,
+        materialName: displayTitle,
+        content: contentItems,
+        status: status,
+        submittedAt: new Date().toISOString(),
+      };
+
+      onSubmissionCreated(student.id, optimisticSub);
+      if (onTriggerToast) onTriggerToast(`Logged submission for ${student.name}`);
+      onClose();
+
+      studentService
+        .createStudentSubmission(classId, student.id, {
+          materialId: selectedMaterialId || undefined,
+          content: contentItems,
+          status: status,
+          dueAt: selectedMaterial?.dueAt || new Date().toISOString(),
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (onTriggerToast) onTriggerToast(`Failed to persist submission: ${msg}`);
+        });
+      return;
+    }
+
+    // 2. Blocking progress bar flow for binary file uploads
+    if (!fileObj) {
+      if (onTriggerToast) onTriggerToast('Please select a file to upload.');
+      return;
+    }
+
     setIsSubmitting(true);
-
     try {
-      let contentItems: ContentItem[] = [];
+      const fileName = fileObj.name;
+      const targetMaterialId = selectedMaterialId || crypto.randomUUID();
+      const { itemId, storagePath } = await studentService.uploadSubmissionFile(targetMaterialId, fileObj);
 
-      if (mode === 'file') {
-        if (!fileObj) {
-          if (onTriggerToast) onTriggerToast('Please select a file to upload.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        const fileName = fileObj.name;
-        const targetMaterialId = selectedMaterialId || crypto.randomUUID();
-        const { itemId, storagePath } = await studentService.uploadSubmissionFile(targetMaterialId, fileObj);
-
-        contentItems = [
-          {
-            id: itemId,
-            name: fileName,
-            type: 'File',
-            value: fileName,
-            path: storagePath,
-            description: `Student turn-in document for ${displayTitle}`,
-          },
-        ];
-      } else if (mode === 'url') {
-        const itemId = crypto.randomUUID();
-        const finalUrl = urlInput.trim() || 'https://docs.google.com/document/d/example';
-        contentItems = [
-          {
-            id: itemId,
-            name: displayTitle,
-            type: 'URL',
-            value: finalUrl,
-            path: finalUrl,
-            description: `Online link submission: ${finalUrl}`,
-          },
-        ];
-      } else {
-        const itemId = crypto.randomUUID();
-        contentItems = [
-          {
-            id: itemId,
-            name: `${displayTitle} (Text Excerpt)`,
-            type: 'Text',
-            value: textContent.trim(),
-            path: '',
-            description: textContent.trim() || 'Student provided written answers directly.',
-          },
-        ];
-      }
+      const contentItems: ContentItem[] = [
+        {
+          id: itemId,
+          name: fileName,
+          type: 'File',
+          value: fileName,
+          path: storagePath,
+          description: `Student turn-in document for ${displayTitle}`,
+        },
+      ];
 
       const created = await studentService.createStudentSubmission(classId, student.id, {
         materialId: selectedMaterialId || undefined,
@@ -112,6 +154,7 @@ export default function StudentSubmissionUploadModal({
         dueAt: selectedMaterial?.dueAt || new Date().toISOString(),
       });
 
+      setUploadProgress(100);
       const enriched: StudentSubmission = {
         ...created,
         materialName: displayTitle,
@@ -120,24 +163,53 @@ export default function StudentSubmissionUploadModal({
       onSubmissionCreated(student.id, enriched);
       if (onTriggerToast) onTriggerToast(`Logged submission for ${student.name}`);
       onClose();
-    } catch (err: any) {
-      if (onTriggerToast) onTriggerToast(`Failed to upload submission: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (onTriggerToast) onTriggerToast(`Failed to upload submission: ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} id="student-submission-upload-modal" size="md">
+    <Modal isOpen={isOpen} onClose={() => !isSubmitting && onClose()} id="student-submission-upload-modal" size="md">
       <ModalHeader
         title="Log Student Submission"
         subtitle={`Student: ${student.name} (${student.rollNumber || 'M10'})`}
         icon={<UploadCloud className="w-5 h-5 text-success" />}
-        onClose={onClose}
+        onClose={() => !isSubmitting && onClose()}
       />
 
       <form onSubmit={handleSubmit}>
-        <ModalBody className="p-6 space-y-4">
+        <ModalBody className="p-6 space-y-4 relative">
+          {isSubmitting && mode === 'file' && (
+            <div className="absolute inset-0 bg-surface/90 backdrop-blur-[2px] z-20 rounded-2xl flex flex-col items-center justify-center p-6 text-center gap-3 animate-fade-in">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-primary-text">
+                  Uploading {fileObj?.name || 'Document'}...
+                </p>
+                <p className="text-xs text-muted-text">
+                  {fileObj ? `${(fileObj.size / (1024 * 1024)).toFixed(2)} MB` : ''} • Transferring binary file to classroom storage vault
+                </p>
+              </div>
+              <div className="w-full max-w-xs space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[10px] font-mono text-primary font-semibold">
+                  <span className="animate-pulse">Uploading bytes...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-2 bg-elevated rounded-full overflow-hidden border border-border-color/60">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-[10px] font-mono text-muted-text pt-1">
+                  Please wait and do not close this window until completion.
+                </p>
+              </div>
+            </div>
+          )}
           <FormField label="Select Class Assignment / Material">
             <select
               value={selectedMaterialId}

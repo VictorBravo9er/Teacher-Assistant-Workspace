@@ -34,8 +34,9 @@ flowchart TD
 3. **JSONB Content Architecture**:
    - `materials.content` and `student_submissions.content` use structured JSONB arrays supporting mixed media types (`File`, `URL`, `Text`) with UUID identifiers for file path resolution.
    - The `validate_content_array` check function requires `id` and valid `type` across all entries, and mandates a non-empty `path` strictly for `File` and `URL` types while allowing `Text` items to omit storage paths.
-4. **Class-Scoped Student Portfolio & Accommodations**:
-   - Student contact information, parent communication details, roll numbers, and extensible teacher accommodations are stored directly on `public.class_students` (`phone`, `address`, `parent_name`, `parent_contact`, `parent_notes`, `custom_fields`, `roll_number`).
+4. **Student Identity Contact vs. Class-Scoped Portfolio & Accommodations**:
+   - Identity-level student contact and guardian details (`phone`, `address`, `parent_name`, `parent_contact`) are stored on `public.students` (editable by both the student and enrolled class teachers via RLS).
+   - Class-scoped observations, roll numbers, and extensible teacher accommodations are stored on `public.class_students` (`parent_notes`, `custom_fields`, `roll_number`).
    - `custom_fields` stores teacher-defined key-value accommodations (e.g. IEP accommodations, medical notes) as structured JSONB (`[{"name": "...", "value": "..."}]`).
 5. **Automated Grade Aggregation Trigger**:
    - `trg_sync_student_scores` executes on `student_submissions` after INSERT, UPDATE (score), or DELETE to atomically recompute `current_score`, `current_grade`, and `performance_tier` in `public.class_students`.

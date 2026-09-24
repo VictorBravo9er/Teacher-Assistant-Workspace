@@ -49,6 +49,8 @@ import {
   Bell,
   Pin,
   Send,
+  Edit3,
+  Save,
 } from "lucide-react";
 import { Button, Badge, Modal, FormField, Input, Textarea } from '@/components/ui';
 
@@ -70,6 +72,9 @@ interface ClassDetailsProps {
   onTriggerToast: (text: string) => void;
   activeSubTab?: "profile" | "materials" | "prompts" | "announcements" | "calendar";
   onSubTabChange?: (tab: "profile" | "materials" | "prompts" | "announcements" | "calendar") => void;
+  onStartEdit?: () => void;
+  onSaveEdit?: () => void;
+  onCancelEdit?: () => void;
 }
 
 export default function ClassDetails({
@@ -83,6 +88,9 @@ export default function ClassDetails({
   onTriggerToast,
   activeSubTab: externalSubTab,
   onSubTabChange,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
 }: ClassDetailsProps) {
   const [internalSubTab, setInternalSubTab] = useState<
     "profile" | "materials" | "prompts" | "announcements" | "calendar"
@@ -148,45 +156,82 @@ export default function ClassDetails({
     loadAnnouncements();
   }, [loadAnnouncements]);
 
-  const handlePostAnnouncement = async (e: React.FormEvent) => {
+  const handlePostAnnouncement = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAnnTitle.trim() || !newAnnContent.trim()) return;
-    try {
-      setIsPostingAnn(true);
-      const created = await announcementService.createAnnouncement(classItem.id, {
-        title: newAnnTitle.trim(),
-        content: newAnnContent.trim(),
-        isPinned: newAnnPinned,
-      });
-      setAnnouncements((prev) => [created, ...prev]);
-      if (newAnnNotifyStudents) {
-        await notificationService.notifyAnnouncement(
-          created.id,
-          classItem.id,
-          newAnnNotifyParents
+    const title = newAnnTitle.trim();
+    const content = newAnnContent.trim();
+    if (!title || !content) return;
+
+    const isPinned = newAnnPinned;
+    const shouldNotifyStudents = newAnnNotifyStudents;
+    const shouldNotifyParents = newAnnNotifyParents;
+    const tempId = crypto.randomUUID();
+    const nowIso = new Date().toISOString();
+
+    const optimisticAnn: Announcement = {
+      id: tempId,
+      classId: classItem.id,
+      authorId: '',
+      title,
+      content,
+      isPinned,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      isPending: true,
+    };
+
+    // 1. Optimistically prepend announcement and clear form immediately (0ms)
+    setAnnouncements((prev) => [optimisticAnn, ...prev]);
+    setNewAnnTitle("");
+    setNewAnnContent("");
+    setNewAnnPinned(false);
+
+    // 2. Persist announcement and dispatch Resend notifications in background
+    announcementService
+      .createAnnouncement(classItem.id, {
+        title,
+        content,
+        isPinned,
+      })
+      .then(async (created) => {
+        setAnnouncements((prev) =>
+          prev.map((a) => (a.id === tempId ? { ...created, isPending: false } : a))
         );
-        onTriggerToast("Announcement posted. Notification emails queued.");
-      } else {
-        onTriggerToast("Announcement posted successfully.");
-      }
-      setNewAnnTitle("");
-      setNewAnnContent("");
-      setNewAnnPinned(false);
-    } catch (err: any) {
-      onTriggerToast(`Failed to post announcement: ${err.message}`);
-    } finally {
-      setIsPostingAnn(false);
-    }
+        if (shouldNotifyStudents) {
+          await notificationService.notifyAnnouncement(
+            created.id,
+            classItem.id,
+            shouldNotifyParents
+          );
+          onTriggerToast("Announcement posted. Notification emails queued.");
+        } else {
+          onTriggerToast("Announcement posted successfully.");
+        }
+      })
+      .catch((err: unknown) => {
+        setAnnouncements((prev) => prev.filter((a) => a.id !== tempId));
+        setNewAnnTitle(title);
+        setNewAnnContent(content);
+        setNewAnnPinned(isPinned);
+        const msg = err instanceof Error ? err.message : String(err);
+        onTriggerToast(`Failed to post announcement: ${msg}`);
+      });
   };
 
-  const handleDeleteAnnouncement = async (id: string) => {
-    try {
-      await announcementService.deleteAnnouncement(id);
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-      onTriggerToast("Announcement removed.");
-    } catch (err: any) {
-      onTriggerToast(`Failed to delete announcement: ${err.message}`);
-    }
+  const handleDeleteAnnouncement = (id: string) => {
+    const previousAnns = [...announcements];
+    setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+
+    announcementService
+      .deleteAnnouncement(id)
+      .then(() => {
+        onTriggerToast("Announcement removed.");
+      })
+      .catch((err: unknown) => {
+        setAnnouncements(previousAnns);
+        const msg = err instanceof Error ? err.message : String(err);
+        onTriggerToast(`Failed to delete announcement: ${msg}`);
+      });
   };
 
   const handleSaveRubric = (materialId: string, criteria: RubricCriterion[], maxScore: number) => {
@@ -365,6 +410,48 @@ export default function ClassDetails({
       <div className="flex-1 overflow-y-auto p-4">
         {/* Profile Tab */}
         <div className={activeSubTab === "profile" ? "space-y-4" : "hidden"}>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-primary-text font-display">
+              Class Profile & Methodology
+            </h4>
+            {(onStartEdit || onSaveEdit || onCancelEdit) && (
+              <div className="flex items-center gap-1.5">
+                {isEditMode ? (
+                  <>
+                    <button
+                      id="class-profile-save-button"
+                      data-element-id="top-nav-save-button"
+                      onClick={onSaveEdit}
+                      className="flex items-center justify-center w-7 h-7 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90 shadow-sm"
+                      title="Save Class Profile Changes"
+                    >
+                      <Save className="w-4 h-4" />
+                    </button>
+                    <button
+                      id="class-profile-cancel-button"
+                      data-element-id="top-nav-cancel-button"
+                      onClick={onCancelEdit}
+                      className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text shadow-sm"
+                      title="Cancel Class Profile Editing"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    id="class-profile-edit-button"
+                    data-element-id="top-nav-edit-button"
+                    onClick={onStartEdit}
+                    className="flex items-center justify-center w-7 h-7 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text shadow-sm"
+                    title="Edit Class Profile"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Lead Class Metrics Cards */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
@@ -586,17 +673,15 @@ export default function ClassDetails({
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Classroom Document Repo
               </h4>
-              {isEditMode && (
-                <Button
-                  id="materials-upload-file-button"
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => setShowFileForm(!showFileForm)}
-                  leftIcon={showFileForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                >
-                  {showFileForm ? "Cancel" : "Upload File"}
-                </Button>
-              )}
+              <Button
+                id="materials-upload-file-button"
+                variant="secondary"
+                size="xs"
+                onClick={() => setShowFileForm(!showFileForm)}
+                leftIcon={showFileForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              >
+                {showFileForm ? "Cancel" : "Upload File"}
+              </Button>
             </div>
 
             {/* Simulated file upload form */}
@@ -810,15 +895,13 @@ export default function ClassDetails({
                       >
                         <History className="w-3.5 h-3.5" />
                       </button>
-                      {isEditMode && (
-                        <button
-                          onClick={() => onDeleteMaterial(classItem.id, mat.id)}
-                          title="Remove Material from Class"
-                          className="p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded cursor-pointer transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => onDeleteMaterial(classItem.id, mat.id)}
+                        title="Remove Material from Class"
+                        className="p-1 hover:bg-red-500/10 text-muted-text hover:text-red-500 rounded cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -832,17 +915,15 @@ export default function ClassDetails({
               <h4 className="text-xs font-bold text-primary-text font-display">
                 Class Guidelines & Rubric Rules
               </h4>
-              {isEditMode && (
-                <Button
-                  id="instructions-new-guideline-button"
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => setShowPromptForm(!showPromptForm)}
-                  leftIcon={showPromptForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                >
-                  {showPromptForm ? "Cancel" : "New Guideline"}
-                </Button>
-              )}
+              <Button
+                id="instructions-new-guideline-button"
+                variant="secondary"
+                size="xs"
+                onClick={() => setShowPromptForm(!showPromptForm)}
+                leftIcon={showPromptForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              >
+                {showPromptForm ? "Cancel" : "New Guideline"}
+              </Button>
             </div>
 
             {/* Prompt design form */}
@@ -930,17 +1011,15 @@ export default function ClassDetails({
                       >
                         {formatEnumLabel(inst.type)}
                       </span>
-                      {isEditMode && (
-                        <button
-                          onClick={() =>
-                            onDeleteInstruction(classItem.id, inst.id)
-                          }
-                          className="text-muted-text hover:text-red-500 p-1 rounded hover:bg-background transition-colors cursor-pointer"
-                          title="Delete Guideline"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() =>
+                          onDeleteInstruction(classItem.id, inst.id)
+                        }
+                        className="text-muted-text hover:text-red-500 p-1 rounded hover:bg-background transition-colors cursor-pointer"
+                        title="Delete Guideline"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <h5 className="text-xs font-bold text-primary-text">
                       {inst.title}
@@ -1056,7 +1135,9 @@ export default function ClassDetails({
                 <div
                   key={ann.id}
                   className={`bg-surface border rounded-xl p-4 space-y-2 shadow-sm transition-all ${
-                    ann.isPinned
+                    ann.isPending
+                      ? "border-primary/40 bg-primary/5 opacity-90"
+                      : ann.isPinned
                       ? "border-warning/40 bg-warning/5"
                       : "border-border-color hover:border-primary/30"
                   }`}
@@ -1069,6 +1150,11 @@ export default function ClassDetails({
                           Pinned
                         </Badge>
                       )}
+                      {ann.isPending && (
+                        <span className="text-[10px] font-mono font-semibold text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-full animate-pulse">
+                          Publishing...
+                        </span>
+                      )}
                       <h4 className="text-xs font-bold text-primary-text font-display">
                         {ann.title}
                       </h4>
@@ -1080,8 +1166,13 @@ export default function ClassDetails({
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleDeleteAnnouncement(ann.id)}
-                        className="text-muted-text hover:text-danger p-1 rounded hover:bg-elevated transition-colors"
+                        disabled={ann.isPending}
+                        onClick={() => !ann.isPending && handleDeleteAnnouncement(ann.id)}
+                        className={`p-1 rounded transition-colors ${
+                          ann.isPending
+                            ? "text-muted-text/40 cursor-not-allowed"
+                            : "text-muted-text hover:text-danger hover:bg-elevated"
+                        }`}
                         title="Delete Announcement"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

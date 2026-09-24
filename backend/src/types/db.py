@@ -60,21 +60,6 @@ RealtimeEqualityOp: TypeAlias = Literal["eq", "neq", "lt", "lte", "gt", "gte", "
 
 StorageBuckettype: TypeAlias = Literal["STANDARD", "ANALYTICS", "VECTOR"]
 
-class PublicSchemaMigrations(BaseModel):
-    applied_at: datetime.datetime = Field(alias="applied_at")
-    name: str = Field(alias="name")
-    version: str = Field(alias="version")
-
-class PublicSchemaMigrationsInsert(TypedDict):
-    applied_at: NotRequired[Annotated[datetime.datetime, Field(alias="applied_at")]]
-    name: Annotated[str, Field(alias="name")]
-    version: Annotated[str, Field(alias="version")]
-
-class PublicSchemaMigrationsUpdate(TypedDict):
-    applied_at: NotRequired[Annotated[datetime.datetime, Field(alias="applied_at")]]
-    name: NotRequired[Annotated[str, Field(alias="name")]]
-    version: NotRequired[Annotated[str, Field(alias="version")]]
-
 class PublicAnnouncements(BaseModel):
     author_id: uuid.UUID = Field(alias="author_id")
     class_id: uuid.UUID = Field(alias="class_id")
@@ -220,7 +205,6 @@ class PublicClassMaterialsUpdate(TypedDict):
     updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicClassStudents(BaseModel):
-    address: Optional[str] = Field(alias="address")
     behavioral_notes: Optional[str] = Field(alias="behavioral_notes")
     class_id: uuid.UUID = Field(alias="class_id")
     current_grade: Optional[str] = Field(alias="current_grade")
@@ -228,11 +212,8 @@ class PublicClassStudents(BaseModel):
     custom_fields: Optional[Json[Any]] = Field(alias="custom_fields")
     general_feedback: Optional[str] = Field(alias="general_feedback")
     learning_style: Optional[str] = Field(alias="learning_style")
-    parent_contact: Optional[str] = Field(alias="parent_contact")
-    parent_name: Optional[str] = Field(alias="parent_name")
     parent_notes: Optional[str] = Field(alias="parent_notes")
     performance_tier: Optional[str] = Field(alias="performance_tier")
-    phone: Optional[str] = Field(alias="phone")
     roll_number: Optional[str] = Field(alias="roll_number")
     strengths: Optional[List[str]] = Field(alias="strengths")
     student_id: uuid.UUID = Field(alias="student_id")
@@ -240,7 +221,6 @@ class PublicClassStudents(BaseModel):
     weaknesses: Optional[List[str]] = Field(alias="weaknesses")
 
 class PublicClassStudentsInsert(TypedDict):
-    address: NotRequired[Annotated[Optional[str], Field(alias="address")]]
     behavioral_notes: NotRequired[Annotated[Optional[str], Field(alias="behavioral_notes")]]
     class_id: Annotated[uuid.UUID, Field(alias="class_id")]
     current_grade: NotRequired[Annotated[Optional[str], Field(alias="current_grade")]]
@@ -248,11 +228,8 @@ class PublicClassStudentsInsert(TypedDict):
     custom_fields: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_fields")]]
     general_feedback: NotRequired[Annotated[Optional[str], Field(alias="general_feedback")]]
     learning_style: NotRequired[Annotated[Optional[str], Field(alias="learning_style")]]
-    parent_contact: NotRequired[Annotated[Optional[str], Field(alias="parent_contact")]]
-    parent_name: NotRequired[Annotated[Optional[str], Field(alias="parent_name")]]
     parent_notes: NotRequired[Annotated[Optional[str], Field(alias="parent_notes")]]
     performance_tier: NotRequired[Annotated[Optional[str], Field(alias="performance_tier")]]
-    phone: NotRequired[Annotated[Optional[str], Field(alias="phone")]]
     roll_number: NotRequired[Annotated[Optional[str], Field(alias="roll_number")]]
     strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
     student_id: Annotated[uuid.UUID, Field(alias="student_id")]
@@ -260,7 +237,6 @@ class PublicClassStudentsInsert(TypedDict):
     weaknesses: NotRequired[Annotated[Optional[List[str]], Field(alias="weaknesses")]]
 
 class PublicClassStudentsUpdate(TypedDict):
-    address: NotRequired[Annotated[Optional[str], Field(alias="address")]]
     behavioral_notes: NotRequired[Annotated[Optional[str], Field(alias="behavioral_notes")]]
     class_id: NotRequired[Annotated[uuid.UUID, Field(alias="class_id")]]
     current_grade: NotRequired[Annotated[Optional[str], Field(alias="current_grade")]]
@@ -268,11 +244,8 @@ class PublicClassStudentsUpdate(TypedDict):
     custom_fields: NotRequired[Annotated[Optional[Json[Any]], Field(alias="custom_fields")]]
     general_feedback: NotRequired[Annotated[Optional[str], Field(alias="general_feedback")]]
     learning_style: NotRequired[Annotated[Optional[str], Field(alias="learning_style")]]
-    parent_contact: NotRequired[Annotated[Optional[str], Field(alias="parent_contact")]]
-    parent_name: NotRequired[Annotated[Optional[str], Field(alias="parent_name")]]
     parent_notes: NotRequired[Annotated[Optional[str], Field(alias="parent_notes")]]
     performance_tier: NotRequired[Annotated[Optional[str], Field(alias="performance_tier")]]
-    phone: NotRequired[Annotated[Optional[str], Field(alias="phone")]]
     roll_number: NotRequired[Annotated[Optional[str], Field(alias="roll_number")]]
     strengths: NotRequired[Annotated[Optional[List[str]], Field(alias="strengths")]]
     student_id: NotRequired[Annotated[uuid.UUID, Field(alias="student_id")]]
@@ -547,30 +520,42 @@ class PublicStudentSubmissionsUpdate(TypedDict):
     updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicStudents(BaseModel):
+    address: Optional[str] = Field(alias="address")
     avatar_url: Optional[str] = Field(alias="avatar_url")
     created_at: datetime.datetime = Field(alias="created_at")
     email: Optional[str] = Field(alias="email")
     id: uuid.UUID = Field(alias="id")
     is_archived: Optional[bool] = Field(alias="is_archived")
     name: str = Field(alias="name")
+    parent_contact: Optional[str] = Field(alias="parent_contact")
+    parent_name: Optional[str] = Field(alias="parent_name")
+    phone: Optional[str] = Field(alias="phone")
     updated_at: datetime.datetime = Field(alias="updated_at")
 
 class PublicStudentsInsert(TypedDict):
+    address: NotRequired[Annotated[Optional[str], Field(alias="address")]]
     avatar_url: NotRequired[Annotated[Optional[str], Field(alias="avatar_url")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     email: NotRequired[Annotated[Optional[str], Field(alias="email")]]
     id: Annotated[uuid.UUID, Field(alias="id")]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
     name: Annotated[str, Field(alias="name")]
+    parent_contact: NotRequired[Annotated[Optional[str], Field(alias="parent_contact")]]
+    parent_name: NotRequired[Annotated[Optional[str], Field(alias="parent_name")]]
+    phone: NotRequired[Annotated[Optional[str], Field(alias="phone")]]
     updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicStudentsUpdate(TypedDict):
+    address: NotRequired[Annotated[Optional[str], Field(alias="address")]]
     avatar_url: NotRequired[Annotated[Optional[str], Field(alias="avatar_url")]]
     created_at: NotRequired[Annotated[datetime.datetime, Field(alias="created_at")]]
     email: NotRequired[Annotated[Optional[str], Field(alias="email")]]
     id: NotRequired[Annotated[uuid.UUID, Field(alias="id")]]
     is_archived: NotRequired[Annotated[Optional[bool], Field(alias="is_archived")]]
     name: NotRequired[Annotated[str, Field(alias="name")]]
+    parent_contact: NotRequired[Annotated[Optional[str], Field(alias="parent_contact")]]
+    parent_name: NotRequired[Annotated[Optional[str], Field(alias="parent_name")]]
+    phone: NotRequired[Annotated[Optional[str], Field(alias="phone")]]
     updated_at: NotRequired[Annotated[datetime.datetime, Field(alias="updated_at")]]
 
 class PublicTemplateInstructions(BaseModel):

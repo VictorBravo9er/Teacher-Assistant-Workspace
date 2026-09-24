@@ -17,31 +17,34 @@ sequenceDiagram
     participant Storage as Supabase Storage (student-submissions)
     participant DB as PostgreSQL (public)
 
-    Student->>UI: Selects file (PDF/Doc) or writes text for an assigned material
+    Student->>UI: Selects file (PDF/Doc) or writes text/URL for an assigned material
     Student->>UI: Clicks "Turn In Assignment"
-    UI->>Svc: submitAssignment(classId, studentId, materialId, file, textContent)
-    
-    opt When physical file is attached
+    alt Text or URL Response (No Binary File)
+        UI-->>Student: Dismisses modal in 0ms & merges optimistic "Submitted" state in StudentApp.tsx
+        UI->>Svc: Background submitAssignment(...)
+        Svc->>DB: UPSERT public.student_submissions (status='Submitted')
+    else Binary File Attached (file !== null)
+        UI->>UI: Locks modal dismissal (!isSubmitting) & renders animated progress bar (15% -> 92% -> 100%) with file size
+        UI->>Svc: submitAssignment(classId, studentId, materialId, file, textContent)
         Svc->>Storage: upload("/{material_id}/{content_item_id}", fileBlob)
         Storage-->>Svc: Upload confirmed (storagePath saved)
+        Svc->>DB: UPSERT public.student_submissions (status='Submitted')
+        DB-->>Svc: Submission confirmed
+        Svc-->>UI: Resolves submission record
+        UI-->>Student: Merges newSub directly into StudentApp.tsx submissions state (no 4-query reload) & closes modal
     end
-
-    Svc->>DB: INSERT INTO public.student_submissions (class_id, student_id, material_id, status='Submitted', content JSONB, submitted_at=now())
-    DB-->>Svc: Submission confirmed
-    Svc-->>UI: Resolves submission record
-    UI-->>Student: Displays "Submitted" badge and timestamp
 ```
 
 ### Step-by-Step Execution Details:
 
-1. **User Initiation**:
-   - In [`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx), the student selects an assigned material.
-   - Attaches files or enters direct markdown/plaintext solutions.
-2. **Storage Blob Persist**:
-   - The file is uploaded to the private `student-submissions` bucket under `/{material_id}/{content_item_id}`.
+1. **Hybrid User Initiation (`0ms` Optimistic vs. Blocking Progress Bar)**:
+   - In [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx) or [`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx), the student or teacher submits work for an assigned material.
+   - **Text / URL Submissions (`file === null`)**: The modal closes in `0ms`, immediately emits a synthetic `StudentSubmission` to update the assignment badge to `"Submitted"`, and persists the submission in the background.
+   - **Binary File Uploads (`file !== null`)**: Because browser tab closure aborts active byte streams, the modal locks dismissal (`!isSubmitting`) and renders an in-modal Blocking Progress Bar Overlay (`15% → 92% → 100%`) showing the formatted file size (`MB`/`KB`) and a wait warning until the upload completes.
+2. **Instant State Reflection in `StudentApp.tsx`**:
+   - Instead of re-running the 4-query `loadClassData()` waterfall, `StudentApp.tsx` immediately merges `newSub` into local `submissions` state upon `onSubmitted(newSub)`.
 3. **Database State Transition**:
-   - The submission is recorded in `public.student_submissions` with `status = 'Submitted'`.
-   - The database trigger `trg_sync_student_scores` executes, ensuring the student's running gradebook state acknowledges the turn-in.
+   - The submission is recorded in `public.student_submissions` with `status = 'Submitted'`, triggering `trg_sync_student_scores`.
 
 ---
 

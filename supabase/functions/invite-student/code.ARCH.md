@@ -22,7 +22,8 @@ sequenceDiagram
     else Owner Verified
         EdgeFunc->>DB: Upsert student record by email
         EdgeFunc->>DB: Insert class_students link
-        EdgeFunc-->>Teacher: 200 OK { success: true, student_id, enrollment_id }
+        EdgeFunc->>EdgeFunc: Dispatch invite via Supabase Auth SMTP (inviteUserByEmail / auth.resend)
+        EdgeFunc-->>Teacher: 200 OK { success: true, student_id }
     end
 ```
 
@@ -34,3 +35,5 @@ sequenceDiagram
    If a student with the provided email already exists globally under the teacher's profile, the existing record is reused and linked to the new class via `class_students`.
 2. **Owner-Only Enforcement**:
    Enforces strict teacher-class ownership validation before any record creation or enrollment mutation occurs.
+3. **Supabase Auth SMTP & Custom Email Template**:
+   Student invitations are dispatched through Supabase Auth's built-in SMTP (`adminSupabase.auth.admin.inviteUserByEmail` for new invites and `adminSupabase.auth.resend` when updating an unconfirmed student's email), injecting `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` into `user_metadata` (`data`) for rendering in the Supabase Auth email template.

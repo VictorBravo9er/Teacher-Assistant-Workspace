@@ -27,3 +27,7 @@ DROP SCHEMA IF EXISTS ai CASCADE;
 -- 8. Recreate a fresh ai schema
 CREATE SCHEMA ai;
 
+-- 9. Reset Supabase CLI migration tracking history on full reset
+DROP SCHEMA IF EXISTS supabase_migrations CASCADE;
+
+

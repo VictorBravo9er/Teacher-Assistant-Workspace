@@ -42,9 +42,6 @@ This document organizes and lists all important element `id` attributes assigned
 | `toast-dismiss-button` | Close/dismiss button on toast alert |
 | `top-nav-controls` | Right-side container for top navigation controls |
 | `top-nav-preset-template-button` | Button to initialize a new class from template view |
-| `top-nav-edit-button` | Button to enter Edit Mode for current class/template |
-| `top-nav-save-button` | Green button to save changes and exit Edit Mode |
-| `top-nav-cancel-button` | Button to cancel pending edits and restore previous layout |
 | `top-nav-view-mode-group` | 3-way view mode toggle button group |
 | `view-mode-chat-only-button` | Toggle layout to Chat Only view mode |
 | `view-mode-split-button` | Toggle layout to Split View mode |
@@ -61,11 +58,14 @@ This document organizes and lists all important element `id` attributes assigned
 | `class-details-tab-profile` | Tab trigger for "Class Profile" |
 | `class-details-tab-materials` | Tab trigger for "Materials Repository" |
 | `class-details-tab-instructions` | Tab trigger for "AI Instructions & Guidelines" |
+| `class-profile-edit-button` | Button to enter Edit Mode for current class/template profile (inside Profile tab header) |
+| `class-profile-save-button` | Green button to save changes and exit Profile Edit Mode (inside Profile tab header) |
+| `class-profile-cancel-button` | Button to cancel pending profile edits and restore previous values (inside Profile tab header) |
 | `class-profile-teaching-style-input` | Input field for instructor teaching style |
 | `class-profile-assessment-preferences-input` | Textarea for assessment preferences |
 | `class-profile-special-notes-input` | Textarea for class reminders and notes |
-| `materials-upload-file-button` | Button to open file upload form (Edit Mode only) |
-| `instructions-new-guideline-button` | Button to open prompt template form (Edit Mode only) |
+| `materials-upload-file-button` | Always-visible button to open file upload / material creation form |
+| `instructions-new-guideline-button` | Always-visible button to open prompt / class guideline creation form |
 
 ---
 
@@ -96,6 +96,21 @@ This document organizes and lists all important element `id` attributes assigned
 | `student-detail-modal-overlay` | Modal backdrop for student portfolio details |
 | `student-detail-modal` | Card modal for inspecting/editing student details |
 | `student-detail-close-button` | Button to close student portfolio modal |
+| `student-detail-status-select` | Immediate dropdown to update student roster status indicator (`active`, `inactive`, `needs-attention`) |
+| `student-detail-edit-dossier-button` | Icon button (`Edit3`) to unlock Edit Mode for Contact Dossier & Family/Guardian fields |
+| `student-detail-save-dossier-button` | Green icon button (`Save`) to persist buffered Contact Dossier & Family/Guardian field edits |
+| `student-detail-cancel-dossier-button` | Icon button (`X`) to discard buffered dossier edits and exit dossier Edit Mode |
+| `student-detail-email-input` | Read-only student login email field in Contact Dossier |
+| `student-detail-phone-input` | Buffered input field for student phone number (editable in Dossier Edit Mode) |
+| `student-detail-address-input` | Buffered textarea for student residential address (editable in Dossier Edit Mode) |
+| `student-detail-parent-name-input` | Buffered input field for parent/guardian names (editable in Dossier Edit Mode) |
+| `student-detail-parent-contact-input` | Buffered input field for urgent guardian contact preferences (editable in Dossier Edit Mode) |
+| `student-detail-parent-notes-input` | Buffered textarea for parent portal feedback notes (editable in Dossier Edit Mode) |
+| `report-card-modal` | Root modal card for student academic progress report card |
+| `report-card-student-select` | Dropdown selector to switch active student within Report Card modal |
+| `report-card-print-button` | Button triggering isolated browser print and PDF export dialog |
+| `report-card-printable` | Document container target for @media print styles |
+| `report-card-save-note-button` | Button to save personalized parent briefing notes to database |
 
 ---
 

@@ -91,8 +91,19 @@ export default function ReportCardModal({
   };
 
   const handlePrint = () => {
+    if (!student) return;
+    const originalTitle = document.title;
+    const studentName = (student.name || 'Student').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const courseName = (classItem.subject || classItem.name || 'Course').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    document.title = `Report_Card_${studentName}_${courseName}`;
+
     window.print();
-    if (onTriggerToast) onTriggerToast('Opened system print dialog.');
+
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+
+    if (onTriggerToast) onTriggerToast('Opened system print dialog for PDF export.');
   };
 
   if (!student) {
@@ -126,6 +137,7 @@ export default function ReportCardModal({
           <div className="flex items-center gap-1 bg-surface border border-border-color rounded-xl px-2 py-1 shadow-sm">
             <User className="w-3.5 h-3.5 text-muted-text" />
             <select
+              id="report-card-student-select"
               value={selectedStudentId}
               onChange={(e) => handleStudentSwitch(e.target.value)}
               className="bg-transparent text-xs text-primary-text font-semibold outline-none cursor-pointer"
@@ -139,6 +151,7 @@ export default function ReportCardModal({
           </div>
 
           <Button
+            id="report-card-print-button"
             size="xs"
             onClick={handlePrint}
             leftIcon={<Printer className="w-3.5 h-3.5" />}
@@ -149,7 +162,10 @@ export default function ReportCardModal({
       </ModalHeader>
 
       {/* Printable Report Document Body */}
-      <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-white text-slate-900 print:p-6 print:overflow-visible">
+      <div
+        id="report-card-printable"
+        className="flex-1 overflow-y-auto p-8 space-y-6 bg-white text-slate-900 print:p-0 print:overflow-visible print:space-y-5"
+      >
         {/* Institution & Class Header */}
         <div className="border-b-2 border-slate-900 pb-5 flex items-start justify-between">
           <div>
@@ -184,14 +200,14 @@ export default function ReportCardModal({
         </div>
 
         {/* Student Profile Card Banner */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 print-avoid-break">
           <div>
             <span className="text-[10px] uppercase font-mono font-bold text-slate-400 block">
               Student Name
             </span>
             <span className="text-sm font-bold text-slate-900 block mt-0.5">{student.name}</span>
             <span className="text-xs text-slate-500 font-mono">
-              ID: {student.rollNumber || 'M10-001'}
+              ID: {student.rollNumber || (student.id ? student.id.slice(0, 8).toUpperCase() : 'M10-001')}
             </span>
           </div>
 
@@ -212,7 +228,7 @@ export default function ReportCardModal({
               Attendance Rate
             </span>
             <span className="text-xl font-black text-slate-900 block mt-0.5 font-mono">
-              {student.attendance || 100}%
+              {student.attendance ?? 100}%
             </span>
             <span className="text-[10px] text-slate-500 font-mono">Regular Attendance</span>
           </div>
@@ -233,7 +249,7 @@ export default function ReportCardModal({
         </div>
 
         {/* Learning Profile: Strengths & Growth Areas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print-avoid-break">
           <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
             <h4 className="text-xs font-bold uppercase font-mono text-emerald-800 flex items-center gap-1.5 mb-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -278,7 +294,7 @@ export default function ReportCardModal({
         </div>
 
         {/* Assessment Breakdown Table */}
-        <div className="space-y-2">
+        <div className="space-y-2 print-avoid-break">
           <h4 className="text-xs font-bold uppercase font-mono text-slate-500">
             Individual Assessment & Rubric Score Breakdown
           </h4>
@@ -301,10 +317,11 @@ export default function ReportCardModal({
                 </tr>
               ) : (
                 evaluatedSubmissions.map((sub, idx) => {
-                  const maxScore = sub.maxScore || sub.max_score || 100;
+                  const material = (classItem.materials || []).find((m) => m.id === sub.materialId);
+                  const maxScore = sub.maxScore || sub.max_score || material?.maxScore || 100;
                   const pct = Math.round(((sub.score || 0) / maxScore) * 100);
                   const title =
-                    sub.materialName || sub.content?.[0]?.value || `Assessment Unit ${idx + 1}`;
+                    sub.materialName || material?.name || sub.content?.[0]?.value || `Assessment Unit ${idx + 1}`;
 
                   return (
                     <tr key={sub.id || idx}>
@@ -325,13 +342,14 @@ export default function ReportCardModal({
         </div>
 
         {/* Parent Briefing Agenda & Teacher Guidance */}
-        <div className="border border-blue-200 bg-blue-50/60 rounded-2xl p-5 space-y-2">
+        <div className="border border-blue-200 bg-blue-50/60 rounded-2xl p-5 space-y-2 print-avoid-break">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase font-mono text-blue-900 flex items-center gap-2">
               <HeartHandshake className="w-4 h-4 text-blue-700" />
               Personalized Parent Briefing & Action Plan
             </h4>
             <Button
+              id="report-card-save-note-button"
               size="xs"
               variant="secondary"
               onClick={handleSaveParentNote}
@@ -347,12 +365,15 @@ export default function ReportCardModal({
             value={customParentNote}
             onChange={(e) => setCustomParentNote(e.target.value)}
             rows={3}
-            className="w-full bg-white border border-blue-200 rounded-xl p-3 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-500 transition-all resize-none shadow-sm print:border-none print:p-0 print:shadow-none"
+            className="w-full bg-white border border-blue-200 rounded-xl p-3 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-500 transition-all resize-none shadow-sm print:hidden"
           />
+          <div className="hidden print:block text-xs text-slate-800 leading-relaxed whitespace-pre-wrap pt-1">
+            {customParentNote}
+          </div>
         </div>
 
         {/* Signature Signoff Lines */}
-        <div className="pt-8 border-t border-slate-200 grid grid-cols-2 gap-12 text-xs text-slate-600">
+        <div className="pt-8 border-t border-slate-200 grid grid-cols-2 gap-12 text-xs text-slate-600 print-avoid-break">
           <div>
             <div className="border-b border-slate-400 w-48 mb-1"></div>
             <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">

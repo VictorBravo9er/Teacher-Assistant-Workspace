@@ -26,4 +26,7 @@ flowchart TD
 
 - **Storage Paths**: Files are uploaded to `student-submissions/{material_id}/{content_item_id}`.
 - **Text Shape**: Clean `type: 'Text'`, `path: ''`, text in `value` field. No `text://` synthetic prefixes.
+- **Hybrid UX Strategy (`StudentTurnInModal.tsx` & `StudentApp.tsx`)**:
+  - **Written Text Responses (`file === null`)**: Closes the modal in `0ms`, immediately emits a synthetic `StudentSubmission` (`status: 'Submitted'`) merged into `StudentApp.tsx` local state (eliminating the 4-query `loadClassData()` reload), and persists in the background.
+  - **Binary File Attachments (`file !== null`)**: Locks modal dismissal (`!isSubmitting`) and renders an in-modal Blocking Progress Bar Overlay (`15% → 92% → 100%`) with formatted file size (`MB`/`KB`) and a wait warning until Supabase Storage completes the upload.
 - **Row-Level Security**: Inserts and updates restricted to the authenticated student where `student_id = auth.uid()`.

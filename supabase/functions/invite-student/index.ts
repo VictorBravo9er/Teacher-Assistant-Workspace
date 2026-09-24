@@ -3,6 +3,50 @@ import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { adminSupabase } from "../_shared/supabaseAdmin.ts";
 import { getAuthClient } from "../_shared/supabaseClient.ts";
 
+const DEFAULT_APP_URL = "https://teach.glipse.tech";
+
+/**
+ * Checks if a given URL string points to a local/loopback environment.
+ */
+function isLocalhostUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    return (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "0.0.0.0" ||
+      parsed.hostname.endsWith(".local")
+    );
+  } catch {
+    return (
+      urlStr.includes("localhost") ||
+      urlStr.includes("127.0.0.1") ||
+      urlStr.includes("0.0.0.0")
+    );
+  }
+}
+
+/**
+ * Resolves the public application URL for student invitation redirects.
+ * Ensures that invite links sent to external recipients never point to localhost/127.0.0.1.
+ */
+function resolveAppUrl(req: Request): string {
+  // 1. Check explicit environment configuration
+  const envAppUrl = Deno.env.get("APP_URL") || Deno.env.get("SITE_URL");
+  if (envAppUrl && !isLocalhostUrl(envAppUrl)) {
+    return envAppUrl.replace(/\/+$/, "");
+  }
+
+  // 2. Check incoming request Origin header if it's a valid public domain
+  const origin = req.headers.get("origin");
+  if (origin && !isLocalhostUrl(origin)) {
+    return origin.replace(/\/+$/, "");
+  }
+
+  // 3. Fallback to production Teach&Learn domain
+  return DEFAULT_APP_URL;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -19,9 +63,6 @@ Deno.serve(async (req) => {
     // Client for checking caller auth via RLS (Request-scoped)
     const authClient = getAuthClient(authHeader);
 
-    const url = new URL(req.url);
-    const path = url.pathname;
-
     // ----------------------------------------------------
     // PATCH /invite-student
     // Update Email of Unconfirmed Student
@@ -30,13 +71,16 @@ Deno.serve(async (req) => {
       const { student_id, new_email, class_id } = await req.json();
 
       if (!student_id || !new_email || !class_id) {
-        return jsonResponse({ error: "Missing required fields (student_id, new_email, class_id)" }, 400);
+        return jsonResponse(
+          { error: "Missing required fields (student_id, new_email, class_id)" },
+          400,
+        );
       }
 
       // Check if authenticated caller owns the class using their own JWT via RLS
       const { data: classData, error: classError } = await authClient
         .from("classes")
-        .select("id")
+        .select("id, name, teacher_name, user_id")
         .eq("id", class_id)
         .maybeSingle();
 
@@ -44,29 +88,62 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Forbidden: You do not own this class." }, 403);
       }
 
-      // 1) Update email (Admin API) — triggers handle_user_update in Postgres.
+      const { data: teacherAuthData } = await adminSupabase.auth.admin.getUserById(
+        classData.user_id,
+      );
+      const teacherEmail = teacherAuthData?.user?.email || "";
+
+      // 1) Update email & metadata (Admin API) — triggers handle_user_update in Postgres.
       const { error: updateError } = await adminSupabase.auth.admin.updateUserById(
         student_id,
-        { email: new_email },
+        {
+          email: new_email,
+          user_metadata: {
+            role: "student",
+            class_name: classData.name || "your class",
+            teacher_name: classData.teacher_name || "",
+            teacher_email: teacherEmail,
+          },
+        },
       );
       if (updateError) throw updateError;
 
-      // 2) Resend confirmation/invite email to the new address.
+      // 2) Dispatch confirmation/invite email to the new address via Supabase SMTP.
+      const appUrl = resolveAppUrl(req);
       const { error: resendError } = await adminSupabase.auth.resend({
         type: "invite",
         email: new_email,
+        options: {
+          emailRedirectTo: appUrl,
+        },
       });
 
       if (resendError) {
         console.warn(
-          "Failed to resend invite, attempting signup confirmation resend instead",
+          "Failed to resend invite via auth.resend, attempting inviteUserByEmail / signup resend fallback:",
           resendError,
         );
-        const { error: signupResendError } = await adminSupabase.auth.resend({
-          type: "signup",
-          email: new_email,
-        });
-        if (signupResendError) throw signupResendError;
+        const { error: inviteFallbackError } =
+          await adminSupabase.auth.admin.inviteUserByEmail(new_email, {
+            data: {
+              role: "student",
+              class_name: classData.name || "your class",
+              teacher_name: classData.teacher_name || "",
+              teacher_email: teacherEmail,
+            },
+            redirectTo: appUrl,
+          });
+
+        if (inviteFallbackError) {
+          const { error: signupResendError } = await adminSupabase.auth.resend({
+            type: "signup",
+            email: new_email,
+            options: {
+              emailRedirectTo: appUrl,
+            },
+          });
+          if (signupResendError) throw signupResendError;
+        }
       }
 
       return jsonResponse({ success: true });
@@ -74,7 +151,7 @@ Deno.serve(async (req) => {
 
     // ----------------------------------------------------
     // POST /invite-student
-    // Add existing or invite new student
+    // Add existing or invite new student via Supabase SMTP
     // ----------------------------------------------------
     if (req.method === "POST") {
       const {
@@ -98,13 +175,18 @@ Deno.serve(async (req) => {
       // Check if authenticated caller owns the class using their own JWT via RLS
       const { data: classData, error: classError } = await authClient
         .from("classes")
-        .select("id")
+        .select("id, name, teacher_name, user_id")
         .eq("id", class_id)
         .maybeSingle();
 
       if (classError || !classData) {
         return jsonResponse({ error: "Forbidden: You do not own this class." }, 403);
       }
+
+      const { data: teacherAuthData } = await adminSupabase.auth.admin.getUserById(
+        classData.user_id,
+      );
+      const teacherEmail = teacherAuthData?.user?.email || "";
 
       // 1) Check if user already exists (students mirror table for speed)
       const { data: existingStudent, error: existingError } = await adminSupabase
@@ -115,18 +197,21 @@ Deno.serve(async (req) => {
 
       if (existingError) throw existingError;
 
-      const studentId = existingStudent?.id as string | undefined;
+      let finalStudentId = existingStudent?.id as string | undefined;
 
-      let finalStudentId = studentId;
-
-      // 2) If they do NOT exist, invite them
+      // 2) If they do NOT exist, invite them via Supabase Auth SMTP
       if (!finalStudentId) {
+        const appUrl = resolveAppUrl(req);
         const { data: inviteData, error: inviteError } =
           await adminSupabase.auth.admin.inviteUserByEmail(email, {
             data: {
               role: "student",
               full_name: name || "Student",
+              class_name: classData.name || "your class",
+              teacher_name: classData.teacher_name || "",
+              teacher_email: teacherEmail,
             },
+            redirectTo: appUrl,
           });
 
         if (inviteError) throw inviteError;
@@ -149,7 +234,10 @@ Deno.serve(async (req) => {
 
       if (rpcError) throw rpcError;
 
-      return jsonResponse({ success: true, student_id: finalStudentId });
+      return jsonResponse({
+        success: true,
+        student_id: finalStudentId,
+      });
     }
 
     return jsonResponse({ error: "Method not allowed" }, 405);
