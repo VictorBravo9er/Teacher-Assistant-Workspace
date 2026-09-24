@@ -100,6 +100,7 @@ export interface Material {
   rubricCriteria?: RubricCriterion[];
   customRubricCriteria?: RubricCriterion[];
   versionHistory?: MaterialVersionEntry[];
+  isPending?: boolean;
 }
 
 export interface Instruction {
@@ -109,6 +110,7 @@ export interface Instruction {
   content: string;
   whenToApply?: string;
   isArchived?: boolean;
+  isPending?: boolean;
 }
 
 export interface CustomField {
@@ -181,6 +183,7 @@ export interface Student {
   submissions?: StudentSubmission[];
   customFields?: CustomField[];
   isArchived?: boolean;
+  isPending?: boolean;
 }
 
 export interface VisualizationItem {
@@ -271,6 +274,7 @@ export interface Announcement {
   isPinned: boolean;
   createdAt: string;
   updatedAt: string;
+  isPending?: boolean;
 }
 
 export interface NotificationLog {

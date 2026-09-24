@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Material, StudentSubmission } from '@/types/main';
 import { studentPortalService } from '@/services/studentPortalService';
 import { notificationService } from '@/services/notificationService';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, File, X } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, File, X, Loader2 } from 'lucide-react';
 
 interface StudentTurnInModalProps {
   isOpen: boolean;
@@ -30,7 +30,22 @@ export function StudentTurnInModal({
   const [file, setFile] = useState<File | null>(null);
   const [textContent, setTextContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(15);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSubmitting || submissionMode !== 'file') {
+      setUploadProgress(15);
+      return;
+    }
+    const timer = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 92) return prev;
+        return Math.min(92, Math.round(prev + Math.max(2, (92 - prev) * 0.16)));
+      });
+    }, 350);
+    return () => clearInterval(timer);
+  }, [isSubmitting, submissionMode]);
 
   if (!material) return null;
 
@@ -70,6 +85,44 @@ export function StudentTurnInModal({
       return;
     }
 
+    // 1. Optimistic non-blocking flow for pure text responses
+    if (submissionMode === 'text') {
+      const trimmedText = textContent.trim();
+      const tempId = existingSubmission?.id || crypto.randomUUID();
+      const optimisticSub: StudentSubmission = {
+        id: tempId,
+        classId,
+        studentId,
+        materialId: material.id,
+        materialName: material.name,
+        status: 'Submitted',
+        submittedAt: new Date().toISOString(),
+        content: [
+          {
+            id: crypto.randomUUID(),
+            name: `${material.name} (Text Response)`,
+            type: 'Text',
+            value: trimmedText,
+            path: '',
+          },
+        ],
+      };
+
+      onSubmitted(optimisticSub);
+      onClose();
+      setTextContent('');
+
+      studentPortalService
+        .submitAssignment(classId, material.id, studentId, { text: trimmedText })
+        .then((saved) => {
+          notificationService.notifySubmission(saved.id, classId).catch(() => {});
+          onSubmitted(saved);
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // 2. Blocking progress bar flow for binary file uploads
     try {
       setIsSubmitting(true);
       const submission = await studentPortalService.submitAssignment(
@@ -77,19 +130,18 @@ export function StudentTurnInModal({
         material.id,
         studentId,
         {
-          file: submissionMode === 'file' ? file || undefined : undefined,
-          text: submissionMode === 'text' ? textContent.trim() : undefined,
+          file: file || undefined,
         }
       );
-      // Ensure notification is triggered to educator
+      setUploadProgress(100);
       notificationService.notifySubmission(submission.id, classId).catch(() => {});
       onSubmitted(submission);
       onClose();
-      // Reset state
       setFile(null);
       setTextContent('');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to submit assignment. Please try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit assignment. Please try again.';
+      setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -99,14 +151,42 @@ export function StudentTurnInModal({
   const charCount = textContent.length;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
+    <Modal isOpen={isOpen} onClose={() => !isSubmitting && onClose()} size="md">
       <ModalHeader
         title={`Turn In: ${material.name}`}
         subtitle={`Submit your work for ${material.category}${material.dueAt ? ` • Due: ${new Date(material.dueAt).toLocaleDateString()}` : ''}`}
-        onClose={onClose}
+        onClose={() => !isSubmitting && onClose()}
       />
 
-      <ModalBody className="space-y-4">
+      <ModalBody className="space-y-4 relative">
+        {isSubmitting && submissionMode === 'file' && (
+          <div className="absolute inset-0 bg-surface/90 backdrop-blur-[2px] z-20 rounded-2xl flex flex-col items-center justify-center p-6 text-center gap-3 animate-fade-in">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-primary-text">
+                Uploading {file?.name || 'Document'}...
+              </p>
+              <p className="text-xs text-muted-text">
+                {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : ''} • Transferring binary file to classroom storage vault
+              </p>
+            </div>
+            <div className="w-full max-w-xs space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-[10px] font-mono text-primary font-semibold">
+                <span className="animate-pulse">Uploading bytes...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full h-2 bg-elevated rounded-full overflow-hidden border border-border-color/60">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-[10px] font-mono text-muted-text pt-1">
+                Please wait and do not close this window until completion.
+              </p>
+            </div>
+          </div>
+        )}
         {existingSubmission && (
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-3 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />

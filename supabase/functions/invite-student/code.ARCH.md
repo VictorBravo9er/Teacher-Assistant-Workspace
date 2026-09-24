@@ -22,9 +22,8 @@ sequenceDiagram
     else Owner Verified
         EdgeFunc->>DB: Upsert student record by email
         EdgeFunc->>DB: Insert class_students link
-        EdgeFunc->>EdgeFunc: Generate invite link (generateLink / inviteUserByEmail)
-        EdgeFunc->>EdgeFunc: Dispatch invite email via Resend (from: signup@teach.glipse.tech, non-repliable)
-        EdgeFunc-->>Teacher: 200 OK { success: true, student_id, invite_url }
+        EdgeFunc->>EdgeFunc: Dispatch invite via Supabase Auth SMTP (inviteUserByEmail / auth.resend)
+        EdgeFunc-->>Teacher: 200 OK { success: true, student_id }
     end
 ```
 
@@ -36,8 +35,5 @@ sequenceDiagram
    If a student with the provided email already exists globally under the teacher's profile, the existing record is reused and linked to the new class via `class_students`.
 2. **Owner-Only Enforcement**:
    Enforces strict teacher-class ownership validation before any record creation or enrollment mutation occurs.
-3. **Sender & Non-Repliable Routing**:
-   Student invitations are dispatched from `signup@teach.glipse.tech` (override via `STUDENT_INVITE_FROM_EMAIL`). The email is explicitly configured as non-repliable:
-   - `reply_to` payload attribute: `no-reply@teach.glipse.tech` (override via `STUDENT_INVITE_REPLY_TO`).
-   - Standard non-response headers: `Reply-To: no-reply@teach.glipse.tech`, `Auto-Submitted: auto-generated`, `X-Auto-Response-Suppress: All`.
-   - Branded footer explicitly notifying the recipient that replies cannot be monitored.
+3. **Supabase Auth SMTP & Custom Email Template**:
+   Student invitations are dispatched through Supabase Auth's built-in SMTP (`adminSupabase.auth.admin.inviteUserByEmail` for new invites and `adminSupabase.auth.resend` when updating an unconfirmed student's email), injecting `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` into `user_metadata` (`data`) for rendering in the Supabase Auth email template.

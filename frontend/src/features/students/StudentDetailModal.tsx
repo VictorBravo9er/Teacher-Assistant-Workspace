@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Student,
   ClassModel,
@@ -22,6 +22,8 @@ import {
   Sliders,
   Award,
   UploadCloud,
+  Save,
+  Edit3,
 } from 'lucide-react';
 import { Button, Badge, Modal } from '@/components/ui';
 
@@ -62,6 +64,73 @@ export default function StudentDetailModal({
     value: '',
     show: false,
   });
+
+  // Scoped Edit/Save mode strictly for Contact Dossier & Family/Guardians
+  const [isEditingDossier, setIsEditingDossier] = useState(false);
+  const [dossierDraft, setDossierDraft] = useState({
+    phone: student.phone || '',
+    address: student.address || '',
+    parentName: student.parentName || '',
+    parentContact: student.parentContact || '',
+    parentNotes: student.parentNotes || '',
+  });
+
+  useEffect(() => {
+    setIsEditingDossier(false);
+    setDossierDraft({
+      phone: student.phone || '',
+      address: student.address || '',
+      parentName: student.parentName || '',
+      parentContact: student.parentContact || '',
+      parentNotes: student.parentNotes || '',
+    });
+  }, [
+    student.id,
+    student.phone,
+    student.address,
+    student.parentName,
+    student.parentContact,
+    student.parentNotes,
+  ]);
+
+  const handleStartEditDossier = () => {
+    setDossierDraft({
+      phone: student.phone || '',
+      address: student.address || '',
+      parentName: student.parentName || '',
+      parentContact: student.parentContact || '',
+      parentNotes: student.parentNotes || '',
+    });
+    setIsEditingDossier(true);
+  };
+
+  const handleCancelEditDossier = () => {
+    setDossierDraft({
+      phone: student.phone || '',
+      address: student.address || '',
+      parentName: student.parentName || '',
+      parentContact: student.parentContact || '',
+      parentNotes: student.parentNotes || '',
+    });
+    setIsEditingDossier(false);
+  };
+
+  const handleSaveDossier = () => {
+    const changedFields: Partial<Student> = {};
+    if (dossierDraft.phone !== (student.phone || '')) changedFields.phone = dossierDraft.phone;
+    if (dossierDraft.address !== (student.address || '')) changedFields.address = dossierDraft.address;
+    if (dossierDraft.parentName !== (student.parentName || '')) changedFields.parentName = dossierDraft.parentName;
+    if (dossierDraft.parentContact !== (student.parentContact || '')) changedFields.parentContact = dossierDraft.parentContact;
+    if (dossierDraft.parentNotes !== (student.parentNotes || '')) changedFields.parentNotes = dossierDraft.parentNotes;
+
+    if (Object.keys(changedFields).length > 0) {
+      onUpdateStudentDetails(student.id, changedFields);
+      if (onTriggerToast) {
+        onTriggerToast('Student contact & guardian dossier saved.');
+      }
+    }
+    setIsEditingDossier(false);
+  };
 
   // Grade operations
   const handleAddGrade = async (e: React.FormEvent) => {
@@ -226,6 +295,7 @@ export default function StudentDetailModal({
 
             <div className="flex items-center gap-2 mt-1.5">
               <select
+                id="student-detail-status-select"
                 value={student.statusIndicator || 'active'}
                 onChange={(e) =>
                   onUpdateStudentDetails(student.id, {
@@ -287,35 +357,87 @@ export default function StudentDetailModal({
           {/* Left: Contact Dossier & Custom Fields */}
           <div className="w-full md:w-80 border-r border-border-color p-6 overflow-y-auto space-y-6 shrink-0 bg-background/50">
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
-                Contact Dossier
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-bold font-mono text-muted-text uppercase tracking-widest leading-none">
+                  Contact Dossier
+                </h4>
+                <div className="flex items-center gap-1.5">
+                  {isEditingDossier ? (
+                    <>
+                      <button
+                        id="student-detail-save-dossier-button"
+                        type="button"
+                        onClick={handleSaveDossier}
+                        className="flex items-center justify-center w-6 h-6 bg-success text-white border border-success rounded-lg transition-colors cursor-pointer hover:bg-success/90"
+                        title="Save Contact & Guardian Dossier"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        id="student-detail-cancel-dossier-button"
+                        type="button"
+                        onClick={handleCancelEditDossier}
+                        className="flex items-center justify-center w-6 h-6 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
+                        title="Cancel Dossier Editing"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      id="student-detail-edit-dossier-button"
+                      type="button"
+                      onClick={handleStartEditDossier}
+                      className="flex items-center justify-center w-6 h-6 bg-elevated/50 hover:bg-elevated border border-border-color rounded-lg transition-colors cursor-pointer text-muted-text hover:text-primary-text"
+                      title="Edit Contact & Guardian Dossier"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
 
               <div className="space-y-3.5">
                 <div className="flex items-center gap-2.5 text-xs">
                   <Mail className="w-3.5 h-3.5 text-muted-text shrink-0" />
                   <input
+                    id="student-detail-email-input"
                     type="text"
                     value={student.email || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { email: e.target.value })}
-                    className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 truncate w-full"
+                    readOnly
+                    title="Student login email (managed via account identity)"
+                    className="bg-transparent text-muted-text cursor-not-allowed focus:outline-none truncate w-full"
                   />
                 </div>
                 <div className="flex items-center gap-2.5 text-xs">
                   <Phone className="w-3.5 h-3.5 text-muted-text shrink-0" />
                   <input
+                    id="student-detail-phone-input"
                     type="text"
-                    value={student.phone || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { phone: e.target.value })}
-                    className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full"
+                    placeholder="Add phone number..."
+                    value={dossierDraft.phone}
+                    readOnly={!isEditingDossier}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, phone: e.target.value }))}
+                    className={`w-full text-secondary-text focus:outline-none transition-all ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent cursor-default'
+                    }`}
                   />
                 </div>
                 <div className="flex items-start gap-2.5 text-xs">
                   <MapPin className="w-3.5 h-3.5 text-muted-text shrink-0 mt-0.5" />
                   <textarea
-                    value={student.address || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { address: e.target.value })}
-                    className="bg-transparent text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full h-11 resize-none"
+                    id="student-detail-address-input"
+                    placeholder="Add residential address..."
+                    value={dossierDraft.address}
+                    readOnly={!isEditingDossier}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, address: e.target.value }))}
+                    className={`w-full text-secondary-text h-11 resize-none focus:outline-none transition-all ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent cursor-default'
+                    }`}
                   />
                 </div>
               </div>
@@ -332,10 +454,17 @@ export default function StudentDetailModal({
                     PARENT GUARDIAN NAMES
                   </label>
                   <input
+                    id="student-detail-parent-name-input"
                     type="text"
-                    value={student.parentName || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { parentName: e.target.value })}
-                    className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
+                    placeholder="Guardian full name..."
+                    value={dossierDraft.parentName}
+                    readOnly={!isEditingDossier}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentName: e.target.value }))}
+                    className={`w-full text-xs text-secondary-text focus:outline-none transition-all mt-0.5 ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent pt-0.5 cursor-default'
+                    }`}
                   />
                 </div>
                 <div>
@@ -343,10 +472,17 @@ export default function StudentDetailModal({
                     URGENT CONTACT PREFERENCES
                   </label>
                   <input
+                    id="student-detail-parent-contact-input"
                     type="text"
-                    value={student.parentContact || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { parentContact: e.target.value })}
-                    className="bg-transparent text-xs text-secondary-text focus:outline-none focus:border-b focus:border-primary/50 w-full pt-1"
+                    placeholder="Guardian email or phone..."
+                    value={dossierDraft.parentContact}
+                    readOnly={!isEditingDossier}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentContact: e.target.value }))}
+                    className={`w-full text-xs text-secondary-text focus:outline-none transition-all mt-0.5 ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
+                        : 'bg-transparent pt-0.5 cursor-default'
+                    }`}
                   />
                 </div>
                 <div>
@@ -354,9 +490,16 @@ export default function StudentDetailModal({
                     PARENT PORTAL FEEDBACK NOTES
                   </label>
                   <textarea
-                    value={student.parentNotes || ''}
-                    onChange={(e) => onUpdateStudentDetails(student.id, { parentNotes: e.target.value })}
-                    className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none focus:border-primary/50 shadow-sm"
+                    id="student-detail-parent-notes-input"
+                    placeholder="Notes shared with guardian..."
+                    value={dossierDraft.parentNotes}
+                    readOnly={!isEditingDossier}
+                    onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentNotes: e.target.value }))}
+                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none shadow-sm transition-all mt-0.5 ${
+                      isEditingDossier
+                        ? 'bg-primary/5 border border-primary/30 focus:border-primary'
+                        : 'bg-elevated/50 border border-border-color cursor-default opacity-85'
+                    }`}
                   />
                 </div>
               </div>

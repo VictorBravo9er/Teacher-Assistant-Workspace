@@ -153,14 +153,12 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 ---
 
 ### 3.6 `invite-student`
-- **Trigger**: Teacher inviting a new student via email.
+- **Trigger**: Teacher inviting a new student via email (`POST`) or updating an unconfirmed student's email (`PATCH`).
 - **Workflow**:
   - Checks if student record exists in `public.students`.
-  - Creates enrollment row in `public.class_students` with status `'Enrolled'`.
-  - Generates secure invitation token/link for student onboarding (`adminSupabase.auth.admin.generateLink`).
-  - Dispatches invitation email via Resend from `signup@teach.glipse.tech` (override via `STUDENT_INVITE_FROM_EMAIL`).
-  - Explicitly configures the email as non-repliable with `reply_to: "no-reply@teach.glipse.tech"`, `Auto-Submitted: auto-generated` headers, and footer notice.
-  - Returns `{ success: true, student_id, invite_url }` (gracefully falling back to native auth invite if Resend is unconfigured).
+  - Dispatches the student invitation via Supabase Auth SMTP (`adminSupabase.auth.admin.inviteUserByEmail` or `adminSupabase.auth.resend`) using the project's configured Supabase Auth email template, passing `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` in `data` (`user_metadata`).
+  - Creates/updates enrollment row in `public.class_students` via `add_student_to_class` RPC.
+  - Returns `{ success: true, student_id }`.
 
 ---
 

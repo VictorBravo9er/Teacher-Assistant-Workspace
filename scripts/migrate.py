@@ -1,75 +1,61 @@
 #!/usr/bin/env python3
 """Database Migration Runner Script
 
-Applies incremental SQL migrations from schema/migrations/ in sequence,
-tracks applied migrations in public._schema_migrations,
-and optionally updates TypeScript and Python contracts.
+Uses the official Supabase CLI (`npx -y supabase db push`, `migration list`,
+and `migration repair`) to apply incremental SQL migrations from
+`schema/migrations/` against PostgreSQL. Migration history is tracked natively
+by Supabase CLI in `supabase_migrations.schema_migrations` so the `public`
+schema is never polluted with custom helper tables.
 """
 
 import argparse
-import os
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
-
-# Automatically re-run using the virtual environment if psycopg is missing.
-try:
-    import psycopg
-except ImportError:
-    root_dir = Path(__file__).resolve().parent.parent
-    venv_python = root_dir / "backend" / ".venv" / "bin" / "python"
-
-    if venv_python.exists() and sys.executable != str(venv_python):
-        print(f"🔄 Relaunching script using python binary: {venv_python}")
-        os.execv(str(venv_python), [str(venv_python)] + sys.argv)
-    else:
-        print(
-            "❌ Error: 'psycopg' library is not installed and couldn't find backend/.venv virtual environment.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
 
 # Add scripts directory to sys.path for _env_helper and _generate_types
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _env_helper  # pyright: ignore[reportImplicitRelativeImport]
 
-MIGRATION_TABLE_DDL = """
-CREATE TABLE IF NOT EXISTS public._schema_migrations (
-    version VARCHAR(255) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-"""
-
-
-def ensure_migration_table(conn: psycopg.Connection) -> None:
-    """Ensures the _schema_migrations tracking table exists."""
-    with conn.cursor() as cur:
-        _ = cur.execute(MIGRATION_TABLE_DDL)
-
-
-def get_applied_migrations(conn: psycopg.Connection) -> set[str]:
-    """Returns the set of already applied migration version strings."""
-    with conn.cursor() as cur:
-        _ = cur.execute("SELECT version FROM public._schema_migrations;")
-        rows = cur.fetchall()
-        return {str(row[0]) for row in rows}
-
 
 def list_migration_files(migrations_dir: Path) -> list[Path]:
-    """Lists all .sql migration files sorted lexicographically by filename."""
+    """Lists all .sql migration files in schema/migrations/ sorted lexicographically."""
     if not migrations_dir.exists():
         return []
-    files = [f for f in migrations_dir.iterdir() if f.is_file() and f.suffix == ".sql"]
+    files = [
+        f for f in migrations_dir.iterdir() if f.is_file() and f.suffix == ".sql"
+    ]
     return sorted(files, key=lambda f: f.name)
+
+
+def _prepare_supabase_workdir(
+    scratch_root: Path, migration_files: list[Path]
+) -> Path:
+    """Creates an isolated temporary Supabase CLI workdir mirroring schema/migrations/."""
+    scratch_root.mkdir(parents=True, exist_ok=True)
+    temp_dir = Path(tempfile.mkdtemp(prefix="supabase_mig_", dir=str(scratch_root)))
+    supabase_dir = temp_dir / "supabase"
+    migrations_out = supabase_dir / "migrations"
+    migrations_out.mkdir(parents=True, exist_ok=True)
+
+    _ = (supabase_dir / "config.toml").write_text(
+        'project_id = "teach-and-learn"\n', encoding="utf-8"
+    )
+    for mf in migration_files:
+        _ = shutil.copy2(mf, migrations_out / mf.name)
+
+    return temp_dir
 
 
 def run_migrations(
     status_only: bool = False,
-    fake: bool = False,
     no_types: bool = False,
 ) -> int:
     root_dir = Path(__file__).resolve().parent.parent
     migrations_dir = root_dir / "schema" / "migrations"
+    scratch_root = root_dir / ".scratch"
     db_url = _env_helper.POSTGRES_URI
 
     migration_files = list_migration_files(migrations_dir)
@@ -78,97 +64,106 @@ def run_migrations(
         return 0
 
     print("=" * 60)
-    print("🚀 Teach&Learn Database Migration Tool")
+    print("🚀 Teach&Learn Database Migration Tool (Supabase CLI)")
     print("=" * 60)
 
-    with psycopg.connect(db_url, autocommit=True) as conn:
-        ensure_migration_table(conn)
-        applied = get_applied_migrations(conn)
-
+    workdir = _prepare_supabase_workdir(scratch_root, migration_files)
+    try:
         if status_only:
-            print("\n📊 Migration Status:")
-            for mf in migration_files:
-                version = mf.name.split("_")[0]
-                state = "✅ Applied" if version in applied else "⏳ Pending"
-                print(f"   [{state}] {mf.name}")
-            return 0
+            print("\n📊 Querying migration status via Supabase CLI...")
+            cmd_status = [
+                "npx",
+                "-y",
+                "supabase",
+                "--workdir",
+                str(workdir),
+                "migration",
+                "list",
+                "--db-url",
+                db_url,
+            ]
+            result = subprocess.run(cmd_status, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(result.stdout.strip())
+                print("\n📁 Local Migration File Mapping (schema/migrations/):")
+                for f in migration_files:
+                    ver = f.name.split("_", 1)[0]
+                    print(f"   • {ver}  →  {f.name}")
+                return 0
+            print(
+                f"   ❌ Error listing migrations:\n{result.stderr or result.stdout}",
+                file=sys.stderr,
+            )
+            return 1
 
-        pending_files: list[Path] = []
-        for mf in migration_files:
-            version = mf.name.split("_")[0]
-            if version not in applied:
-                pending_files.append(mf)
+        print(
+            "\n▶️  Pushing unapplied SQL migrations from schema/migrations/ via Supabase CLI..."
+        )
+        cmd_push = [
+            "npx",
+            "-y",
+            "supabase",
+            "--workdir",
+            str(workdir),
+            "db",
+            "push",
+            "--include-all",
+            "--db-url",
+            db_url,
+        ]
+        result = subprocess.run(cmd_push, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(
+                f"   ❌ Error applying migrations via Supabase CLI:\n{result.stderr or result.stdout}",
+                file=sys.stderr,
+            )
+            return 1
 
-        if not pending_files:
-            print("\n✨ Database schema is up to date! Zero pending migrations.")
-            return 0
+        output_text = (result.stdout or "").strip()
+        if output_text:
+            for line in output_text.splitlines():
+                print(f"   {line}")
+        print("   ✅ Schema migrations synchronized cleanly.")
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
 
-        print(f"\nFound {len(pending_files)} pending migration(s):")
-        for pf in pending_files:
-            print(f"   • {pf.name}")
-
-        applied_count = 0
-        for pf in pending_files:
-            version = pf.name.split("_")[0]
-            name = pf.name
-
-            if fake:
-                print(f"\n▶️ [FAKE] Marking migration as applied: {name}")
-            else:
-                print(f"\n▶️ Applying migration: {name}...")
-                sql_content = pf.read_text(encoding="utf-8")
-                with conn.cursor() as cur:
-                    _ = cur.execute(sql_content)
-
-            with conn.cursor() as cur:
-                _ = cur.execute(
-                    "INSERT INTO public._schema_migrations (version, name) VALUES (%s, %s) ON CONFLICT (version) DO NOTHING;",
-                    (version, name),
-                )
-            print(f"   ✅ Recorded {name}")
-            applied_count += 1
-
-        print(f"\n🎉 Successfully applied {applied_count} migration(s).")
-
-    if not no_types and applied_count > 0:
-        print("\n" + "=" * 60)
-        print("🔄 Regenerating TypeScript and Python types...")
-        print("=" * 60)
-        from _generate_types import main as generate_types  # pyright: ignore[reportImplicitRelativeImport]
+    if not no_types:
+        print("\n▶️  Regenerating TypeScript and Python contracts...")
+        from _generate_types import (  # pyright: ignore[reportImplicitRelativeImport]
+            main as generate_types,
+        )
 
         generate_types(db_url)
 
     return 0
 
 
+class _MigrateCLIArgs(argparse.Namespace):
+    status: bool = False
+    no_types: bool = False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Teach&Learn Database Migration Tool",
+        description="Apply incremental SQL migrations from schema/migrations/ via Supabase CLI.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--status",
         action="store_true",
-        help="Display the status of all migrations without applying them.",
+        help="List applied and pending migrations without executing.",
     )
-    parser.add_argument(
-        "--fake",
-        action="store_true",
-        help="Record pending migrations in the tracking table without executing their SQL.",
-    )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--no-types",
         action="store_true",
-        help="Skip regenerating TypeScript and Python contracts after migration.",
+        help="Skip regenerating frontend/backend types after applying migrations.",
     )
 
-    args = parser.parse_args()
-    sys.exit(
-        run_migrations(
-            status_only=args.status,
-            fake=args.fake,
-            no_types=args.no_types,
-        )
+    args = parser.parse_args(namespace=_MigrateCLIArgs())
+    exit_code = run_migrations(
+        status_only=args.status,
+        no_types=args.no_types,
     )
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

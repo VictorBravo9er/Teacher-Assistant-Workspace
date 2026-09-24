@@ -30,6 +30,7 @@ flowchart TD
 1. **Collapsible Navigation Rail (`Sidebar.tsx`)**:
    - Manages an internal `isCollapsed` state with persistent CSS transitions.
    - Preserves icon readability in collapsed mode and renders rich metadata (student counts, term badges, archive tags) in expanded mode.
+   - Guards inline class renaming (`handleSaveRename`) with `renameCommittedRef` and a dirty check (`trimmed !== ws.name`) so `Enter` + `onBlur` never double-fire and unchanged names or `Escape` cancellations dispatch zero DB updates.
    - Complies with explicit DOM element ID naming conventions (`sidebar-collapse-button`, `sidebar-search-input`, `sidebar-class-item-${id}`).
 2. **Modal Backdrop & Keyboard Traps (`CommandPalette.tsx`)**:
    - Attaches a global `keydown` event listener to `window` for `Ctrl+K` and `Cmd+K`.

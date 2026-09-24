@@ -165,3 +165,59 @@
   animation: laser-sweep 2.2s ease-in-out infinite;
 }
 
+/* Print styles for Report Cards and Documents */
+@media print {
+  @page {
+    size: portrait;
+    margin: 12mm 15mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide everything in the body by default when printing */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only make the printable report card and its children visible */
+  #report-card-printable,
+  #report-card-printable * {
+    visibility: visible;
+  }
+
+  /* Position the printable report card at the very top of the printed document */
+  #report-card-printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide elements marked with print:hidden */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Prevent awkward page breaks */
+  .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+

@@ -109,16 +109,24 @@ export default function Sidebar({
     );
   });
 
+  const renameCommittedRef = React.useRef(false);
+
   const handleStartRename = (ws: ClassModel, e: React.MouseEvent) => {
     e.stopPropagation();
+    renameCommittedRef.current = false;
     setEditingClassId(ws.id);
     setRenameValue(ws.name);
     setActiveMenuId(null);
   };
 
-  const handleSaveRename = (id: string) => {
-    if (renameValue.trim()) {
-      onRenameClass(id, renameValue.trim());
+  const handleSaveRename = (ws: ClassModel) => {
+    if (renameCommittedRef.current) {
+      return;
+    }
+    renameCommittedRef.current = true;
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== ws.name) {
+      onRenameClass(ws.id, trimmed);
     }
     setEditingClassId(null);
   };
@@ -378,12 +386,15 @@ export default function Sidebar({
                                 value={renameValue}
                                 onChange={(e) => setRenameValue(e.target.value)}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter")
-                                    handleSaveRename(ws.id);
-                                  if (e.key === "Escape")
+                                  if (e.key === "Enter") {
+                                    handleSaveRename(ws);
+                                  }
+                                  if (e.key === "Escape") {
+                                    renameCommittedRef.current = true;
                                     setEditingClassId(null);
+                                  }
                                 }}
-                                onBlur={() => handleSaveRename(ws.id)}
+                                onBlur={() => handleSaveRename(ws)}
                                 autoFocus
                                 className="w-full bg-surface border border-primary rounded py-0.5 px-1.5 text-xs text-primary-text focus:outline-none"
                                 onClick={(e) => e.stopPropagation()}

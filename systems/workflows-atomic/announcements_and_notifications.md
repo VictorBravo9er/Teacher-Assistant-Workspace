@@ -21,18 +21,18 @@ interface CreateAnnouncementInput {
 ```
 
 ### 3. Execution Pipeline
-1. UI calls [`announcementService.createAnnouncement()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/announcementService.ts).
-2. PostgREST executes:
-   ```sql
-   INSERT INTO public.announcements (class_id, author_id, title, content, is_pinned)
-   VALUES (:classId, auth.uid(), :title, :content, :is_pinned)
-   RETURNING *;
-   ```
-3. If `notify_parents` is true, calls `notificationService.notifyAnnouncement({ announcement_id, class_id, notify_parents })`.
-4. Edge Function `notify-announcement` dispatches email batch via Resend API and records initial logs with `status = 'queued'`.
+1. **0ms Optimistic Insertion**:
+   - UI creates a temporary `Announcement` (`id: "temp-ann-" + Date.now()`, `isPending: true`), prepends it to `announcements` with a `"Publishing..."` badge, and clears the composer inputs in `0ms`.
+2. **Background Database Persistence**:
+   - UI calls [`announcementService.createAnnouncement()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/announcementService.ts) in the background (`INSERT INTO public.announcements`).
+   - Replaces `temp-ann-*` with the persisted row (`isPending: false`).
+3. **Background Email Broadcast**:
+   - If `notify_parents` is true, calls `notificationService.notifyAnnouncement({ announcement_id, class_id, notify_parents })` in the background.
+4. **Snapshot Rollback & Draft Restoration**:
+   - If `createAnnouncement` fails, evicts `temp-ann-*` and restores `newAnnouncementTitle`, `newAnnouncementContent`, and `isAnnouncementPinned` to the composer.
 
 ### 4. Conclusion & Re-render
-- New announcement item prepends to the local `announcements` list.
+- New announcement item renders in `0ms` and transitions from `"Publishing..."` to active once persisted.
 - Success toast confirms posting and email queue status.
 
 ---
@@ -50,16 +50,14 @@ interface DeleteAnnouncementInput {
 ```
 
 ### 3. Execution Pipeline
-1. UI calls [`announcementService.deleteAnnouncement(id)`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/announcementService.ts).
-2. PostgREST executes:
-   ```sql
-   DELETE FROM public.announcements WHERE id = :announcementId;
-   ```
-   *(Cascades to any related entries in `notification_logs` via `ON DELETE CASCADE`)*.
+1. **0ms Optimistic Removal**:
+   - Captures `previousAnnouncements = announcements` and immediately filters `announcementId` out of the local feed (`0ms`).
+2. **Background Deletion & Rollback**:
+   - UI calls [`announcementService.deleteAnnouncement(id)`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/announcementService.ts) (`DELETE FROM public.announcements WHERE id = :announcementId`).
+   - If the deletion fails, restores `previousAnnouncements` and shows an error toast.
 
 ### 4. Conclusion & Re-render
-- Announcement is removed from active state feed and database.
-- Toast confirms `"Announcement removed."`.
+- Announcement is removed in `0ms` with automatic snapshot restoration on error.
 
 ---
 

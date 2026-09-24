@@ -52,25 +52,23 @@ interface AddStudentPayload {
 
 ---
 
-## ATOM-STU-02: Student Invitation Token Issuance
+## ATOM-STU-02: Optimistic Student Invitation & Onboarding Token Issuance
 
 ### 1. Trigger
-- **Event**: Teacher clicks "Send Class Invite" with an email address in [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx).
+- **Event**: Teacher submits the Add Student / Invite form in [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx).
 
 ### 2. Execution Pipeline
-1. Client calls Edge Function [`invite-student`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/invite-student):
-   ```http
-   POST /functions/v1/invite-student
-   Payload: { class_id: string, email: string, name?: string }
-   ```
-2. Edge Function verifies teacher authorization on the class.
-3. Inserts placeholder student in `public.students` and `class_students` with status `'Pending'`.
-4. Creates onboarding cryptographic invitation token and signs URL:
-   `https://app.teachlearn.internal/join?token=<signed_token>`
-5. Returns `{ inviteToken, inviteUrl }`.
+1. **0ms Optimistic Roster Card**:
+   - UI generates `tempId = "temp-invite-" + Date.now()` with `isPending: true`, appends the placeholder `Student` card to `classItemRef.current.students`, and closes the modal immediately (`0ms`) without opening `StudentDetailModal`.
+2. **Background Edge Function Invocation**:
+   - Client calls [`studentService.addStudentToClass()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) $\rightarrow$ Edge Function [`invite-student`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/invite-student).
+3. Edge Function verifies teacher authorization, provisions the student in `public.students` and `public.class_students`, and dispatches the onboarding invitation email.
+4. Returns `{ student_id: realId }`.
 
-### 3. Conclusion
-- Modal displays the generated invite link with a **"Copy Link"** button.
+### 3. Reconciliation & Rollback
+- **On Success**: Replaces `tempId` with `realId` in `classItemRef.current.students`, clears `isPending`, and shows a success toast.
+- **On Failure**: Evicts `tempId` from `classItemRef.current.students` and displays an error toast.
+- **State Sync Invariant**: Calls to `onUpdateClass(classItem.id, { students })` during optimistic insert, reconciliation, and rollback update local React state (`useClassOperations.handleUpdateClass`) without dispatching `UPDATE public.classes` queries.
 
 ---
 
@@ -93,21 +91,15 @@ interface BatchAttendancePayload {
 ```
 
 ### 3. Execution Pipeline
-1. UI invokes [`studentService.logAttendanceBatch()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts#L300-L360).
-2. For each student record, executes atomic upsert:
-   ```sql
-   INSERT INTO public.attendance_records (class_id, student_id, date, status, notes, recorded_by)
-   VALUES (:classId, :studentId, :date, :status, :notes, auth.uid())
-   ON CONFLICT (class_id, student_id, date) DO UPDATE SET
-     status = EXCLUDED.status,
-     notes = EXCLUDED.notes,
-     updated_at = timezone('utc'::text, now());
-   ```
-3. Triggers aggregate rate recalculation (`ATOM-STU-04`).
+1. **0ms Optimistic State Application**:
+   - Captures `previousStudents = classItem.students` for rollback.
+   - Computes updated attendance histories and rates in memory, calls `onUpdateStudents(updatedStudents)`, and closes the modal immediately (`onClose()`).
+2. **Background Database Persistence**:
+   - Invokes [`studentService.bulkLogAttendance()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) in the background to upsert `public.attendance_records` and update `public.class_students`.
 
-### 4. Conclusion & Re-render
-- All session records are persisted.
-- Modal closes and displays toast: `"Attendance logged for N students on YYYY-MM-DD"`.
+### 4. Conclusion & Error Rollback
+- **On Success**: Displays toast `"Attendance saved for YYYY-MM-DD"`.
+- **On Failure**: Calls `onUpdateStudents(previousStudents)` to restore pre-save attendance percentages and shows an error toast.
 
 ---
 
@@ -157,16 +149,31 @@ interface BatchAttendancePayload {
 
 ---
 
-## ATOM-STU-06: Remove / Drop Student from Class
+## ATOM-STU-06: Optimistic Remove / Drop Student from Class
 
 ### 1. Trigger
-- **Event**: Teacher confirms dropping a student from the active class roster.
+- **Event**: Teacher confirms dropping a student from the active class roster in [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx).
 
 ### 2. Execution Pipeline
-1. Executes delete or status transition:
-   ```sql
-   DELETE FROM public.class_students
-   WHERE class_id = :classId AND student_id = :studentId;
-   ```
-2. Master student record in `public.students` is **preserved**.
-3. Student is removed from `class_students` local state and Gradebook Matrix.
+1. **0ms Optimistic Removal**:
+   - Captures `previousClassSnapshot = classItemRef.current` and immediately removes the student from `classItemRef.current.students` and closes `StudentDetailModal`.
+2. **Background Deletion**:
+   - Executes `studentService.deleteStudent(studentId)` in the background (`DELETE FROM public.class_students`).
+3. **Rollback on Failure**:
+   - If the deletion fails, restores `previousClassSnapshot` to `classItemRef` and displays an error toast.
+
+---
+
+## ATOM-STU-07: Buffered Student Contact & Guardian Dossier Update
+
+### 1. Trigger
+- **Event**: Teacher clicks the `Edit3` icon button (`student-detail-edit-dossier-button`) on the **Contact Dossier** & **Family & Guardians** section in [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx), modifies fields (`phone`, `address`, `parentName`, `parentContact`, `parentNotes`), and clicks `Save` (`student-detail-save-dossier-button`).
+
+### 2. Execution Pipeline
+1. **Local Draft Buffering**:
+   - Inputs are disabled (`disabled={!isEditingDossier}`) until `student-detail-edit-dossier-button` sets `isEditingDossier = true`.
+   - Changes are held in `dossierDraft` without triggering per-keystroke queries; clicking `X` (`student-detail-cancel-dossier-button`) resets `dossierDraft` and exits edit mode.
+2. **Split Table Persistence (`studentService.updateStudentClassData`)**:
+   - Identity-level contact and guardian fields (`phone`, `address`, `parent_name`, `parent_contact`) execute `UPDATE public.students WHERE id = :studentId`.
+   - Class-scoped feedback notes (`parent_notes`) execute `UPDATE public.class_students WHERE class_id = :classId AND student_id = :studentId`.
+   - Each query runs only if its respective diff payload is non-empty.

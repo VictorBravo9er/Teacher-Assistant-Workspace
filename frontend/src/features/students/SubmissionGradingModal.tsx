@@ -201,14 +201,31 @@ export default function SubmissionGradingModal({
     if (onTriggerToast) onTriggerToast('AI suggestions successfully applied to grading session!');
   };
 
-  const handleSaveEvaluation = async () => {
-    setIsSaving(true);
-    try {
-      const calculatedGrade = `${percentage}%`;
-      const targetId =
-        submission.id && !submission.id.startsWith('sub-') ? submission.id : crypto.randomUUID();
+  const handleSaveEvaluation = () => {
+    const calculatedGrade = `${percentage}%`;
+    const targetId =
+      submission.id && !submission.id.startsWith('sub-') ? submission.id : crypto.randomUUID();
 
-      const savedResult = await studentService.saveSubmissionReview(targetId, {
+    const optimisticSubmission: StudentSubmission = {
+      ...submission,
+      id: targetId,
+      score: totalScore,
+      maxScore: maxTotalScore,
+      grade: calculatedGrade,
+      feedback,
+      privateTeacherNotes: privateNotes,
+      rubricBreakdown: rubricItems,
+      status: status as SubmissionStatus,
+      reviewedAt: new Date().toISOString(),
+    };
+
+    // 1. Optimistically apply rubric evaluation and close modal immediately (0ms)
+    onSave(optimisticSubmission);
+    onClose();
+
+    // 2. Persist review in background
+    studentService
+      .saveSubmissionReview(targetId, {
         classId: submission.classId || submission.class_id,
         studentId: student.id,
         materialId: material?.id || submission.materialId,
@@ -219,30 +236,14 @@ export default function SubmissionGradingModal({
         rubricBreakdown: rubricItems,
         status: status as string,
         content: submission.content || [],
+      })
+      .then(() => {
+        if (onTriggerToast) onTriggerToast('Submission grade and feedback successfully committed!');
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (onTriggerToast) onTriggerToast(`Failed to save evaluation: ${msg}`);
       });
-
-      const updated: StudentSubmission = {
-        ...submission,
-        ...savedResult,
-        id: savedResult.id || targetId,
-        score: totalScore,
-        maxScore: maxTotalScore,
-        grade: calculatedGrade,
-        feedback,
-        privateTeacherNotes: privateNotes,
-        rubricBreakdown: rubricItems,
-        status,
-        reviewedAt: new Date().toISOString(),
-      };
-
-      onSave(updated);
-      if (onTriggerToast) onTriggerToast('Submission grade and feedback successfully committed!');
-      onClose();
-    } catch (err: any) {
-      if (onTriggerToast) onTriggerToast(`Failed to save: ${err.message}`);
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const submissionFiles = submission.content || [];

@@ -6,9 +6,11 @@ import {
   UserCircle2,
   Sliders,
   Key,
+  Lock,
 } from 'lucide-react';
 import { Button, Badge, Modal, ModalHeader, ModalBody } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface AccountModalsProps {
   activeModal: 'profile' | 'preferences' | 'settings' | 'subscription' | null;
@@ -32,6 +34,9 @@ function ProfileModalContent({
     user?.user_metadata?.affiliation || 'General Faculty'
   );
   const [phone, setPhone] = useState(user?.user_metadata?.phone || '');
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -47,16 +52,38 @@ function ProfileModalContent({
     e.preventDefault();
     setIsSaving(true);
     try {
+      if (showPasswordChange && newPassword) {
+        if (newPassword.length < 8) {
+          throw new Error('New password must be at least 8 characters long.');
+        }
+        if (newPassword !== confirmPassword) {
+          throw new Error('New passwords do not match.');
+        }
+        const { error: pwdErr } = await supabase.auth.updateUser({
+          password: newPassword,
+          data: { has_password: true },
+        });
+        if (pwdErr) throw pwdErr;
+      }
+
       await updateUserMetadata({
         full_name: fullName.trim(),
         title: title.trim(),
         affiliation: affiliation.trim(),
         phone: phone.trim(),
       });
-      onTriggerToast('Profile updated successfully.');
+      onTriggerToast(
+        showPasswordChange && newPassword
+          ? 'Profile and password updated successfully.'
+          : 'Profile updated successfully.'
+      );
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordChange(false);
       onClose();
-    } catch (err: any) {
-      onTriggerToast(`Failed to update profile: ${err.message || err}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update profile';
+      onTriggerToast(message);
     } finally {
       setIsSaving(false);
     }
@@ -133,6 +160,63 @@ function ProfileModalContent({
               disabled
               className="w-full bg-elevated/80 border border-border-color/60 rounded-xl px-3 py-2 text-muted-text cursor-not-allowed text-xs font-mono"
             />
+          </div>
+          <div className="pt-2 border-t border-border-color">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordChange(!showPasswordChange);
+                setNewPassword('');
+                setConfirmPassword('');
+              }}
+              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>{showPasswordChange ? 'Cancel Password Change' : 'Change Login Password'}</span>
+            </button>
+            {showPasswordChange && (
+              <div className="mt-2.5 space-y-2.5 bg-background/60 p-3 rounded-xl border border-border-color">
+                {isSaving && (
+                  <div className="p-2.5 bg-primary/5 border border-primary/25 rounded-xl space-y-1.5 animate-fade-in">
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-primary">
+                      <span>Encrypting &amp; updating credentials...</span>
+                      <span className="font-mono">Please wait</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-elevated rounded-full overflow-hidden">
+                      <div className="h-full bg-primary animate-pulse w-4/5 rounded-full" />
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[10px] text-muted-text font-mono block mb-1">
+                    NEW PASSWORD
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    minLength={8}
+                    disabled={isSaving}
+                    className="w-full bg-background border border-border-color rounded-xl px-3 py-2 text-primary-text outline-none focus:border-primary text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-text font-mono block mb-1">
+                    CONFIRM NEW PASSWORD
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat new password"
+                    minLength={8}
+                    disabled={isSaving}
+                    className="w-full bg-background border border-border-color rounded-xl px-3 py-2 text-primary-text outline-none focus:border-primary text-xs"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="space-y-2.5">

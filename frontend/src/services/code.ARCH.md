@@ -41,3 +41,6 @@ flowchart TD
 5. **Universal Notification & Email Engine (`notificationService.ts`)**:
    - Offloads email distribution entirely to serverless Edge Functions (`notify-announcement`, `notify-material`, `notify-submission`) backed by Resend.
    - Non-blocking async invocations ensure UI responsiveness; delivery states (`sent`, `delivered`, `bounced`) are tracked in `public.notification_logs` with webhook reconciliation.
+6. **Split Persistence & Empty-Diff Short-Circuit Guards (`classService.ts` & `studentService.ts`)**:
+   - `studentService.updateStudentClassData` splits field updates into `studentUpdates` (`phone`, `address`, `parent_name`, `parent_contact` $\rightarrow$ `UPDATE public.students`) and `classStudentUpdates` (`roll_number`, `parent_notes`, `custom_fields`, `performance_tier`, `current_score`, etc. $\rightarrow$ `UPDATE public.class_students`), executing each query only when its diff object is non-empty.
+   - Both `classService.updateClass` and `studentService.updateStudentClassData` treat calls containing only client-side fields (`statusIndicator`) or nested collection references (`students`, `submissions`, `materials`, `ragSessions`) as zero-network no-ops.
