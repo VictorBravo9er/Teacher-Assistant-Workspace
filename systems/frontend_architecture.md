@@ -149,3 +149,32 @@ flowchart LR
    - Manages active chat thread messages, streaming state, session history switching, and contextual prompt injection.
 4. **`useTheme`**:
    - Controls application light/dark theme toggles and dynamic brand styling variables.
+
+---
+
+## 5. Optimistic Mutations & Blocking Progress Indicators (Plans 11 & 12)
+
+The frontend splits data mutations into two deterministic UX patterns based on payload determinism and browser-originated stream dependencies:
+
+### 5.1 Optimistic UI + Background Promise + Snapshot Rollback (0ms Perceived Latency)
+For deterministic metadata, roster, grading, attendance, and broadcast operations:
+- **Ref-Synchronized State (`classItemRef` & `classesRef`)**: Mutable React refs in `StudentRegister.tsx` and `useClassOperations.ts` track the latest state across concurrent background promises, preventing stale closure overwrites when multiple rapid actions fire simultaneously.
+- **Pending Visual Badges (`isPending?: boolean`)**: Temporary entries (`temp-invite-*`, `temp-ann-*`, `temp-inst-*`, `temp-mat-*`) render immediately with subtle status pills (`"Inviting..."`, `"Publishing..."`, `"Syncing..."`, `"Adding..."`) while the Edge Function or PostgREST call resolves in the background.
+- **Snapshot Rollback**: Every background promise captures a pre-mutation state snapshot (`previousState`) and restores it automatically alongside an error toast (`showToast(..., 'error')`) if the network request fails.
+- **Applied Flows**:
+  1. Student Enrollment & Invitation (`StudentRegister.tsx`)
+  2. Daily Attendance Bulk Logger (`AttendanceManagerModal.tsx`)
+  3. Class Announcements & Resend Broadcasts (`ClassDetails.tsx`)
+  4. Rubric Grading & Rapid Scoring (`SubmissionGradingModal.tsx` & `StudentRegister.tsx`)
+  5. Student Portal Turn-In State Reflection (`StudentApp.tsx`, Text/URL submissions in `StudentTurnInModal.tsx` & `StudentSubmissionUploadModal.tsx`)
+  6. Prompting Rubrics / Instructions Add & Delete (`useClassOperations.ts`)
+  7. Class Archiving, Renaming, Material Unlinking & URL Material Addition (`useClassOperations.ts`)
+  8. Student Expulsion / Removal (`StudentRegister.tsx`)
+
+### 5.2 Blocking Progress Bars & Wait Notices (`@[Quote]` Non-Optimistic Flows)
+For operations where browser cancellation or premature tab closure corrupts state or aborts active byte streams:
+- **Binary File Uploads** (`ClassApp.tsx` via `CustomDialogs.tsx`, `StudentTurnInModal.tsx`, `StudentSubmissionUploadModal.tsx`):
+  - Displays an asymptotic progress bar (`15% → 92% → 100%`) with formatted file size (`MB`/`KB`), disables backdrop/Escape dismissal (`!isSubmitting`), and displays an explicit warning not to close or refresh the browser window while uploading to Supabase Storage.
+- **Account Password Updates & Sensitive Authentication** (`AuthPage.tsx`, `StudentApp.tsx`, `AccountModals.tsx`):
+  - Renders an indeterminate security progress bar (`"Encrypting credentials and refreshing session tokens — please wait..."`) and locks form inputs until Supabase Auth finishes rotating session tokens.
+

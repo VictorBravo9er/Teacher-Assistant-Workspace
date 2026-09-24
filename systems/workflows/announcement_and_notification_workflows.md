@@ -9,11 +9,9 @@ This document outlines the end-to-end lifecycles for class announcements, broadc
 ### User Journey:
 1. Teacher navigates to the **Announcements** tab in `ClassDetails.tsx`.
 2. Teacher fills in the title, body content, and chooses whether to pin the announcement or broadcast email notifications to students and parents (`notify_parents`).
-3. On submission, the announcement is inserted into `public.announcements`.
-4. If notifications are enabled, `notificationService.notifyAnnouncement()` triggers the `notify-announcement` Edge Function.
-5. The Edge Function fetches enrolled student emails and parent contacts from `public.class_students`, formats branded HTML templates, and dispatches batch emails via Resend.
-6. Audit records are logged in `public.notification_logs` with status `'queued'`.
-7. The UI confirms posting with a toast notification: `"Announcement posted. Notification emails queued."`.
+3. **0ms Optimistic Feed Insertion**: On submission, a temporary `Announcement` card (`temp-ann-<timestamp>`, `isPending: true`, displaying an animated `"Publishing..."` badge) is immediately prepended to the local `announcements` feed and the composer inputs are cleared in `0ms`.
+4. **Background Persistence & Broadcast**: `announcementService.createAnnouncement()` inserts the row into `public.announcements` in the background. Once resolved, the temporary card is replaced with the persisted row (`isPending: false`). If `notify_parents` is enabled, `notificationService.notifyAnnouncement()` triggers the `notify-announcement` Edge Function in the background.
+5. **Snapshot Rollback & Draft Restoration**: If the database insert fails, the temporary card is evicted and the teacher's `newAnnouncementTitle`, `newAnnouncementContent`, and `isAnnouncementPinned` states are automatically restored so no work is lost.
 
 ```mermaid
 sequenceDiagram
@@ -26,21 +24,27 @@ sequenceDiagram
     participant Edge as Edge Function (notify-announcement)
     participant Resend as Resend Email Gateway
 
-    Teacher->>UI: Types title, content & checks "Notify Parents"
-    UI->>AnnService: createAnnouncement(classId, { title, content, is_pinned })
+    Teacher->>UI: Types title, content & clicks "Post Announcement"
+    UI->>UI: Prepends temp-ann-* (isPending: true, "Publishing...") & clears composer (0ms)
+    UI->>AnnService: Background createAnnouncement(classId, { title, content, is_pinned })
     AnnService->>DB: INSERT INTO public.announcements
-    DB-->>AnnService: Returns created Announcement row
-    AnnService-->>UI: Updates local announcements state feed
-    
-    opt If Notifications Enabled
-        UI->>NotifyService: notifyAnnouncement({ announcement_id, class_id, notify_parents: true })
-        NotifyService->>Edge: POST /functions/v1/notify-announcement
-        Edge->>DB: SELECT students, parent_contact FROM class_students
-        Edge->>Resend: POST https://api.resend.com/emails/batch (max 100)
-        Resend-->>Edge: Returns batch IDs { data: [{ id: "re_..." }] }
-        Edge->>DB: INSERT INTO public.notification_logs (status='queued', resend_email_id)
-        Edge-->>NotifyService: Returns { success: true, count }
-        NotifyService-->>UI: Triggers success toast
+    alt Insert Succeeds
+        DB-->>AnnService: Returns created Announcement row
+        AnnService-->>UI: Replaces temp-ann-* with real Announcement (clears isPending)
+        opt If Notifications Enabled
+            UI->>NotifyService: Background notifyAnnouncement({ announcement_id, class_id, notify_parents })
+            NotifyService->>Edge: POST /functions/v1/notify-announcement
+            Edge->>DB: SELECT students, parent_contact FROM class_students
+            Edge->>Resend: POST https://api.resend.com/emails/batch (max 100)
+            Resend-->>Edge: Returns batch IDs
+            Edge->>DB: INSERT INTO public.notification_logs (status='queued', resend_email_id)
+            Edge-->>NotifyService: Returns { success: true, count }
+            NotifyService-->>UI: Triggers success toast
+        end
+    else Insert Fails
+        AnnService-->>UI: Rejects error
+        UI->>UI: Evicts temp-ann-* & restores draft title/content to composer
+        UI-->>Teacher: Displays error toast
     end
 ```
 

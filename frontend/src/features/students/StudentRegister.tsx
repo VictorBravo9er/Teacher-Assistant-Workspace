@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ClassModel,
   Student,
@@ -18,6 +18,7 @@ import {
   Contact2,
   UserCheck,
   UploadCloud,
+  Loader2,
 } from 'lucide-react';
 import { Button, Badge, Modal, ModalHeader, ModalBody, ModalFooter, FormField, Input } from '@/components/ui';
 import { logger } from '@/lib/logger';
@@ -35,6 +36,10 @@ export default function StudentRegister({
 }: StudentRegisterProps) {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const classItemRef = useRef(classItem);
+  useEffect(() => {
+    classItemRef.current = classItem;
+  }, [classItem]);
 
   const notify = (msg: string) => {
     if (onTriggerToast) {
@@ -48,12 +53,13 @@ export default function StudentRegister({
     }
   };
 
-  const selectedStudentIndex = classItem.students.findIndex((s) => s.id === selectedStudentId);
-  const selectedStudent = selectedStudentIndex !== -1 ? classItem.students[selectedStudentIndex] : undefined;
-  const previousStudent = selectedStudentIndex > 0 ? classItem.students[selectedStudentIndex - 1] : null;
+  const nonPendingStudents = classItem.students.filter((s) => !s.isPending);
+  const selectedStudentIndex = nonPendingStudents.findIndex((s) => s.id === selectedStudentId);
+  const selectedStudent = selectedStudentIndex !== -1 ? nonPendingStudents[selectedStudentIndex] : undefined;
+  const previousStudent = selectedStudentIndex > 0 ? nonPendingStudents[selectedStudentIndex - 1] : null;
   const nextStudent =
-    selectedStudentIndex !== -1 && selectedStudentIndex < classItem.students.length - 1
-      ? classItem.students[selectedStudentIndex + 1]
+    selectedStudentIndex !== -1 && selectedStudentIndex < nonPendingStudents.length - 1
+      ? nonPendingStudents[selectedStudentIndex + 1]
       : null;
 
   const [isAddStudentPromptOpen, setIsAddStudentPromptOpen] = useState(false);
@@ -69,16 +75,17 @@ export default function StudentRegister({
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [reportCardStudentId, setReportCardStudentId] = useState<string | null>(null);
 
-  const handleAddNewStudent = async (payload: { name: string; email: string }) => {
+  const handleAddNewStudent = (payload: { name: string; email: string }) => {
     if (!payload.name.trim() || !payload.email.trim()) return;
-    const roll = `M10-0${classItem.students.length + 1}`;
+    const currentStudents = classItemRef.current.students;
+    const roll = `M10-0${currentStudents.length + 1}`;
 
     const tempId = crypto.randomUUID();
     const newStudent: Student = {
       id: tempId,
-      name: payload.name,
+      name: payload.name.trim(),
       rollNumber: roll,
-      email: payload.email,
+      email: payload.email.trim(),
       phone: '',
       address: '',
       parentName: '',
@@ -91,55 +98,79 @@ export default function StudentRegister({
         { id: `cf-${Date.now()}-1`, label: 'Tutoring Status', type: 'tag', value: 'None', visibility: true },
         { id: `cf-${Date.now()}-2`, label: 'IEP Accommodation', type: 'boolean', value: 'false', visibility: true },
       ],
-      avatarSeed: payload.name.split(' ')[0] || 'Student',
+      avatarSeed: payload.name.trim().split(' ')[0] || 'Student',
+      isPending: true,
     };
 
-    try {
-      const realStudentId = await studentService.addStudentToClass(classItem.id, newStudent);
-      const studentWithRealId: Student = {
-        ...newStudent,
-        id: realStudentId || tempId,
-      };
+    // Optimistically inject into local state immediately
+    const nextStudents = [...currentStudents, newStudent];
+    classItemRef.current = { ...classItemRef.current, students: nextStudents };
+    onUpdateClass(classItem.id, { students: nextStudents });
 
-      onUpdateClass(classItem.id, {
-        students: [...classItem.students, studentWithRealId],
+    // Non-blocking background invitation
+    studentService
+      .addStudentToClass(classItem.id, newStudent)
+      .then((realStudentId) => {
+        const latestStudents = classItemRef.current.students;
+        const updated = latestStudents.map((s) =>
+          s.id === tempId ? { ...s, id: realStudentId || tempId, isPending: false } : s
+        );
+        classItemRef.current = { ...classItemRef.current, students: updated };
+        onUpdateClass(classItem.id, { students: updated });
+        notify(`Invitation sent to ${newStudent.name}!`);
+      })
+      .catch((e: unknown) => {
+        logger.error('STUDENT_SERVICE', 'Failed to add student to class', e);
+        const latestStudents = classItemRef.current.students;
+        const rolledBack = latestStudents.filter((s) => s.id !== tempId);
+        classItemRef.current = { ...classItemRef.current, students: rolledBack };
+        onUpdateClass(classItem.id, { students: rolledBack });
+        const errMsg = e instanceof Error ? e.message : String(e);
+        notify(`Failed to invite ${newStudent.name}: ${errMsg}`);
       });
-      setSelectedStudentId(studentWithRealId.id);
-      notify('Student invitation sent and enrolled in class!');
-    } catch (e: any) {
-      logger.error('STUDENT_SERVICE', 'Failed to add student to class', e);
-      notify(`Failed to add student: ${e.message}`);
+  };
+
+  const handleUpdateStudentDetails = (studentId: string, updatedFields: Partial<Student>) => {
+    const previousStudents = [...classItemRef.current.students];
+    const updated = previousStudents.map((s) =>
+      s.id === studentId ? { ...s, ...updatedFields } : s
+    );
+    classItemRef.current = { ...classItemRef.current, students: updated };
+    onUpdateClass(classItem.id, { students: updated });
+
+    const student = updated.find((s) => s.id === studentId);
+    if (student) {
+      studentService
+        .updateStudentClassData(classItem.id, studentId, student)
+        .catch((e: unknown) => {
+          logger.error('STUDENT_SERVICE', 'Failed to persist student details', e);
+          classItemRef.current = { ...classItemRef.current, students: previousStudents };
+          onUpdateClass(classItem.id, { students: previousStudents });
+          const errMsg = e instanceof Error ? e.message : String(e);
+          notify(`Failed to save student details: ${errMsg}`);
+        });
     }
   };
 
-  const handleUpdateStudentDetails = async (studentId: string, updatedFields: Partial<Student>) => {
-    try {
-      const updated = classItem.students.map((s) =>
-        s.id === studentId ? { ...s, ...updatedFields } : s
-      );
-      onUpdateClass(classItem.id, { students: updated });
+  const handleDeleteStudent = (studId: string) => {
+    const previousStudents = [...classItemRef.current.students];
+    const filtered = previousStudents.filter((s) => s.id !== studId);
+    classItemRef.current = { ...classItemRef.current, students: filtered };
+    onUpdateClass(classItem.id, { students: filtered });
+    setSelectedStudentId(null);
 
-      const student = updated.find((s) => s.id === studentId);
-      if (student) {
-        await studentService.updateStudentClassData(classItem.id, studentId, student);
-      }
-    } catch (e: any) {
-      logger.error('STUDENT_SERVICE', 'Failed to persist student details', e);
-      notify(`Failed to save student details: ${e.message || e}`);
-    }
-  };
-
-  const handleDeleteStudent = async (studId: string) => {
-    try {
-      await studentService.removeStudentFromClass(classItem.id, studId);
-      const filtered = classItem.students.filter((s) => s.id !== studId);
-      onUpdateClass(classItem.id, { students: filtered });
-      setSelectedStudentId(null);
-      notify('Student portfolio removed.');
-    } catch (e: any) {
-      logger.error('STUDENT_SERVICE', 'Failed to remove student from class', e);
-      notify(`Failed to delete student: ${e.message}`);
-    }
+    studentService
+      .removeStudentFromClass(classItem.id, studId)
+      .then(() => {
+        notify('Student portfolio removed.');
+      })
+      .catch((e: unknown) => {
+        logger.error('STUDENT_SERVICE', 'Failed to remove student from class', e);
+        classItemRef.current = { ...classItemRef.current, students: previousStudents };
+        onUpdateClass(classItem.id, { students: previousStudents });
+        const errMsg = e instanceof Error ? e.message : String(e);
+        notify(`Failed to delete student: ${errMsg}`);
+      });
   };
 
   const handleSaveGradingFromModal = (updatedSub: StudentSubmission) => {
@@ -250,11 +281,13 @@ export default function StudentRegister({
               <div
                 key={stud.id}
                 id={`student-card-${stud.id}`}
-                onClick={() => setSelectedStudentId(stud.id)}
-                className={`group min-w-52.5 max-w-55 shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all cursor-pointer relative overflow-hidden backdrop-blur ${
-                  isSelected
-                    ? 'border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20'
-                    : 'border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40'
+                onClick={() => !stud.isPending && setSelectedStudentId(stud.id)}
+                className={`group min-w-52.5 max-w-55 shrink-0 border rounded-xl p-3 flex flex-col gap-2.5 transition-all relative overflow-hidden backdrop-blur ${
+                  stud.isPending
+                    ? 'border-primary/40 bg-surface/60 cursor-not-allowed select-none opacity-90'
+                    : isSelected
+                    ? 'border-primary/80 bg-primary/5 shadow-[0_0_15px_rgba(37,99,235,0.1)] ring-1 ring-primary/20 cursor-pointer'
+                    : 'border-border-color bg-surface hover:border-muted-text/30 hover:bg-elevated/40 cursor-pointer'
                 }`}
                 style={{ scrollSnapAlign: 'start' }}
               >
@@ -282,6 +315,18 @@ export default function StudentRegister({
                     {stud.attendance ?? 100}% attendance
                   </span>
                 </div>
+
+                {stud.isPending && (
+                  <div
+                    className="absolute inset-0 bg-background/80 backdrop-blur-[1.5px] z-10 flex flex-col items-center justify-center gap-1.5 p-2 animate-fade-in"
+                    title="Sending invitation and enrolling student..."
+                  >
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <span className="text-[10px] font-mono font-medium text-primary tracking-wide animate-pulse">
+                      Inviting...
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })
@@ -391,7 +436,7 @@ export default function StudentRegister({
           isOpen={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}
           classId={classItem.id}
-          student={selectedStudent || classItem.students[0]}
+          student={selectedStudent || nonPendingStudents[0] || classItem.students[0]}
           materials={classItem.materials || []}
           onSubmissionCreated={handleSubmissionCreatedFromModal}
           onTriggerToast={onTriggerToast}
@@ -405,7 +450,7 @@ export default function StudentRegister({
           onClose={() => setIsAttendanceModalOpen(false)}
           classId={classItem.id}
           className={classItem.name}
-          students={classItem.students || []}
+          students={nonPendingStudents}
           onAttendanceUpdated={handleAttendanceUpdatedFromModal}
           onTriggerToast={onTriggerToast}
         />

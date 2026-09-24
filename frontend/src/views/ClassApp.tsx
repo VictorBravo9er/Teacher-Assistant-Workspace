@@ -586,7 +586,12 @@ export default function ClassApp() {
         />
       )}
 
-      <LoadingOverlay isOpen={!!processingMsg} message={processingMsg || undefined} />
+      <LoadingOverlay
+        isOpen={!!processingMsg}
+        message={processingMsg || undefined}
+        subMessage="Synchronizing with classroom storage vault..."
+        showProgressBar={true}
+      />
     </div>
   );
 }

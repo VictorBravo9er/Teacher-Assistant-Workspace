@@ -28,3 +28,8 @@ flowchart TD
    - Manages an `isEditing` dirty-state flag that warns users or provides Save/Cancel buttons when configuring classroom parameters.
 3. **Toast Notifications**:
    - Centralizes notification popups (`toast-notification`, `toast-dismiss-button`) for async operations across all feature modules.
+4. **Instant Submission Reflection (`StudentApp.tsx`)**:
+   - On assignment turn-in (`onSubmitted(newSub)`), immediately merges `newSub` into local `submissions` state (`0ms` `"Submitted"` badge) rather than re-running the 4-query `loadClassData()` waterfall.
+5. **Blocking Security & Upload Progress Bars (`ClassApp.tsx`, `AuthPage.tsx`, `StudentApp.tsx`)**:
+   - `ClassApp.tsx` connects `loadingState` and `loadingSubMessage` to `<LoadingOverlay showProgressBar={true} />` for binary file uploads.
+   - `AuthPage.tsx` (`ResetPasswordPage`) and `StudentApp.tsx` (`StudentPasswordModal`) render indeterminate security progress bars and lock form inputs while session tokens rotate.

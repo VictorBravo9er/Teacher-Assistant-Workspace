@@ -10,12 +10,12 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 
 | Metric | Current Status |
 | :--- | :--- |
-| **Total Plans** | **13 Plans** (Phase 0 through Phase 6) |
-| **Plans Completed** | **13 / 13** (`100%`) |
-| **Plans In Progress** | **0 / 13** (`0%`) |
-| **Plans Pending Execution** | **0 / 13** (`0%`) |
+| **Total Plans** | **15 Plans** (Phase 0 through Phase 7) |
+| **Plans Completed** | **15 / 15** (`100%`) |
+| **Plans In Progress** | **0 / 15** (`0%`) |
+| **Plans Pending Execution** | **0 / 15** (`0%`) |
 | **Current Execution Target** | **All Remediation Plans Successfully Implemented & Verified** |
-| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–5 100% complete; role routing, student portal, announcements, calendar, notification engine, and containerization infrastructure fully operational. |
+| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–7 100% complete; role routing, student portal, announcements, calendar, notification engine, containerization, optimistic mutations, and blocking progress bars fully operational. |
 
 ---
 
@@ -55,6 +55,12 @@ flowchart TD
         P09["09: Docker Containerization & Infrastructure Observability<br/>(Logger path fix, volume bind mounts, X-Request-ID proxying)"]
     end
 
+    subgraph Phase 6: Granular Revalidation & Optimistic Roster
+        P10["10: Multi-Component TTL & Granular Revalidation<br/>(Component stale list RPC)"]
+        P11["11: Optimistic Student Roster & Background Invites<br/>(Instant card insert, loading animation overlay, non-blocking)"]
+        P12["12: Frontend-Wide Optimistic Mutations & Blocking Progress<br/>(Attendance, Announcements, Grading, Archive/Rename & Upload Progress)"]
+    end
+
     P00 -.-> P01
     P00 -.-> P02
     P00 -.-> P03
@@ -67,10 +73,14 @@ flowchart TD
     P04 --> P06
     P04 -.-> P07
     P05 --> P07
+    P05 --> P11
     P06 --> P07
     P07 --> P08
     P08 --> P085
     P085 -.-> P09
+    P09 -.-> P10
+    P10 -.-> P11
+    P11 --> P12
 ```
 
 ---
@@ -92,6 +102,8 @@ flowchart TD
 | [**`08.5-classroom-notifications-resend.md`**](./08.5-classroom-notifications-resend.md) | Universal Classroom Notifications, Resend Delivery Engine & Bounce Tracking | Phase 4 | `FUTURE` | ✅ Completed | `100%` | 🟢 Verified | Multi-event Resend batch engine, `public.notification_logs`, bounce alerts to teacher. |
 | [**`09-docker-containerization-observability.md`**](./09-docker-containerization-observability.md) | Docker Containerization, Logger Alignment & Infrastructure Observability | Phase 5 | `CRITICAL` | ✅ Completed | `100%` | 🟢 Verified | Remediates container startup crashes, binds `./logs` host volume in dev, injects `X-Request-ID`. |
 | [**`10-local-storage-ttl-revalidation.md`**](./10-local-storage-ttl-revalidation.md) | Multi-Component TTL & Granular Database Revalidation Engine | Phase 6 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Decouples TTL & modified_at, granular component stale list RPC, student role support. |
+| [**`11-optimistic-student-invite.md`**](./11-optimistic-student-invite.md) | Optimistic Student Roster Enrolment & Background Invitation Flow | Phase 7 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Instant roster card injection, loading animation overlay, non-blocking background promise. |
+| [**`12-optimistic-mutations-and-blocking-progress.md`**](./12-optimistic-mutations-and-blocking-progress.md) | Frontend-Wide Optimistic Mutations & Blocking Progress Indicators | Phase 7 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Optimistic attendance, announcements, rubric grading, class ops & blocking upload/auth progress bars. |
 
 ---
 

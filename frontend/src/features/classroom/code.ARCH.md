@@ -41,5 +41,7 @@ flowchart TD
    - Offers client-side CSV generation with UTF-8 BOM encoding for direct spreadsheet import.
 3. **Secure File Streaming (`MaterialPreviewModal.tsx`)**:
    - For private bucket files, calls the `get-material-url` Edge Function with `{ class_id, material_id, content_item_id }` to retrieve a short-lived signed URL, avoiding public asset exposure.
-4. **Announcement Broadcast Triggers (`ClassDetails.tsx`)**:
-   - On posting announcements with `notify_parents` enabled, dispatches an asynchronous call to `notificationService.notifyAnnouncement()` which triggers batch email dispatch without delaying UI state updates.
+4. **0ms Optimistic Announcements & Resend Broadcasts (`ClassDetails.tsx`)**:
+   - Posting an announcement immediately prepends a `temp-ann-*` card (`isPending: true`, rendering an animated `"Publishing..."` badge) to the feed and clears the composer in `0ms`.
+   - `announcementService.createAnnouncement()` and `notificationService.notifyAnnouncement()` execute in the background; if insertion fails, `temp-ann-*` is evicted and the teacher's draft title/content are restored to the composer.
+   - Deleting an announcement filters it out of the feed in `0ms` and restores the snapshot if `announcementService.deleteAnnouncement()` fails.

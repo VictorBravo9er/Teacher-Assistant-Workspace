@@ -13,26 +13,30 @@ This document details the discrete atomic task of a student submitting an assign
 sequenceDiagram
     autonumber
     actor Student as Enrolled Student
-    participant UI as StudentSubmissionUploadModal.tsx
-    participant Svc as studentService
+    participant UI as StudentTurnInModal / StudentSubmissionUploadModal
+    participant App as StudentApp.tsx
+    participant Svc as studentPortalService / studentService
     participant Storage as Supabase Storage (student-submissions)
     participant DB as PostgreSQL (public)
 
-    Student->>UI: Selects file (PDF/Doc/Code) or types text response
+    Student->>UI: Selects file (PDF/Doc/Code) or types text/URL response
     Student->>UI: Clicks "Turn In Assignment"
-    UI->>Svc: submitAssignment(classId, studentId, materialId, file, textContent)
-    
-    opt When physical file is attached
+    alt Text or URL Response (file === null)
+        UI-->>App: Emits optimistic StudentSubmission & closes modal (0ms)
+        App->>App: Merges newSub into local submissions state ("Submitted" badge)
+        UI->>Svc: Background submitAssignment(...)
+        Svc->>DB: UPSERT public.student_submissions (status='Submitted')
+    else Binary File Attached (file !== null)
+        UI->>UI: Locks modal dismissal (!isSubmitting) & renders animated progress bar (15% -> 92% -> 100%)
+        UI->>Svc: submitAssignment(classId, studentId, materialId, file, textContent)
         Svc->>Storage: upload("/{material_id}/{content_item_id}", fileBlob)
         Storage-->>Svc: Upload confirmed (storagePath saved)
+        Svc->>DB: UPSERT public.student_submissions (status='Submitted')
+        DB-->>DB: Executes trigger trg_sync_student_scores
+        DB-->>Svc: Returns StudentSubmission record
+        Svc-->>App: Emits persisted StudentSubmission (merges directly without 4-query reload)
+        UI-->>Student: Closes modal & shows toast
     end
-
-    Svc->>DB: INSERT INTO public.student_submissions (class_id, student_id, material_id, status='Submitted', content JSONB, submitted_at=now())
-    DB-->>DB: Executes trigger trg_sync_student_scores
-    DB-->>Svc: Returns StudentSubmission record
-    
-    Svc-->>UI: Resolves submission state
-    UI-->>Student: Renders "Submitted" badge with submission timestamp
 ```
 
 ---

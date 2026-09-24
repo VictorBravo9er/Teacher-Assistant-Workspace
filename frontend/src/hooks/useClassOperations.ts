@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   ClassModel,
   Template,
@@ -50,6 +50,19 @@ export function useClassOperations({
   const [processingMsg, setProcessingMsg] = useState<string | null>(null);
   const [preEditClassSnapshot, setPreEditClassSnapshot] = useState<ClassModel | null>(null);
   const [preEditTemplateSnapshot, setPreEditTemplateSnapshot] = useState<Template | null>(null);
+
+  const classesRef = useRef(classes);
+  useEffect(() => {
+    classesRef.current = classes;
+  }, [classes]);
+
+  const applyClassesMutation = useCallback(
+    (nextClasses: ClassModel[]) => {
+      classesRef.current = nextClasses;
+      mutateClasses(nextClasses);
+    },
+    [mutateClasses]
+  );
 
   const activeClass = useMemo(
     () => classes.find((w) => w.id === activeClassId) || classes[0],
@@ -149,18 +162,27 @@ export function useClassOperations({
   );
 
   const handleRenameClass = useCallback(
-    async (id: string, newName: string) => {
-      try {
-        logger.info('CLASS_OPERATIONS', `Dispatch renameClass: ${id} -> "${newName}"`);
-        await classService.updateClass(id, { name: newName });
-        mutateClasses(classes.map((w) => (w.id === id ? { ...w, name: newName } : w)));
-        triggerToast('Class rename successfully committed.');
-      } catch (err: any) {
-        logger.error('CLASS_OPERATIONS', `Failed to rename class ${id}`, err);
-        triggerToast(`Failed to rename: ${err.message}`);
-      }
+    (id: string, newName: string) => {
+      const snapshot = [...classesRef.current];
+      logger.info('CLASS_OPERATIONS', `Dispatch renameClass: ${id} -> "${newName}"`);
+
+      applyClassesMutation(
+        snapshot.map((w) => (w.id === id ? { ...w, name: newName } : w))
+      );
+
+      classService
+        .updateClass(id, { name: newName })
+        .then(() => {
+          triggerToast('Class rename successfully committed.');
+        })
+        .catch((err: unknown) => {
+          logger.error('CLASS_OPERATIONS', `Failed to rename class ${id}`, err);
+          applyClassesMutation(snapshot);
+          const msg = err instanceof Error ? err.message : String(err);
+          triggerToast(`Failed to rename: ${msg}`);
+        });
     },
-    [classes, mutateClasses, triggerToast]
+    [applyClassesMutation, triggerToast]
   );
 
   const handleDuplicateClass = useCallback(
@@ -200,7 +222,7 @@ export function useClassOperations({
           duplicated.materials = duplicatedMaterials;
         }
 
-        mutateClasses([duplicated, ...classes]);
+        applyClassesMutation([duplicated, ...classesRef.current]);
         setActiveClassId(duplicated.id);
         triggerToast('Duplicated classroom context (materials forked; student roster clean).');
       } catch (err: any) {
@@ -209,31 +231,38 @@ export function useClassOperations({
         setProcessingMsg(null);
       }
     },
-    [classes, mutateClasses, setActiveClassId, triggerToast]
+    [classes, applyClassesMutation, setActiveClassId, triggerToast]
   );
 
   const handleArchiveClass = useCallback(
-    async (id: string) => {
-      const target = classes.find((w) => w.id === id);
+    (id: string) => {
+      const snapshot = [...classesRef.current];
+      const target = snapshot.find((w) => w.id === id);
       if (!target) return;
-      const nextStatus = !(target.isArchived ?? (target as any).archived);
-      try {
-        await classService.updateClass(id, { isArchived: nextStatus });
-        mutateClasses(classes.map((w) => (w.id === id ? { ...w, isArchived: nextStatus } : w)));
-        triggerToast(nextStatus ? 'Archived classroom context.' : 'Restored classroom context.');
-      } catch (err: any) {
-        triggerToast(`Failed to archive: ${err.message}`);
-      }
+      const nextStatus = !target.isArchived;
+
+      applyClassesMutation(
+        snapshot.map((w) => (w.id === id ? { ...w, isArchived: nextStatus } : w))
+      );
+      triggerToast(nextStatus ? 'Archived classroom context.' : 'Restored classroom context.');
+
+      classService
+        .updateClass(id, { isArchived: nextStatus })
+        .catch((err: unknown) => {
+          applyClassesMutation(snapshot);
+          const msg = err instanceof Error ? err.message : String(err);
+          triggerToast(`Failed to archive: ${msg}`);
+        });
     },
-    [classes, mutateClasses, triggerToast]
+    [applyClassesMutation, triggerToast]
   );
 
   const handleDeleteClass = useCallback(
     async (id: string) => {
       try {
         await classService.deleteClass(id);
-        const filtered = classes.filter((w) => w.id !== id);
-        mutateClasses(filtered);
+        const filtered = classesRef.current.filter((w) => w.id !== id);
+        applyClassesMutation(filtered);
         if (activeClassId === id) {
           setActiveClassId(filtered[0]?.id || '');
         }
@@ -242,23 +271,27 @@ export function useClassOperations({
         triggerToast(`Failed to delete: ${err.message}`);
       }
     },
-    [classes, activeClassId, mutateClasses, setActiveClassId, triggerToast]
+    [activeClassId, applyClassesMutation, setActiveClassId, triggerToast]
   );
 
   const handleUpdateClass = useCallback(
-    async (id: string, updatedFields: Partial<ClassModel>) => {
+    (id: string, updatedFields: Partial<ClassModel>) => {
+      const snapshot = [...classesRef.current];
+      applyClassesMutation(
+        snapshot.map((w) => (w.id === id ? { ...w, ...updatedFields } : w))
+      );
       if (isEditMode) {
-        mutateClasses(classes.map((w) => (w.id === id ? { ...w, ...updatedFields } : w)));
         return;
       }
-      try {
-        await classService.updateClass(id, updatedFields);
-        mutateClasses(classes.map((w) => (w.id === id ? { ...w, ...updatedFields } : w)));
-      } catch (err: any) {
-        triggerToast(`Failed to update: ${err.message}`);
-      }
+      classService
+        .updateClass(id, updatedFields)
+        .catch((err: unknown) => {
+          applyClassesMutation(snapshot);
+          const msg = err instanceof Error ? err.message : String(err);
+          triggerToast(`Failed to update: ${msg}`);
+        });
     },
-    [isEditMode, classes, mutateClasses, triggerToast]
+    [isEditMode, applyClassesMutation, triggerToast]
   );
 
   // --- Templates Mutations ---
@@ -320,106 +353,184 @@ export function useClassOperations({
   // --- Materials Nested Operations ---
   const handleAddMaterialInClass = useCallback(
     async (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
-      try {
-        setProcessingMsg(`Uploading material "${mat.name}"...`);
-        let newMat: Material;
-        if (file) {
-          newMat = await materialService.uploadMaterial(wsId, file, {
-            name: mat.name,
-            category: mat.category,
-            tags: mat.tags,
-            dueAt: mat.dueAt,
-            maxScore: mat.maxScore,
-          });
-        } else {
-          const firstPath = mat.content && mat.content[0] ? mat.content[0].path : '';
-          newMat = await materialService.createLinkMaterial(wsId, {
+      // 1. Optimistic non-blocking flow for URL-only materials (no binary file)
+      if (!file) {
+        const tempId = crypto.randomUUID();
+        const optimisticMat: Material = {
+          ...mat,
+          id: tempId,
+          uploadDate: new Date().toISOString().split('T')[0],
+          isPending: true,
+        };
+
+        applyClassesMutation(
+          classesRef.current.map((w) =>
+            w.id === wsId ? { ...w, materials: [...w.materials, optimisticMat] } : w
+          )
+        );
+
+        const firstPath = mat.content && mat.content[0] ? mat.content[0].path : '';
+        materialService
+          .createLinkMaterial(wsId, {
             name: mat.name,
             url: firstPath || 'https://example.com',
             category: mat.category,
             tags: mat.tags,
             dueAt: mat.dueAt,
             maxScore: mat.maxScore,
+          })
+          .then((newMat) => {
+            applyClassesMutation(
+              classesRef.current.map((w) =>
+                w.id === wsId
+                  ? {
+                      ...w,
+                      materials: w.materials.map((m) =>
+                        m.id === tempId ? { ...newMat, isPending: false } : m
+                      ),
+                    }
+                  : w
+              )
+            );
+            triggerToast('Uploaded course material committed successfully.');
+          })
+          .catch((err: unknown) => {
+            applyClassesMutation(
+              classesRef.current.map((w) =>
+                w.id === wsId
+                  ? { ...w, materials: w.materials.filter((m) => m.id !== tempId) }
+                  : w
+              )
+            );
+            const msg = err instanceof Error ? err.message : String(err);
+            triggerToast(`Failed to upload material: ${msg}`);
           });
-        }
+        return;
+      }
 
-        const updated = classes.map((w) => {
-          if (w.id === wsId) {
-            return { ...w, materials: [...w.materials, newMat] };
-          }
-          return w;
+      // 2. Blocking progress bar flow for binary file uploads
+      try {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        setProcessingMsg(`Uploading "${mat.name}" (${sizeMb} MB)...`);
+        const newMat = await materialService.uploadMaterial(wsId, file, {
+          name: mat.name,
+          category: mat.category,
+          tags: mat.tags,
+          dueAt: mat.dueAt,
+          maxScore: mat.maxScore,
         });
-        mutateClasses(updated);
+
+        applyClassesMutation(
+          classesRef.current.map((w) =>
+            w.id === wsId ? { ...w, materials: [...w.materials, newMat] } : w
+          )
+        );
         triggerToast('Uploaded course material committed successfully.');
-      } catch (err: any) {
-        console.error('handleAddMaterialInClass error:', err);
-        triggerToast(`Failed to upload material: ${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        triggerToast(`Failed to upload material: ${msg}`);
       } finally {
         setProcessingMsg(null);
       }
     },
-    [classes, mutateClasses, triggerToast]
+    [applyClassesMutation, triggerToast]
   );
 
   const handleDeleteMaterialInClass = useCallback(
-    async (wsId: string, matId: string, unlinkOnly: boolean = true) => {
-      try {
-        setProcessingMsg(unlinkOnly ? 'Removing material from class...' : 'Deleting material permanently...');
-        if (unlinkOnly) {
-          await materialService.unlinkMaterialFromClass(wsId, matId);
-        } else {
-          await materialService.deleteMaterial(matId);
-        }
-        const updated = classes.map((w) =>
+    (wsId: string, matId: string, unlinkOnly: boolean = true) => {
+      const snapshot = [...classesRef.current];
+      applyClassesMutation(
+        snapshot.map((w) =>
           w.id === wsId ? { ...w, materials: w.materials.filter((m) => m.id !== matId) } : w
-        );
-        mutateClasses(updated);
+        )
+      );
+
+      const op = unlinkOnly
+        ? materialService.unlinkMaterialFromClass(wsId, matId)
+        : materialService.deleteMaterial(matId);
+
+      op.then(() => {
         triggerToast(unlinkOnly ? 'Removed material from class.' : 'Permanently deleted material.');
-      } catch (err: any) {
-        triggerToast(`Failed to remove material: ${err.message}`);
-      } finally {
-        setProcessingMsg(null);
-      }
+      }).catch((err: unknown) => {
+        applyClassesMutation(snapshot);
+        const msg = err instanceof Error ? err.message : String(err);
+        triggerToast(`Failed to remove material: ${msg}`);
+      });
     },
-    [classes, mutateClasses, triggerToast]
+    [applyClassesMutation, triggerToast]
   );
 
   // --- Instructions Nested Operations ---
   const handleAddInstructionInClass = useCallback(
-    async (wsId: string, inst: Omit<Instruction, 'id'>) => {
-      try {
-        const newInst = await instructionService.createInstruction(wsId, inst);
-        const updated = classes.map((w) => {
-          if (w.id === wsId) {
-            return { ...w, instructions: [...w.instructions, newInst] };
-          }
-          return w;
+    (wsId: string, inst: Omit<Instruction, 'id'>) => {
+      const tempId = crypto.randomUUID();
+      const optimisticInst: Instruction = {
+        ...inst,
+        id: tempId,
+        isPending: true,
+      };
+
+      applyClassesMutation(
+        classesRef.current.map((w) =>
+          w.id === wsId ? { ...w, instructions: [...w.instructions, optimisticInst] } : w
+        )
+      );
+
+      instructionService
+        .createInstruction(wsId, inst)
+        .then((newInst) => {
+          applyClassesMutation(
+            classesRef.current.map((w) =>
+              w.id === wsId
+                ? {
+                    ...w,
+                    instructions: w.instructions.map((i) =>
+                      i.id === tempId ? { ...newInst, isPending: false } : i
+                    ),
+                  }
+                : w
+            )
+          );
+          triggerToast('Saved custom prompting rubric.');
+        })
+        .catch((err: unknown) => {
+          applyClassesMutation(
+            classesRef.current.map((w) =>
+              w.id === wsId
+                ? { ...w, instructions: w.instructions.filter((i) => i.id !== tempId) }
+                : w
+            )
+          );
+          const msg = err instanceof Error ? err.message : String(err);
+          triggerToast(`Failed to add instruction: ${msg}`);
         });
-        mutateClasses(updated);
-        triggerToast('Saved custom prompting rubric.');
-      } catch (err: any) {
-        triggerToast(`Failed to add instruction: ${err.message}`);
-      }
     },
-    [classes, mutateClasses, triggerToast]
+    [applyClassesMutation, triggerToast]
   );
 
   const handleDeleteInstructionInClass = useCallback(
-    async (wsId: string, instId: string) => {
-      try {
-        await instructionService.deleteInstruction(wsId, instId);
-        const updated = classes.map((w) =>
+    (wsId: string, instId: string) => {
+      const snapshot = [...classesRef.current];
+      applyClassesMutation(
+        snapshot.map((w) =>
           w.id === wsId
             ? { ...w, instructions: w.instructions.filter((i) => i.id !== instId) }
             : w
-        );
-        mutateClasses(updated);
-        triggerToast('Removed custom prompting rubric.');
-      } catch (err: any) {
-        triggerToast(`Failed to delete instruction: ${err.message}`);
-      }
+        )
+      );
+
+      instructionService
+        .deleteInstruction(wsId, instId)
+        .then(() => {
+          triggerToast('Removed custom prompting rubric.');
+        })
+        .catch((err: unknown) => {
+          applyClassesMutation(snapshot);
+          const msg = err instanceof Error ? err.message : String(err);
+          triggerToast(`Failed to delete instruction: ${msg}`);
+        });
     },
-    [classes, mutateClasses, triggerToast]
+    [applyClassesMutation, triggerToast]
   );
 
   // --- Adapter Handlers for Polymorphic ClassDetails ---

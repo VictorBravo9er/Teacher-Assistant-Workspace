@@ -13,6 +13,8 @@ import { CalendarView } from '@/features/calendar/CalendarView';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { Modal, ModalHeader, ModalBody, Input } from '@/components/ui';
+import { supabase } from '@/lib/supabase';
 import {
   BookOpen,
   Calendar,
@@ -33,9 +35,151 @@ import {
   ChevronDown,
   Pin,
   Megaphone,
+  KeyRound,
+  Lock,
 } from 'lucide-react';
 
 type StudentTab = 'assignments' | 'coursework' | 'announcements' | 'calendar' | 'grades';
+
+interface StudentPasswordModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onTriggerToast: (text: string) => void;
+}
+
+function StudentPasswordModal({
+  isOpen,
+  onClose,
+  onTriggerToast,
+}: StudentPasswordModalProps) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      setErrorMsg('Password must be at least 8 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('Passwords do not match.');
+      return;
+    }
+
+    setIsUpdating(true);
+    setErrorMsg(null);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: { has_password: true },
+      });
+      if (error) throw error;
+
+      onTriggerToast('Password updated successfully.');
+      setNewPassword('');
+      setConfirmPassword('');
+      onClose();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update password.';
+      setErrorMsg(message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={() => !isUpdating && onClose()} size="sm">
+      <ModalHeader
+        title="Change Password"
+        subtitle="Update your student portal login password"
+        icon={<KeyRound className="w-5 h-5 text-primary" />}
+        onClose={() => !isUpdating && onClose()}
+      />
+      <ModalBody className="relative">
+        {isUpdating && (
+          <div className="mb-4 p-3.5 bg-primary/5 border border-primary/25 rounded-2xl space-y-2 animate-fade-in">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-primary">
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Encrypting & updating credentials...
+              </span>
+              <span className="font-mono text-[10px]">Please wait</span>
+            </div>
+            <div className="w-full h-1.5 bg-elevated rounded-full overflow-hidden">
+              <div className="h-full bg-primary animate-pulse w-4/5 rounded-full" />
+            </div>
+            <p className="text-[10px] text-muted-text">
+              Do not close or refresh this window until confirmation.
+            </p>
+          </div>
+        )}
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-xs font-semibold text-center">
+            {errorMsg}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <div>
+            <label className="block text-[10px] font-semibold text-muted-text uppercase tracking-wider mb-1.5">
+              New Password *
+            </label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={8}
+              disabled={isUpdating}
+              icon={<Lock className="w-4 h-4 text-muted-text" />}
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-muted-text uppercase tracking-wider mb-1.5">
+              Confirm New Password *
+            </label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={8}
+              disabled={isUpdating}
+              icon={<Lock className="w-4 h-4 text-muted-text" />}
+            />
+          </div>
+          <p className="text-[11px] text-muted-text">
+            Must be at least 8 characters long.
+          </p>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={onClose}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="flex-1"
+              isLoading={isUpdating}
+            >
+              Save Password
+            </Button>
+          </div>
+        </form>
+      </ModalBody>
+    </Modal>
+  );
+}
 
 export default function StudentApp() {
   const { user, signOut } = useAuth();
@@ -57,6 +201,7 @@ export default function StudentApp() {
   // Modals state
   const [selectedMaterialForTurnIn, setSelectedMaterialForTurnIn] = useState<Material | null>(null);
   const [selectedMaterialForPreview, setSelectedMaterialForPreview] = useState<Material | null>(null);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
@@ -217,8 +362,18 @@ export default function StudentApp() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setIsPasswordModalOpen(true)}
+            className="rounded-xl w-8 h-8 p-0 text-muted-text hover:text-primary-text ml-1"
+            title="Change Password"
+          >
+            <KeyRound className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => signOut()}
-            className="rounded-xl w-8 h-8 p-0 text-muted-text hover:text-danger ml-1"
+            className="rounded-xl w-8 h-8 p-0 text-muted-text hover:text-danger"
             title="Sign Out"
           >
             <LogOut className="w-4 h-4" />
@@ -228,6 +383,24 @@ export default function StudentApp() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-6 space-y-6">
+        {/* Unset Password Reminder Banner */}
+        {!user?.user_metadata?.has_password && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 text-amber-500 font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>You haven't set a login password yet. Set a password now so you can sign back in anytime.</span>
+            </div>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="shrink-0"
+            >
+              Set Password
+            </Button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="py-24 text-center space-y-3">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -759,9 +932,12 @@ export default function StudentApp() {
           classId={activeClass.id}
           studentId={user.id}
           existingSubmission={submissionMap.get(selectedMaterialForTurnIn.id)}
-          onSubmitted={() => {
+          onSubmitted={(newSub) => {
+            setSubmissions((prev) => [
+              newSub,
+              ...prev.filter((s) => s.materialId !== newSub.materialId),
+            ]);
             showToast('Assignment turned in successfully!');
-            loadClassData();
           }}
         />
       )}
@@ -776,6 +952,13 @@ export default function StudentApp() {
           onTriggerToast={showToast}
         />
       )}
+
+      {/* Student Change Password Modal */}
+      <StudentPasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onTriggerToast={showToast}
+      />
     </div>
   );
 }
