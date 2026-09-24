@@ -63,5 +63,5 @@ flowchart TD
 
 - **`pyrightconfig.json`**: Enforces strict Python 3.13 type-checking boundaries across `backend/` and `scripts/`, specifying exclusion filters for virtual environments (`.venv`, `.uv_python`).
 - **`tsconfig.json`**: Root TypeScript configuration providing project references and compiler options for frontend client code and build tooling.
-- **`vercel.json`**: Provides edge routing and multi-service deployment rules, proxying `/api/*` requests to the Python FastAPI backend (`backend/src.main:app`) and all other requests to the Vite SPA frontend.
+- **`vercel.json`**: Provides edge routing and multi-service deployment rules, proxying `/api/*` requests to the Python FastAPI backend (`backend/src.main:app`) and all other requests to the Vite SPA frontend. The frontend service declares a service-level rewrite to `index.html` with `cleanUrls` disabled, so direct requests and hard refreshes on any client-side route resolve to the SPA shell after filesystem asset lookup.
 - **`AGENTS.md`**: Root of the hierarchical rule cascading system, setting universal coding standards and repository invariants for all submodules.

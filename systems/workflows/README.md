@@ -48,6 +48,45 @@ flowchart TD
 
 ---
 
+## Deployment Routing & SPA Hard-Refresh Workflow
+
+A client-side link navigation changes browser history without requesting a new document. A direct visit or hard refresh instead enters Vercel's public routing table, so the deployment configuration must route the request into the frontend service and fall back to the SPA shell for client-owned paths.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User
+    participant Browser as Browser
+    participant Vercel as Vercel Routing
+    participant API as FastAPI Service
+    participant Web as Vite Frontend Service
+    participant React as React App
+
+    User->>Browser: Opens or hard-refreshes any client route
+    Browser->>Vercel: GET /<client-route>
+    alt Path is /api/*
+        Vercel->>API: Route to backend service
+        API-->>Browser: JSON or HTTP response
+    else Any other public path
+        Vercel->>Web: Route to frontend service
+        alt Built asset exists
+            Web-->>Browser: Static asset
+        else Client route has no file
+            Web-->>Browser: dist/index.html (SPA fallback)
+            Browser->>React: Bootstrap application
+            React-->>User: Render route from window.location
+        end
+    end
+```
+
+**Routing invariants:**
+- The `/api/*` rule must precede the frontend catch-all.
+- The frontend service must declare its `dist` output and a catch-all rewrite to `/index.html`.
+- `cleanUrls` is disabled so the explicit `.html` fallback remains valid.
+- This applies to every client route; a path such as `/app` is only one example and is not a special case.
+
+---
+
 ## 🎯 Architectural Principles for Workflows
 
 1. **Deterministic Execution**:

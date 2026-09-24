@@ -37,7 +37,7 @@ flowchart TD
 ## 2. Key Architecture Invariants
 
 1. **SPA Fallback Routing**:
-   [`default.conf.template`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/default.conf.template) directs non-file requests to `/index.html` via `try_files $uri $uri/ /index.html;`, enabling client-side routing across stateful application paths.
+   [`default.conf.template`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/default.conf.template) directs non-file requests to `/index.html` via `try_files $uri $uri/ /index.html;`, enabling client-side routing across stateful application paths. For Vercel Services deployments, the same fallback is declared on the `frontend` service in the repository-level [`vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/vercel.json), with `cleanUrls` disabled; when `frontend/` is deployed as a standalone Vercel project, [`frontend/vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vercel.json) owns the equivalent project-level rule.
 2. **Environment Variable Injection**:
    Client-side variables prefixed with `VITE_` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) are baked into the static bundle during `npm run build` by Vite.
 3. **UI Element ID Traceability**:
