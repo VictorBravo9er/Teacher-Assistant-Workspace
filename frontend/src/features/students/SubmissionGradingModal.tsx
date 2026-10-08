@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Save,
   Link2,
+  BookOpen,
 } from 'lucide-react';
 import { Button, Badge, Modal, ModalHeader, ModalFooter, Textarea } from '@/components/ui';
 
@@ -327,62 +328,81 @@ export default function SubmissionGradingModal({
               </div>
             ) : (
               <div className="space-y-3">
-                {submissionFiles.map((file, idx) => (
-                  <div
-                    key={file.id || idx}
-                    className="bg-surface border border-border-color hover:border-primary/40 rounded-2xl p-4 transition-all shadow-sm space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-elevated text-primary border border-border-color">
-                          {file.type === 'URL' ? (
-                            <Link2 className="w-4 h-4" />
-                          ) : (
-                            <FileText className="w-4 h-4" />
-                          )}
+                {submissionFiles.map((file, idx) => {
+                  const isUrl = file.type === 'URL' || (file.path && (file.path.startsWith('http://') || file.path.startsWith('https://')));
+                  const isText = file.type === 'Text';
+                  const isGradeRef = file.path?.startsWith('grade://');
+                  const targetUrl = file.path || file.value || '';
+                  const sizeLabel = file.size_bytes
+                    ? file.size_bytes >= 1024 * 1024
+                      ? `${(file.size_bytes / (1024 * 1024)).toFixed(1)} MB`
+                      : `${(file.size_bytes / 1024).toFixed(0)} KB`
+                    : isText
+                    ? `${(file.value || file.description || '').length} chars`
+                    : null;
+
+                  return (
+                    <div
+                      key={file.id || idx}
+                      className="bg-surface border border-border-color hover:border-primary/40 rounded-2xl p-4 transition-all shadow-sm space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-elevated text-primary border border-border-color">
+                            {isUrl ? (
+                              <Link2 className="w-4 h-4 text-sky-500" />
+                            ) : isText ? (
+                              <BookOpen className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-primary" />
+                            )}
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-bold text-primary-text truncate max-w-[200px]">
+                              {file.name || file.value?.split('/').pop() || 'Submission Document'}
+                            </h5>
+                            <span className="text-[10px] font-mono text-muted-text">
+                              {file.type || 'File'} {sizeLabel ? `• ${sizeLabel}` : ''}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h5 className="text-xs font-bold text-primary-text truncate max-w-[200px]">
-                            {file.name || file.value?.split('/').pop() || 'Submission Document'}
-                          </h5>
-                          <span className="text-[10px] font-mono text-muted-text">
-                            {file.type} • {file.description || 'Student attachment'}
-                          </span>
-                        </div>
+
+                        {!isGradeRef && (isUrl || file.path) && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (isUrl) {
+                                window.open(targetUrl, '_blank');
+                                return;
+                              }
+                              try {
+                                const signedUrl = await studentService.getSubmissionDownloadUrl(file.path!);
+                                window.open(signedUrl, '_blank');
+                              } catch (err: any) {
+                                if (onTriggerToast) onTriggerToast(`Failed to open submission file: ${err.message}`);
+                              }
+                            }}
+                            className="p-1.5 hover:bg-elevated rounded-lg text-muted-text hover:text-primary transition-colors cursor-pointer"
+                            title={isUrl ? "Open Web Resource" : "Download File"}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
 
-                      {file.path && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (file.path?.startsWith('http://') || file.path?.startsWith('https://') || file.path?.startsWith('blob:')) {
-                              window.open(file.path, '_blank');
-                              return;
-                            }
-                            try {
-                              const signedUrl = await studentService.getSubmissionDownloadUrl(file.path!);
-                              window.open(signedUrl, '_blank');
-                            } catch (err: any) {
-                              if (onTriggerToast) onTriggerToast(`Failed to open submission file: ${err.message}`);
-                            }
-                          }}
-                          className="p-1.5 hover:bg-elevated rounded-lg text-muted-text hover:text-primary transition-colors cursor-pointer"
-                          title="Open Attachment"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <div className="bg-elevated/70 border border-border-color/60 rounded-xl p-3 text-xs text-secondary-text font-mono leading-relaxed max-h-48 overflow-y-auto">
+                        <span className="text-[10px] uppercase font-bold text-muted-text block mb-1">
+                          {isText ? 'Student Answer Text:' : 'Submission Context:'}
+                        </span>
+                        <div className="whitespace-pre-wrap">
+                          {file.value ||
+                            file.description ||
+                            `Student submission content for ${assignmentTitle}. Ready for criterion evaluation.`}
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="bg-elevated/70 border border-border-color/60 rounded-xl p-3 text-xs text-secondary-text font-mono leading-relaxed max-h-40 overflow-y-auto">
-                      <span className="text-[10px] uppercase font-bold text-muted-text block mb-1">
-                        Submission Preview Excerpt:
-                      </span>
-                      {file.description ||
-                        `Student submission content for ${assignmentTitle}. Ready for criterion evaluation.`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 

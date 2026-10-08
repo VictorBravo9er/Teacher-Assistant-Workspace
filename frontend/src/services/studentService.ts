@@ -316,13 +316,16 @@ export const studentService = {
   ): Promise<StudentSubmission> {
     const newId = submission.id || crypto.randomUUID();
 
-    // Ensure content matches Postgres valid_content_shape constraint
+    // Ensure content matches Postgres valid_content_shape constraint while preserving value, size_bytes, and mime_type
     const normalizedContent = (submission.content || []).map((item) => ({
       id: item.id || crypto.randomUUID(),
       name: item.name || 'Untitled Attachment',
       type: item.type || 'File',
       path: item.path || '',
       description: item.description || '',
+      ...(item.value !== undefined ? { value: item.value } : {}),
+      ...(item.size_bytes !== undefined ? { size_bytes: item.size_bytes } : {}),
+      ...(item.mime_type !== undefined ? { mime_type: item.mime_type } : {}),
     }));
 
     const insertPayload: any = {
@@ -467,7 +470,10 @@ export const studentService = {
    * Upload a physical file for a student submission to 'student-submissions' bucket.
    * Canonical path: /{material_id}/{content_item_id}
    */
-  async uploadSubmissionFile(materialId: string, file: File): Promise<{ itemId: string; storagePath: string }> {
+  async uploadSubmissionFile(
+    materialId: string,
+    file: File
+  ): Promise<{ itemId: string; storagePath: string; sizeBytes: number; mimeType: string }> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthenticated user");
 
@@ -483,14 +489,26 @@ export const studentService = {
       throw new Error(`Upload error: ${uploadError.message}`);
     }
 
-    return { itemId, storagePath };
+    return {
+      itemId,
+      storagePath,
+      sizeBytes: file.size,
+      mimeType: file.type || 'application/octet-stream',
+    };
   },
 
   /**
    * Fetch temporary signed download URL for a file in 'student-submissions' bucket.
    */
   async getSubmissionDownloadUrl(storagePath: string): Promise<string> {
-    if (storagePath.startsWith('http://') || storagePath.startsWith('https://') || storagePath.startsWith('blob:')) {
+    if (
+      !storagePath ||
+      storagePath.startsWith('http://') ||
+      storagePath.startsWith('https://') ||
+      storagePath.startsWith('blob:') ||
+      storagePath.startsWith('grade://') ||
+      storagePath.startsWith('text://')
+    ) {
       return storagePath;
     }
 

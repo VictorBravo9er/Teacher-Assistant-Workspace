@@ -153,8 +153,9 @@ export default function StudentDetailModal({
         {
           id: crypto.randomUUID(),
           name: gradeForm.name.trim(),
-          type: 'File',
-          path: `grade://${submissionId}`,
+          type: 'Text',
+          path: '',
+          value: gradeForm.feedback.trim() || gradeForm.name.trim(),
           description: `Direct grade entry for ${gradeForm.name.trim()}`,
         },
       ],
@@ -404,9 +405,10 @@ export default function StudentDetailModal({
                     id="student-detail-email-input"
                     type="text"
                     value={student.email || ''}
+                    disabled
                     readOnly
                     title="Student login email (managed via account identity)"
-                    className="bg-transparent text-muted-text cursor-not-allowed focus:outline-none truncate w-full"
+                    className="bg-transparent border border-transparent rounded-md px-1.5 py-1 text-muted-text cursor-not-allowed focus:outline-none truncate w-full disabled:cursor-not-allowed disabled:text-muted-text disabled:opacity-100"
                   />
                 </div>
                 <div className="flex items-center gap-2.5 text-xs">
@@ -416,27 +418,29 @@ export default function StudentDetailModal({
                     type="text"
                     placeholder="Add phone number..."
                     value={dossierDraft.phone}
+                    disabled={!isEditingDossier}
                     readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, phone: e.target.value }))}
-                    className={`w-full text-secondary-text focus:outline-none transition-all ${
+                    className={`w-full text-secondary-text rounded-md px-1.5 py-1 border focus:outline-none transition-colors ${
                       isEditingDossier
-                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
-                        : 'bg-transparent cursor-default'
+                        ? 'bg-primary/5 border-primary/30 focus:border-primary'
+                        : 'bg-transparent border-transparent cursor-default disabled:cursor-default disabled:text-secondary-text disabled:opacity-100'
                     }`}
                   />
                 </div>
                 <div className="flex items-start gap-2.5 text-xs">
-                  <MapPin className="w-3.5 h-3.5 text-muted-text shrink-0 mt-0.5" />
+                  <MapPin className="w-3.5 h-3.5 text-muted-text shrink-0 mt-1" />
                   <textarea
                     id="student-detail-address-input"
                     placeholder="Add residential address..."
                     value={dossierDraft.address}
+                    disabled={!isEditingDossier}
                     readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, address: e.target.value }))}
-                    className={`w-full text-secondary-text h-11 resize-none focus:outline-none transition-all ${
+                    className={`w-full text-secondary-text h-11 resize-none rounded-md px-1.5 py-1 border focus:outline-none transition-colors ${
                       isEditingDossier
-                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
-                        : 'bg-transparent cursor-default'
+                        ? 'bg-primary/5 border-primary/30 focus:border-primary'
+                        : 'bg-transparent border-transparent cursor-default disabled:cursor-default disabled:text-secondary-text disabled:opacity-100'
                     }`}
                   />
                 </div>
@@ -458,12 +462,13 @@ export default function StudentDetailModal({
                     type="text"
                     placeholder="Guardian full name..."
                     value={dossierDraft.parentName}
+                    disabled={!isEditingDossier}
                     readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentName: e.target.value }))}
-                    className={`w-full text-xs text-secondary-text focus:outline-none transition-all mt-0.5 ${
+                    className={`w-full text-xs text-secondary-text rounded-md px-1.5 py-1 border focus:outline-none transition-colors mt-0.5 ${
                       isEditingDossier
-                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
-                        : 'bg-transparent pt-0.5 cursor-default'
+                        ? 'bg-primary/5 border-primary/30 focus:border-primary'
+                        : 'bg-transparent border-transparent cursor-default disabled:cursor-default disabled:text-secondary-text disabled:opacity-100'
                     }`}
                   />
                 </div>
@@ -476,12 +481,13 @@ export default function StudentDetailModal({
                     type="text"
                     placeholder="Guardian email or phone..."
                     value={dossierDraft.parentContact}
+                    disabled={!isEditingDossier}
                     readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentContact: e.target.value }))}
-                    className={`w-full text-xs text-secondary-text focus:outline-none transition-all mt-0.5 ${
+                    className={`w-full text-xs text-secondary-text rounded-md px-1.5 py-1 border focus:outline-none transition-colors mt-0.5 ${
                       isEditingDossier
-                        ? 'bg-primary/5 border border-primary/30 rounded-md px-1.5 py-1 focus:border-primary'
-                        : 'bg-transparent pt-0.5 cursor-default'
+                        ? 'bg-primary/5 border-primary/30 focus:border-primary'
+                        : 'bg-transparent border-transparent cursor-default disabled:cursor-default disabled:text-secondary-text disabled:opacity-100'
                     }`}
                   />
                 </div>
@@ -493,12 +499,13 @@ export default function StudentDetailModal({
                     id="student-detail-parent-notes-input"
                     placeholder="Notes shared with guardian..."
                     value={dossierDraft.parentNotes}
+                    disabled={!isEditingDossier}
                     readOnly={!isEditingDossier}
                     onChange={(e) => setDossierDraft((prev) => ({ ...prev, parentNotes: e.target.value }))}
-                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-16 resize-none focus:outline-none shadow-sm transition-all mt-0.5 ${
+                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-16 resize-none border focus:outline-none shadow-sm transition-colors mt-0.5 ${
                       isEditingDossier
-                        ? 'bg-primary/5 border border-primary/30 focus:border-primary'
-                        : 'bg-elevated/50 border border-border-color cursor-default opacity-85'
+                        ? 'bg-primary/5 border-primary/30 focus:border-primary'
+                        : 'bg-elevated/50 border-border-color cursor-default opacity-85 disabled:cursor-default disabled:text-secondary-text disabled:opacity-85'
                     }`}
                   />
                 </div>
@@ -672,7 +679,11 @@ export default function StudentDetailModal({
                       let gradeColor = 'text-success bg-success/10 border-success/20';
                       if (gradePercent < 60) gradeColor = 'text-error bg-error/10 border-error/20';
                       else if (gradePercent < 75) gradeColor = 'text-warning bg-warning/10 border-warning/20';
-                      const assessmentName = grade.content?.[0]?.value || 'Assessment';
+                      const assessmentName =
+                        grade.content?.[0]?.name ||
+                        grade.content?.[0]?.value ||
+                        grade.materialName ||
+                        'Assessment';
                       const matchedMaterial = classItem.materials?.find(
                         (m) => m.id === grade.materialId || m.name === assessmentName
                       );
@@ -755,7 +766,7 @@ export default function StudentDetailModal({
                           </div>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium text-primary-text">
-                              {up.content?.map((c) => c.value?.split('/').pop()).join(', ') || 'Unknown File'}
+                              {up.content?.map((c) => c.name || c.value?.split('/').pop()).join(', ') || up.materialName || 'Attachment'}
                             </span>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[9px] font-mono text-muted-text">

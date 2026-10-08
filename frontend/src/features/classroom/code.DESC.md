@@ -8,7 +8,7 @@ This directory provides components for configuring classes, managing learning ma
 
 - [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx): The central classroom configuration tab panel. Houses:
   - **Class Profile Tab**: Form for subject, academic year, semester, teaching style, assessment preferences, and special notes.
-  - **Materials Repository Tab**: Curriculum materials list with upload dialogs, grading criteria badges, and preview triggers.
+  - **Materials Repository Tab**: Curriculum materials list with 3-mode creation builder (`File Upload` with dropzone, `Web URL` for external links, and `Notes & Text` for rich syllabus notes), explicit Graded Assessment controls (`to_be_scored`, `due_at`, `max_score`), type-specific indicators (`File`, `Link`, `Text`), and preview triggers.
   - **Class Guidelines Tab**: Curriculum guidelines, rubric rules, and marking instructions manager.
   - **Announcements Tab**: Notice board composer for posting, pinning, and deleting class announcements with optional batch email notifications to students and parents.
   - **Calendar Tab**: Integrated view embedding [`CalendarView`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/calendar/CalendarView.tsx) to map assignment due dates, attendance dates, and notices into a schedule.

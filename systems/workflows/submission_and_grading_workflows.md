@@ -37,14 +37,17 @@ sequenceDiagram
 
 ### Step-by-Step Execution Details:
 
-1. **Hybrid User Initiation (`0ms` Optimistic vs. Blocking Progress Bar)**:
-   - In [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx) or [`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx), the student or teacher submits work for an assigned material.
-   - **Text / URL Submissions (`file === null`)**: The modal closes in `0ms`, immediately emits a synthetic `StudentSubmission` to update the assignment badge to `"Submitted"`, and persists the submission in the background.
-   - **Binary File Uploads (`file !== null`)**: Because browser tab closure aborts active byte streams, the modal locks dismissal (`!isSubmitting`) and renders an in-modal Blocking Progress Bar Overlay (`15% → 92% → 100%`) showing the formatted file size (`MB`/`KB`) and a wait warning until the upload completes.
+1. **Multi-Channel User Initiation (`0ms` Optimistic vs. Blocking Progress Bar)**:
+   - In [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx) or [`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx), students or teachers submit work via three channels:
+     - **Binary File Attachment (`type: 'File'`)**: Uploaded to private storage bucket `student-submissions/{material_id}/{content_item_id}`. Modal locks dismissal and renders a blocking progress bar overlay (`15% → 92% → 100%`) with formatted file size (`MB`/`KB`) and wait warning until upload finishes.
+     - **Web Resource URL (`type: 'URL'`)**: External URL (e.g. Google Docs, GitHub, Figma) recorded directly in `path: url`. Closes modal in `0ms` and persists in background.
+     - **Native Written Response (`type: 'Text'`)**: Inline text submitted with `path: ''` and response body in `value`. Closes modal in `0ms` and persists in background.
+   - All three submission forms strictly satisfy the PostgreSQL `valid_content_shape` trigger (`validate_content_array`).
 2. **Instant State Reflection in `StudentApp.tsx`**:
    - Instead of re-running the 4-query `loadClassData()` waterfall, `StudentApp.tsx` immediately merges `newSub` into local `submissions` state upon `onSubmitted(newSub)`.
-3. **Database State Transition**:
+3. **Database State Transition & Review Support**:
    - The submission is recorded in `public.student_submissions` with `status = 'Submitted'`, triggering `trg_sync_student_scores`.
+   - In [`SubmissionGradingModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/SubmissionGradingModal.tsx), educators can review files (via signed URL download), web URLs (opening external link directly), and text submissions (displaying formatted text content) without errors or pseudo-scheme anomalies.
 
 ---
 

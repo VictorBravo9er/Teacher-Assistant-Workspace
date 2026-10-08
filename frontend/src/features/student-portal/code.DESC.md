@@ -6,7 +6,7 @@ This directory provides UI components specific to the Student Portal workflow, a
 
 ## 📁 Directory Files
 
-- [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx): Interactive turn-in modal allowing students to submit assignment work via either direct file attachment (uploaded to `student-submissions` storage bucket) or native written text response (without pseudo-URI prefixes).
+- [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx): Interactive turn-in modal allowing students to submit assignment work via direct file attachment (uploaded to `student-submissions` storage bucket), external web resource link, or native written text response (without pseudo-URI prefixes).
 
 ---
 
