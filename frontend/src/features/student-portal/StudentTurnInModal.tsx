@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Material, StudentSubmission } from '@/types/main';
 import { studentPortalService } from '@/services/studentPortalService';
-import { notificationService } from '@/services/notificationService';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, File, X, Loader2 } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, File, X, Loader2, Link2 } from 'lucide-react';
 
 interface StudentTurnInModalProps {
   isOpen: boolean;
@@ -26,8 +25,9 @@ export function StudentTurnInModal({
   existingSubmission,
   onSubmitted,
 }: StudentTurnInModalProps) {
-  const [submissionMode, setSubmissionMode] = useState<'file' | 'text'>('file');
+  const [submissionMode, setSubmissionMode] = useState<'file' | 'url' | 'text'>('file');
   const [file, setFile] = useState<File | null>(null);
+  const [urlInput, setUrlInput] = useState('');
   const [textContent, setTextContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(15);
@@ -80,6 +80,10 @@ export function StudentTurnInModal({
       setErrorMsg('Please select a file to upload.');
       return;
     }
+    if (submissionMode === 'url' && !urlInput.trim()) {
+      setErrorMsg('Please enter a valid document or project URL.');
+      return;
+    }
     if (submissionMode === 'text' && !textContent.trim()) {
       setErrorMsg('Please enter your written response.');
       return;
@@ -104,6 +108,7 @@ export function StudentTurnInModal({
             type: 'Text',
             value: trimmedText,
             path: '',
+            description: trimmedText,
           },
         ],
       };
@@ -115,14 +120,50 @@ export function StudentTurnInModal({
       studentPortalService
         .submitAssignment(classId, material.id, studentId, { text: trimmedText })
         .then((saved) => {
-          notificationService.notifySubmission(saved.id, classId).catch(() => {});
           onSubmitted(saved);
         })
         .catch(() => {});
       return;
     }
 
-    // 2. Blocking progress bar flow for binary file uploads
+    // 2. Optimistic non-blocking flow for web resource links
+    if (submissionMode === 'url') {
+      const trimmedUrl = urlInput.trim();
+      const tempId = existingSubmission?.id || crypto.randomUUID();
+      const optimisticSub: StudentSubmission = {
+        id: tempId,
+        classId,
+        studentId,
+        materialId: material.id,
+        materialName: material.name,
+        status: 'Submitted',
+        submittedAt: new Date().toISOString(),
+        content: [
+          {
+            id: crypto.randomUUID(),
+            name: `${material.name} (Web Link)`,
+            type: 'URL',
+            path: trimmedUrl,
+            value: trimmedUrl,
+            description: `Online project submission: ${trimmedUrl}`,
+          },
+        ],
+      };
+
+      onSubmitted(optimisticSub);
+      onClose();
+      setUrlInput('');
+
+      studentPortalService
+        .submitAssignment(classId, material.id, studentId, { url: trimmedUrl })
+        .then((saved) => {
+          onSubmitted(saved);
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // 3. Blocking progress bar flow for binary file uploads
     try {
       setIsSubmitting(true);
       const submission = await studentPortalService.submitAssignment(
@@ -134,7 +175,6 @@ export function StudentTurnInModal({
         }
       );
       setUploadProgress(100);
-      notificationService.notifySubmission(submission.id, classId).catch(() => {});
       onSubmitted(submission);
       onClose();
       setFile(null);
@@ -208,21 +248,36 @@ export function StudentTurnInModal({
         )}
 
         {/* Submission Mode Toggle */}
-        <div className="flex bg-elevated rounded-xl p-1 border border-border-color">
+        <div className="flex bg-elevated rounded-xl p-1 border border-border-color gap-1">
           <button
             type="button"
             onClick={() => {
               setSubmissionMode('file');
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               submissionMode === 'file'
                 ? 'bg-surface text-primary shadow-sm font-bold'
                 : 'text-muted-text hover:text-primary-text'
             }`}
           >
-            <UploadCloud className="w-4 h-4" />
+            <UploadCloud className="w-3.5 h-3.5" />
             Attach File
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSubmissionMode('url');
+              setErrorMsg(null);
+            }}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              submissionMode === 'url'
+                ? 'bg-surface text-primary shadow-sm font-bold'
+                : 'text-muted-text hover:text-primary-text'
+            }`}
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            Web Link
           </button>
           <button
             type="button"
@@ -230,13 +285,13 @@ export function StudentTurnInModal({
               setSubmissionMode('text');
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               submissionMode === 'text'
                 ? 'bg-surface text-primary shadow-sm font-bold'
                 : 'text-muted-text hover:text-primary-text'
             }`}
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="w-3.5 h-3.5" />
             Written Response
           </button>
         </div>
@@ -291,6 +346,31 @@ export function StudentTurnInModal({
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Web Link Tab */}
+        {submissionMode === 'url' && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] font-mono text-muted-text block mb-1">
+                ONLINE DOCUMENT / PROJECT URL
+              </label>
+              <input
+                type="url"
+                placeholder="https://docs.google.com/document/d/... or https://github.com/..."
+                value={urlInput}
+                onChange={(e) => {
+                  setUrlInput(e.target.value);
+                  setErrorMsg(null);
+                }}
+                className="w-full bg-elevated/50 border border-border-color focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-2xl p-3 text-xs text-primary-text leading-relaxed outline-none transition-all"
+                required
+              />
+            </div>
+            <p className="text-[11px] text-muted-text leading-normal">
+              Provide a link to your Google Doc, presentation, GitHub repository, or online portfolio.
+            </p>
           </div>
         )}
 

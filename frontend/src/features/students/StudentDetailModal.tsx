@@ -153,8 +153,9 @@ export default function StudentDetailModal({
         {
           id: crypto.randomUUID(),
           name: gradeForm.name.trim(),
-          type: 'File',
-          path: `grade://${submissionId}`,
+          type: 'Text',
+          path: '',
+          value: gradeForm.feedback.trim() || gradeForm.name.trim(),
           description: `Direct grade entry for ${gradeForm.name.trim()}`,
         },
       ],
@@ -672,7 +673,11 @@ export default function StudentDetailModal({
                       let gradeColor = 'text-success bg-success/10 border-success/20';
                       if (gradePercent < 60) gradeColor = 'text-error bg-error/10 border-error/20';
                       else if (gradePercent < 75) gradeColor = 'text-warning bg-warning/10 border-warning/20';
-                      const assessmentName = grade.content?.[0]?.value || 'Assessment';
+                      const assessmentName =
+                        grade.content?.[0]?.name ||
+                        grade.content?.[0]?.value ||
+                        grade.materialName ||
+                        'Assessment';
                       const matchedMaterial = classItem.materials?.find(
                         (m) => m.id === grade.materialId || m.name === assessmentName
                       );
@@ -755,7 +760,7 @@ export default function StudentDetailModal({
                           </div>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium text-primary-text">
-                              {up.content?.map((c) => c.value?.split('/').pop()).join(', ') || 'Unknown File'}
+                              {up.content?.map((c) => c.name || c.value?.split('/').pop()).join(', ') || up.materialName || 'Attachment'}
                             </span>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[9px] font-mono text-muted-text">

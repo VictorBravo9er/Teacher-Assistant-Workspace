@@ -184,11 +184,11 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 ---
 
 ### 3.9 `notify-material`
-- **Trigger**: Teacher publishing or updating a course material or assignment.
+- **Trigger**: Teacher publishing or updating a course material or assignment (`handleAddMaterialInClass` in `useClassOperations.ts` once the `public.materials` record is committed).
 - **Workflow**:
-  - Retrieves material category, title, max score, and due date.
+  - Retrieves material category, title, max score, and due date by `material_id`.
   - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
-  - Fetches enrolled student emails from `public.class_students`.
+  - Fetches enrolled student emails and optional parent contact details via `public.class_students` joined with `students(id, name, email, parent_name, parent_contact)`.
   - Dynamically customizes email copy based on `event_type` (`"published"` vs `"updated"`) with `reply_to` pointing to the teacher.
   - Queues batch delivery through Resend and records audit entries in `public.notification_logs`.
 

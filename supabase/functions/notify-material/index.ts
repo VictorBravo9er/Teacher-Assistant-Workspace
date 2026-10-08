@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // 2. Fetch enrolled students
     const { data: enrollments, error: enrollError } = await adminSupabase
       .from("class_students")
-      .select("student_id, parent_contact, parent_name, students(id, name, email)")
+      .select("student_id, students(id, name, email, parent_name, parent_contact)")
       .eq("class_id", class_id);
 
     if (enrollError) {
@@ -84,6 +84,37 @@ Deno.serve(async (req) => {
           recipient_name: student.name,
           recipient_type: "student",
           student_id: student.id,
+          status: "queued",
+        });
+      }
+
+      const parentContact = student?.parent_contact;
+      const parentName = student?.parent_name;
+      if (notify_parents && parentContact && parentContact.includes("@")) {
+        recipients.push({
+          from: senderEmail,
+          to: [parentContact],
+          ...(teacherEmail ? { reply_to: teacherEmail } : {}),
+          subject: `[${classItem.name}] ${eventVerb} ${material.category} for ${student?.name || "Student"}: ${material.name}`,
+          html: `<div style="font-family: sans-serif; padding: 20px;">
+            <h3>${classItem.name} — Coursework Update for Parents</h3>
+            <h2>${eventVerb} ${material.category}: ${material.name}</h2>
+            ${material.due_at ? `<p><strong>Due Date:</strong> ${new Date(material.due_at).toLocaleDateString()}</p>` : ""}
+            ${material.max_score ? `<p><strong>Max Points:</strong> ${material.max_score}</p>` : ""}
+            <p>This coursework has been assigned to <strong>${student?.name || "your child"}</strong>.</p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;" />
+            <p style="font-size: 12px; color: #6b7280;">Instructor: ${classItem.teacher_name || "Instructor"}${teacherEmail ? ` &bull; Direct inquiries to <a href="mailto:${teacherEmail}">${teacherEmail}</a>` : ""}</p>
+          </div>`,
+        });
+
+        logEntries.push({
+          class_id,
+          material_id,
+          notification_type: event_type === "updated" ? "material_updated" : "material_published",
+          recipient_email: parentContact,
+          recipient_name: parentName || "Parent/Guardian",
+          recipient_type: "parent",
+          student_id: student?.id,
           status: "queued",
         });
       }

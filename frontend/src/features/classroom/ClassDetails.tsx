@@ -11,6 +11,7 @@ import {
   TeachingStyle,
   AssessmentPreference,
   ExperienceLevel,
+  ContentItem,
 } from "@/types/main";
 import { formatEnumLabel } from "@/utils/enumFormatters";
 import { getEnumTooltip } from "@/utils/enumTooltips";
@@ -51,6 +52,9 @@ import {
   Send,
   Edit3,
   Save,
+  Link2,
+  BookOpen,
+  UploadCloud,
 } from "lucide-react";
 import { Button, Badge, Modal, FormField, Input, Textarea } from '@/components/ui';
 
@@ -62,6 +66,7 @@ interface ClassDetailsProps {
     wsId: string,
     mat: Omit<Material, "id" | "uploadDate">,
     file?: File,
+    notifyStudents?: boolean,
   ) => void;
   onDeleteMaterial: (wsId: string, matId: string) => void;
   onAddInstruction: (
@@ -103,11 +108,15 @@ export default function ClassDetails({
   };
 
   // Local form states for files/materials
+  const [materialMode, setMaterialMode] = useState<"file" | "url" | "text">("file");
   const [newFileName, setNewFileName] = useState("");
   const [newCategory, setNewCategory] = useState<ContentCategory>("Study Material");
   const [newFileTags, setNewFileTags] = useState("");
   const [newFileObj, setNewFileObj] = useState<File | null>(null);
   const [newUrlString, setNewUrlString] = useState("");
+  const [newTextContent, setNewTextContent] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newToBeScored, setNewToBeScored] = useState(false);
   const [newDueDate, setNewDueDate] = useState("");
   const [newMaxScore, setNewMaxScore] = useState<number>(100);
   const [showFileForm, setShowFileForm] = useState(false);
@@ -193,12 +202,12 @@ export default function ClassDetails({
         content,
         isPinned,
       })
-      .then(async (created) => {
+      .then((created) => {
         setAnnouncements((prev) =>
           prev.map((a) => (a.id === tempId ? { ...created, isPending: false } : a))
         );
         if (shouldNotifyStudents) {
-          await notificationService.notifyAnnouncement(
+          void notificationService.notifyAnnouncement(
             created.id,
             classItem.id,
             shouldNotifyParents
@@ -247,42 +256,85 @@ export default function ClassDetails({
     e.preventDefault();
     if (!newFileName.trim()) return;
 
+    if (materialMode === 'file' && !newFileObj) {
+      if (onTriggerToast) onTriggerToast("Please select a file to attach.");
+      return;
+    }
+    if (materialMode === 'url' && !newUrlString.trim()) {
+      if (onTriggerToast) onTriggerToast("Please provide a valid web link URL.");
+      return;
+    }
+    if (materialMode === 'text' && !newTextContent.trim()) {
+      if (onTriggerToast) onTriggerToast("Please enter the note or text content.");
+      return;
+    }
+
     const tagsArr = newFileTags
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    const isScored = ['Assignment', 'Test', 'Exam', 'Practical'].includes(newCategory);
+    const isScored = newToBeScored || ['Assignment', 'Test', 'Exam', 'Practical'].includes(newCategory);
+
+    let contentItem: ContentItem;
+    if (materialMode === 'file' && newFileObj) {
+      contentItem = {
+        id: crypto.randomUUID(),
+        name: newFileName.trim() || newFileObj.name,
+        type: 'File',
+        path: '',
+        size_bytes: newFileObj.size,
+        mime_type: newFileObj.type || 'application/octet-stream',
+        description: newDescription.trim() || `Uploaded document for ${newFileName.trim()}`,
+      };
+    } else if (materialMode === 'url') {
+      contentItem = {
+        id: crypto.randomUUID(),
+        name: newFileName.trim(),
+        type: 'URL',
+        path: newUrlString.trim(),
+        description: newDescription.trim() || `Web resource: ${newUrlString.trim()}`,
+      };
+    } else {
+      contentItem = {
+        id: crypto.randomUUID(),
+        name: newFileName.trim(),
+        type: 'Text',
+        path: '',
+        value: newTextContent.trim(),
+        description: newDescription.trim() || newTextContent.trim(),
+      };
+    }
 
     onAddMaterial(
       classItem.id,
       {
         name: newFileName.trim(),
         category: newCategory,
-        content: newFileObj
-          ? [{ id: crypto.randomUUID(), name: newFileName.trim(), type: 'File', path: '' }]
-          : [{ id: crypto.randomUUID(), name: newFileName.trim(), type: 'URL', path: newUrlString || 'https://example.com' }],
-        size: newFileObj ? `${(newFileObj.size / (1024 * 1024)).toFixed(1)} MB` : '0 MB',
+        content: [contentItem],
+        size:
+          materialMode === 'file' && newFileObj
+            ? `${(newFileObj.size / (1024 * 1024)).toFixed(1)} MB`
+            : materialMode === 'text'
+            ? `${newTextContent.trim().length} chars`
+            : 'Web Link',
         tags: tagsArr.length > 0 ? tagsArr : ["General"],
         dueAt: isScored || newDueDate ? (newDueDate || new Date(Date.now() + 7 * 86400000).toISOString()) : undefined,
         maxScore: isScored ? newMaxScore : undefined,
         toBeScored: isScored,
       },
-      newFileObj || undefined,
+      materialMode === 'file' ? newFileObj || undefined : undefined,
+      notifyOnCreateMaterial,
     );
-
-    if (notifyOnCreateMaterial) {
-      notificationService.notifyMaterial(classItem.id, classItem.id, 'published', false).catch((err) => {
-        console.warn('Material publication notification dispatch failed:', err);
-      });
-      onTriggerToast("Material published and notification emails queued.");
-    }
 
     setNewFileName("");
     setNewFileTags("");
     setNewFileObj(null);
     setNewUrlString("");
+    setNewTextContent("");
+    setNewDescription("");
     setNewDueDate("");
+    setNewToBeScored(false);
     setShowFileForm(false);
   };
 
@@ -680,23 +732,74 @@ export default function ClassDetails({
                 onClick={() => setShowFileForm(!showFileForm)}
                 leftIcon={showFileForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
               >
-                {showFileForm ? "Cancel" : "Upload File"}
+                {showFileForm ? "Cancel" : "Add Material"}
               </Button>
             </div>
 
-            {/* Simulated file upload form */}
+            {/* Material creation form supporting File, URL, and Text */}
             {showFileForm && (
               <form
                 onSubmit={handleCreateMaterial}
-                className="bg-surface border border-border-color rounded-xl p-3.5 space-y-3 shadow-sm"
+                className="bg-surface border border-border-color rounded-xl p-4 space-y-4 shadow-sm"
               >
+                {/* Content Type Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono text-muted-text uppercase font-bold block">
+                    RESOURCE FORMAT
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMaterialMode('file')}
+                      className={`py-2 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        materialMode === 'file'
+                          ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                          : 'bg-elevated/40 border-border-color text-secondary-text hover:text-primary-text'
+                      }`}
+                    >
+                      <Paperclip className="w-3.5 h-3.5" />
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaterialMode('url')}
+                      className={`py-2 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        materialMode === 'url'
+                          ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                          : 'bg-elevated/40 border-border-color text-secondary-text hover:text-primary-text'
+                      }`}
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      Web URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaterialMode('text')}
+                      className={`py-2 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        materialMode === 'text'
+                          ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                          : 'bg-elevated/40 border-border-color text-secondary-text hover:text-primary-text'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Notes & Text
+                    </button>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-[10px] font-mono text-muted-text block">
-                    FILE DISPLAY TITLE
+                  <label className="text-[10px] font-mono text-muted-text block mb-1">
+                    RESOURCE TITLE
                   </label>
                   <input
                     type="text"
-                    placeholder="Geometry_Formulas_Apx.pdf"
+                    placeholder={
+                      materialMode === 'file'
+                        ? "Geometry_Formulas_Apx.pdf"
+                        : materialMode === 'url'
+                        ? "Khan Academy - Differential Calculus"
+                        : "Unit 3 - Lecture Summary Notes"
+                    }
                     value={newFileName}
                     onChange={(e) => setNewFileName(e.target.value)}
                     className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
@@ -704,26 +807,67 @@ export default function ClassDetails({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
+                {/* Mode-specific input */}
+                {materialMode === 'file' && (
+                  <div>
                     <label className="text-[10px] font-mono text-muted-text block mb-1">
-                      UPLOAD FILE (OPTIONAL)
+                      CHOOSE ATTACHMENT FILE
                     </label>
                     <input
                       type="file"
                       onChange={(e) => setNewFileObj(e.target.files ? e.target.files[0] : null)}
                       className="w-full text-xs text-primary-text file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                      required
                     />
                   </div>
+                )}
+
+                {materialMode === 'url' && (
                   <div>
-                    <label className="text-[10px] font-mono text-muted-text block">
+                    <label className="text-[10px] font-mono text-muted-text block mb-1">
+                      RESOURCE URL
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/syllabus.pdf"
+                      value={newUrlString}
+                      onChange={(e) => setNewUrlString(e.target.value)}
+                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                      required
+                    />
+                  </div>
+                )}
+
+                {materialMode === 'text' && (
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-text block mb-1">
+                      TEXT / NOTE BODY
+                    </label>
+                    <textarea
+                      placeholder="Type or paste study guide, lesson notes, or reading excerpt..."
+                      value={newTextContent}
+                      onChange={(e) => setNewTextContent(e.target.value)}
+                      rows={4}
+                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary font-mono leading-relaxed resize-y"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-text block mb-1">
                       RESOURCE CATEGORY
                     </label>
                     <select
                       value={newCategory}
-                      onChange={(e) =>
-                        setNewCategory(e.target.value as ContentCategory)
-                      }
+                      onChange={(e) => {
+                        const cat = e.target.value as ContentCategory;
+                        setNewCategory(cat);
+                        if (['Assignment', 'Test', 'Exam', 'Practical'].includes(cat)) {
+                          setNewToBeScored(true);
+                        }
+                      }}
                       className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
                     >
                       {Constants.public.Enums.content_category.map((cat) => (
@@ -734,8 +878,8 @@ export default function ClassDetails({
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-mono text-muted-text block">
-                      COMMA TAGS
+                    <label className="text-[10px] font-mono text-muted-text block mb-1">
+                      TAGS (COMMA SEPARATED)
                     </label>
                     <input
                       type="text"
@@ -747,48 +891,65 @@ export default function ClassDetails({
                   </div>
                 </div>
 
-                {!newFileObj && (
-                  <div>
-                    <label className="text-[10px] font-mono text-muted-text block">
-                      OR WEB LINK URL
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://example.com/syllabus.pdf"
-                      value={newUrlString}
-                      onChange={(e) => setNewUrlString(e.target.value)}
-                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="text-[10px] font-mono text-muted-text block mb-1">
+                    BRIEF DESCRIPTION / PEDAGOGICAL CONTEXT (OPTIONAL)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Reference chapter formulas and prerequisite concepts..."
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-secondary-text focus:outline-none focus:border-primary"
+                  />
+                </div>
 
-                {['Assignment', 'Test', 'Exam', 'Practical'].includes(newCategory) && (
-                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border-color/40">
-                    <div>
-                      <label className="text-[10px] font-mono text-muted-text block">
-                        DUE DATE
-                      </label>
+                {/* Graded Assessment Scoring Options */}
+                <div className="pt-2 border-t border-border-color/60 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
-                        type="date"
-                        value={newDueDate}
-                        onChange={(e) => setNewDueDate(e.target.value)}
-                        className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                        type="checkbox"
+                        checked={newToBeScored}
+                        onChange={(e) => setNewToBeScored(e.target.checked)}
+                        className="rounded border-border-color text-primary focus:ring-primary h-3.5 w-3.5"
                       />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-mono text-muted-text block">
-                        MAX SCORE
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={newMaxScore}
-                        onChange={(e) => setNewMaxScore(parseInt(e.target.value) || 100)}
-                        className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
-                      />
-                    </div>
+                      <span className="text-xs font-semibold text-primary-text">
+                        To be scored as graded assignment / assessment
+                      </span>
+                    </label>
                   </div>
-                )}
+
+                  {newToBeScored && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="text-[10px] font-mono text-muted-text block mb-1">
+                          DUE DATE
+                        </label>
+                        <input
+                          type="date"
+                          value={newDueDate}
+                          onChange={(e) => setNewDueDate(e.target.value)}
+                          className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                          required={newToBeScored}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-mono text-muted-text block mb-1">
+                          MAX SCORE
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={newMaxScore}
+                          onChange={(e) => setNewMaxScore(parseInt(e.target.value) || 100)}
+                          className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary"
+                          required={newToBeScored}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2 pt-1 pb-1">
                   <input
@@ -805,62 +966,92 @@ export default function ClassDetails({
 
                 <button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs py-2 rounded-lg transition-colors cursor-pointer"
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
                 >
-                  Upload & Commit Document
+                  Commit & Publish Material
                 </button>
               </form>
             )}
 
-            {/* Files Grid list */}
+            {/* Materials Grid list */}
             <div className="space-y-2.5">
               {classItem.materials.length === 0 ? (
                 <div className="text-center py-6 text-muted-text text-xs font-mono border border-dashed border-border-color rounded-xl">
-                  No reference files. Let's upload a textbook.
+                  No reference materials. Click &quot;Add Material&quot; to upload files, links, or notes.
                 </div>
               ) : (
-                classItem.materials.map((mat) => (
-                  <div
-                    key={mat.id}
-                    className="group bg-surface border border-border-color hover:bg-elevated rounded-xl p-3 flex items-center justify-between transition-colors cursor-pointer"
-                  >
+                classItem.materials.map((mat) => {
+                  const firstItem = mat.content && mat.content[0];
+                  const itemType = firstItem?.type || (mat.category === 'Link' ? 'URL' : mat.category === 'Note' ? 'Text' : 'File');
+
+                  return (
                     <div
-                      className="flex items-center gap-3 truncate"
-                      onClick={() => setSelectedMaterialHistory(mat)}
+                      key={mat.id}
+                      className="group bg-surface border border-border-color hover:bg-elevated rounded-xl p-3 flex items-center justify-between transition-colors cursor-pointer"
                     >
-                      <div className="p-2.5 bg-background rounded-lg text-muted-text group-hover:text-primary group-hover:bg-primary/10 transition-all border border-border-color">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div className="truncate flex flex-col">
-                        <span className="text-xs font-medium text-primary-text truncate group-hover:text-primary-text">
-                          {mat.name}
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          <span className="text-[9px] font-mono text-muted-text uppercase">
-                            {mat.category || 'Study Material'}
-                          </span>
-                          <span className="w-1 h-1 bg-border-color rounded-full"></span>
-                          <span className="text-[9px] font-mono text-primary/80">
-                            {mat.size || 'File'}
-                          </span>
-                          {mat.isShared && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
-                              <Globe className="w-2.5 h-2.5" /> Shared
-                            </span>
-                          )}
-                          {mat.customContent && mat.customContent.length > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                              <Lock className="w-2.5 h-2.5" /> Private (+{mat.customContent.length})
-                            </span>
-                          )}
-                          {mat.customRubricCriteria && mat.customRubricCriteria.length > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                              <Sliders className="w-2.5 h-2.5" /> Augmented Rubric
-                            </span>
+                      <div
+                        className="flex items-center gap-3 truncate flex-1 min-w-0"
+                        onClick={() => setSelectedMaterialHistory(mat)}
+                      >
+                        <div className="p-2.5 bg-background rounded-lg text-muted-text group-hover:text-primary group-hover:bg-primary/10 transition-all border border-border-color shrink-0">
+                          {itemType === 'URL' ? (
+                            <Link2 className="w-4 h-4 text-sky-500" />
+                          ) : itemType === 'Text' ? (
+                            <BookOpen className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <FileText className="w-4 h-4 text-primary" />
                           )}
                         </div>
+                        <div className="truncate flex flex-col min-w-0">
+                          <span className="text-xs font-medium text-primary-text truncate group-hover:text-primary-text">
+                            {mat.name}
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-[9px] font-mono text-muted-text uppercase">
+                              {mat.category || 'Study Material'}
+                            </span>
+                            <span className="w-1 h-1 bg-border-color rounded-full"></span>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
+                              itemType === 'URL'
+                                ? 'text-sky-500 bg-sky-500/10 border-sky-500/20'
+                                : itemType === 'Text'
+                                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+                                : 'text-primary bg-primary/10 border-primary/20'
+                            }`}>
+                              {itemType}
+                            </span>
+                            <span className="w-1 h-1 bg-border-color rounded-full"></span>
+                            <span className="text-[9px] font-mono text-secondary-text">
+                              {mat.size || (itemType === 'URL' ? 'Web Link' : 'File')}
+                            </span>
+                            {mat.toBeScored && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                Graded • Max {mat.maxScore || 100} pts
+                              </span>
+                            )}
+                            {mat.dueAt && (
+                              <span className="text-[9px] font-mono text-muted-text">
+                                Due {new Date(mat.dueAt).toLocaleDateString()}
+                              </span>
+                            )}
+                            {mat.isShared && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
+                                <Globe className="w-2.5 h-2.5" /> Shared
+                              </span>
+                            )}
+                            {mat.customContent && mat.customContent.length > 0 && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                <Lock className="w-2.5 h-2.5" /> Private (+{mat.customContent.length})
+                              </span>
+                            )}
+                            {mat.customRubricCriteria && mat.customRubricCriteria.length > 0 && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                <Sliders className="w-2.5 h-2.5" /> Augmented Rubric
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
 
                     <div className="flex items-center gap-1.5 transition-opacity">
                       <button
@@ -904,8 +1095,9 @@ export default function ClassDetails({
                       </button>
                     </div>
                   </div>
-                ))
-              )}
+                );
+              })
+            )}
             </div>
           </div>
 

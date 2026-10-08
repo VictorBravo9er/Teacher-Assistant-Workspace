@@ -10,6 +10,7 @@ import { classService } from '@/services/classService';
 import { templateService } from '@/services/templateService';
 import { materialService } from '@/services/materialService';
 import { instructionService } from '@/services/instructionService';
+import { notificationService } from '@/services/notificationService';
 import { logger } from '@/lib/logger';
 
 interface UseClassOperationsProps {
@@ -371,8 +372,8 @@ export function useClassOperations({
 
   // --- Materials Nested Operations ---
   const handleAddMaterialInClass = useCallback(
-    async (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
-      // 1. Optimistic non-blocking flow for URL-only materials (no binary file)
+    async (wsId: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File, notifyStudents: boolean = false) => {
+      // 1. Optimistic non-blocking flow for URL or Text materials (no binary file)
       if (!file) {
         const tempId = crypto.randomUUID();
         const optimisticMat: Material = {
@@ -388,16 +389,32 @@ export function useClassOperations({
           )
         );
 
-        const firstPath = mat.content && mat.content[0] ? mat.content[0].path : '';
-        materialService
-          .createLinkMaterial(wsId, {
-            name: mat.name,
-            url: firstPath || 'https://example.com',
-            category: mat.category,
-            tags: mat.tags,
-            dueAt: mat.dueAt,
-            maxScore: mat.maxScore,
-          })
+        const firstItem = mat.content && mat.content[0];
+        const isText = firstItem?.type === 'Text' || mat.category === 'Note';
+
+        const createPromise = isText
+          ? materialService.createTextMaterial(wsId, {
+              name: mat.name,
+              text: firstItem?.value || firstItem?.description || '',
+              category: mat.category,
+              description: firstItem?.description,
+              tags: mat.tags,
+              dueAt: mat.dueAt,
+              maxScore: mat.maxScore,
+              toBeScored: mat.toBeScored,
+            })
+          : materialService.createLinkMaterial(wsId, {
+              name: mat.name,
+              url: firstItem?.path || 'https://example.com',
+              category: mat.category,
+              description: firstItem?.description,
+              tags: mat.tags,
+              dueAt: mat.dueAt,
+              maxScore: mat.maxScore,
+              toBeScored: mat.toBeScored,
+            });
+
+        createPromise
           .then((newMat) => {
             applyClassesMutation(
               classesRef.current.map((w) =>
@@ -411,7 +428,14 @@ export function useClassOperations({
                   : w
               )
             );
-            triggerToast('Uploaded course material committed successfully.');
+            if (notifyStudents) {
+              notificationService.notifyMaterial(newMat.id, wsId, 'published', false).catch((err) => {
+                logger.warn('CLASS_OPERATIONS', 'Material publication notification dispatch failed', { err });
+              });
+              triggerToast('Material published and notification emails queued.');
+            } else {
+              triggerToast(isText ? 'Study note recorded successfully.' : 'External link resource saved.');
+            }
           })
           .catch((err: unknown) => {
             applyClassesMutation(
@@ -422,7 +446,7 @@ export function useClassOperations({
               )
             );
             const msg = err instanceof Error ? err.message : String(err);
-            triggerToast(`Failed to upload material: ${msg}`);
+            triggerToast(`Failed to save material: ${msg}`);
           });
         return;
       }
@@ -431,12 +455,15 @@ export function useClassOperations({
       try {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
         setProcessingMsg(`Uploading "${mat.name}" (${sizeMb} MB)...`);
+        const firstItem = mat.content && mat.content[0];
         const newMat = await materialService.uploadMaterial(wsId, file, {
           name: mat.name,
           category: mat.category,
+          description: firstItem?.description,
           tags: mat.tags,
           dueAt: mat.dueAt,
           maxScore: mat.maxScore,
+          toBeScored: mat.toBeScored,
         });
 
         applyClassesMutation(
@@ -444,7 +471,14 @@ export function useClassOperations({
             w.id === wsId ? { ...w, materials: [...w.materials, newMat] } : w
           )
         );
-        triggerToast('Uploaded course material committed successfully.');
+        if (notifyStudents) {
+          notificationService.notifyMaterial(newMat.id, wsId, 'published', false).catch((err) => {
+            logger.warn('CLASS_OPERATIONS', 'Material publication notification dispatch failed', { err });
+          });
+          triggerToast('Material uploaded and notification emails queued.');
+        } else {
+          triggerToast('Uploaded course material committed successfully.');
+        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         triggerToast(`Failed to upload material: ${msg}`);
@@ -592,9 +626,9 @@ export function useClassOperations({
   );
 
   const handleAdapterAddMaterial = useCallback(
-    (id: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File) => {
+    (id: string, mat: Omit<Material, 'id' | 'uploadDate'>, file?: File, notifyStudents: boolean = false) => {
       if (viewMode === 'class') {
-        handleAddMaterialInClass(id, mat, file);
+        handleAddMaterialInClass(id, mat, file, notifyStudents);
       } else {
         mutateTemplates(
           templates.map((t) => {

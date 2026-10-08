@@ -64,7 +64,7 @@ interface DeleteAnnouncementInput {
 ## ATOM-NOTIF-03: Dispatch Material Published/Updated Email Alert
 
 ### 1. Trigger
-- **Event**: Material is published or its due date is updated by a teacher.
+- **Event**: Teacher publishes a new material in [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx) with `notifyOnCreateMaterial` enabled, resolved after DB persistence in [`useClassOperations.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useClassOperations.ts).
 
 ### 2. Input Parameters
 ```typescript
@@ -77,12 +77,12 @@ interface NotifyMaterialInput {
 ```
 
 ### 3. Execution Pipeline
-1. Frontend calls [`notificationService.notifyMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/notificationService.ts).
-2. Edge Function `notify-material` fetches material metadata, compiles recipient list from `public.class_students`, and posts to `https://api.resend.com/emails/batch`.
+1. Once `materialService` commits the `public.materials` and `public.class_materials` rows and resolves `newMat.id`, `useClassOperations.handleAddMaterialInClass` calls [`notificationService.notifyMaterial(newMat.id, wsId, 'published', false)`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/notificationService.ts).
+2. Edge Function `notify-material` fetches material metadata by `material_id`, compiles the recipient list from `public.class_students` joined with `students(id, name, email, parent_name, parent_contact)`, and posts to `https://api.resend.com/emails/batch`.
 3. Inserts records into `public.notification_logs` with `notification_type = 'material_published' | 'material_updated'`.
 
 ### 4. Conclusion
-- Batch queued in Resend; students receive personalized notification emails.
+- Batch queued in Resend; students (and optionally parents) receive personalized notification emails with `reply_to` set to the instructor.
 
 ---
 

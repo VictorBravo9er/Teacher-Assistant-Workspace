@@ -17,6 +17,8 @@ export const materialService = {
       tags?: string[];
       dueAt?: string;
       maxScore?: number;
+      description?: string;
+      toBeScored?: boolean;
       rubricCriteria?: any[];
     }
   ): Promise<Material> {
@@ -39,7 +41,7 @@ export const materialService = {
 
     const category: ContentCategory = options?.category || 'Study Material';
     const scoredCategories: ContentCategory[] = ['Assignment', 'Test', 'Exam', 'Practical'];
-    const toBeScored = scoredCategories.includes(category);
+    const toBeScored = options?.toBeScored !== undefined ? options.toBeScored : scoredCategories.includes(category);
 
     const contentItems: ContentItem[] = [
       {
@@ -49,7 +51,7 @@ export const materialService = {
         path: storagePath,
         size_bytes: file.size,
         mime_type: file.type || 'application/octet-stream',
-        description: `Uploaded document for ${options?.name || file.name}`
+        description: options?.description || `Uploaded document for ${options?.name || file.name}`
       }
     ];
 
@@ -123,9 +125,11 @@ export const materialService = {
       name: string;
       url: string;
       category?: ContentCategory;
+      description?: string;
       tags?: string[];
       dueAt?: string;
       maxScore?: number;
+      toBeScored?: boolean;
     }
   ): Promise<Material> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -135,7 +139,7 @@ export const materialService = {
     const itemId = crypto.randomUUID();
     const category: ContentCategory = payload.category || 'Link';
     const scoredCategories: ContentCategory[] = ['Assignment', 'Test', 'Exam', 'Practical'];
-    const toBeScored = scoredCategories.includes(category);
+    const toBeScored = payload.toBeScored !== undefined ? payload.toBeScored : scoredCategories.includes(category);
 
     const contentItems: ContentItem[] = [
       {
@@ -143,7 +147,7 @@ export const materialService = {
         name: payload.name,
         type: 'URL',
         path: payload.url,
-        description: `Web link: ${payload.url}`
+        description: payload.description || `Web link: ${payload.url}`
       }
     ];
 
@@ -192,7 +196,98 @@ export const materialService = {
       category: insertedMat.category as ContentCategory,
       content: insertedMat.content as ContentItem[],
       uploadDate: insertedMat.created_at,
-      size: '0 MB',
+      size: 'Web Link',
+      tags: insertedMat.tags || [],
+      dueAt: insertedMat.due_at || undefined,
+      maxScore: insertedMat.max_score || undefined,
+      toBeScored: insertedMat.to_be_scored || false,
+      rubricCriteria: insertedMat.rubric_criteria || undefined,
+    };
+  },
+
+  /**
+   * Create an inline Text or Note material and save record in database.
+   */
+  async createTextMaterial(
+    classId: string,
+    payload: {
+      name: string;
+      text: string;
+      category?: ContentCategory;
+      description?: string;
+      tags?: string[];
+      dueAt?: string;
+      maxScore?: number;
+      toBeScored?: boolean;
+    }
+  ): Promise<Material> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthenticated user");
+
+    const materialId = crypto.randomUUID();
+    const itemId = crypto.randomUUID();
+    const category: ContentCategory = payload.category || 'Note';
+    const scoredCategories: ContentCategory[] = ['Assignment', 'Test', 'Exam', 'Practical'];
+    const toBeScored = payload.toBeScored !== undefined ? payload.toBeScored : scoredCategories.includes(category);
+
+    const contentItems: ContentItem[] = [
+      {
+        id: itemId,
+        name: payload.name,
+        type: 'Text',
+        path: '',
+        value: payload.text,
+        description: payload.description || payload.text,
+      }
+    ];
+
+    const materialInsertPayload: any = {
+      id: materialId,
+      user_id: user.id,
+      name: payload.name.trim() || 'Untitled Note',
+      category,
+      content: contentItems,
+      to_be_scored: toBeScored,
+      tags: payload.tags || ['Study Note'],
+    };
+
+    if (toBeScored) {
+      materialInsertPayload.due_at = payload.dueAt || new Date(Date.now() + 7 * 86400000).toISOString();
+      materialInsertPayload.max_score = payload.maxScore ?? 100;
+    } else if (payload.dueAt) {
+      materialInsertPayload.due_at = payload.dueAt;
+      materialInsertPayload.max_score = payload.maxScore ?? 100;
+    }
+
+    const { data: insertedMat, error: matDbError } = await supabase
+      .from('materials')
+      .insert(materialInsertPayload)
+      .select()
+      .single();
+
+    if (matDbError) {
+      throw new Error(`Database error: ${matDbError.message}`);
+    }
+
+    const { error: linkError } = await supabase
+      .from('class_materials')
+      .insert({
+        class_id: classId,
+        material_id: materialId,
+      });
+
+    if (linkError) {
+      throw new Error(`Failed to link text-material to class: ${linkError.message}`);
+    }
+
+    const charCount = payload.text.length;
+    return {
+      id: insertedMat.id,
+      name: insertedMat.name,
+      category: insertedMat.category as ContentCategory,
+      content: insertedMat.content as ContentItem[],
+      uploadDate: insertedMat.created_at,
+      size: `${charCount} chars`,
       tags: insertedMat.tags || [],
       dueAt: insertedMat.due_at || undefined,
       maxScore: insertedMat.max_score || undefined,

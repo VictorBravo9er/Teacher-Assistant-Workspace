@@ -101,7 +101,9 @@ erDiagram
 2. **`classes`**: Active pedagogical course instances (`id`, `institute_id`, `teacher_id`, `name`, `subject`, `grade_level`, `experience_level`, `teaching_style`, `assessment_preference`, `term`, `schedule`, `settings`, `created_at`, `updated_at`).
 3. **`templates`**: Reusable curriculum blueprints that can instantiate new classes (`id`, `institute_id`, `name`, `subject`, `grade_level`, `experience_level`, `teaching_style`, `assessment_preference`, `settings`, `user_id`, `created_at`, `updated_at`).
 4. **`students`**: Master student identity registry (`id`, `name`, `email`, `phone`, `address`, `parent_name`, `parent_contact`, `avatar_url`, `is_archived`, `created_at`, `updated_at`).
-5. **`materials`**: Global repository of learning resources and assignments (`id`, `name`, `description`, `category`, `content` JSONB, `user_id`, `created_at`, `updated_at`).
+5. **`materials`**: Global repository of learning resources and assignments (`id`, `name`, `description`, `category`, `content` JSONB, `to_be_scored`, `due_at`, `max_score`, `user_id`, `created_at`, `updated_at`).
+   - **`valid_content_shape` Constraint**: Enforced via `validate_content_array(content)`. Elements must have `id: text`, `name: text`, `type: text` (`'File'` | `'URL'` | `'Text'`), and `path: text` (non-empty unless `type = 'Text'`). Optional attributes include `description`, `size_bytes`, `mime_type`, and `value`.
+   - **Assessment Constraint**: `to_be_scored = false OR (due_at IS NOT NULL AND max_score IS NOT NULL)`.
 6. **`instructions`**: Assistant prompts, system personas, and grading rubrics (`id`, `title`, `description`, `type`, `content`, `user_id`, `created_at`, `updated_at`).
 
 #### Junction & Execution Entities:
@@ -109,6 +111,7 @@ erDiagram
 2. **`class_materials`**: Connects reusable `material_id` to `class_id` with ordering indices (`order_index`), class-specific content overlays (`custom_content`), and augmented criteria (`custom_rubric_criteria`).
 3. **`class_instructions`**: Connects system instructions or rubrics to `class_id` with execution priority (`order_index`).
 4. **`student_submissions`**: Student work records targeting an assignment material (`id`, `class_id`, `student_id`, `material_id`, `status`, `score`, `max_score`, `feedback`, `content` JSONB, `submitted_at`, `evaluated_at`).
+   - **`valid_content_shape` Constraint**: Also enforced via `validate_content_array(content)`. Supports binary files (uploaded to storage bucket `student-submissions`), external URL references, and inline plaintext answers.
 5. **`attendance_records`**: Session-level attendance tracking (`id`, `class_id`, `student_id`, `date`, `status`, `notes`, `recorded_by`).
 6. **`chat_sessions`**: Persisted conversation sessions between teachers and the AI Assistant (`id`, `class_id`, `user_id`, `title`, `messages` JSONB, `analysis_config` JSONB, `created_at`, `updated_at`).
 7. **`announcements`**: Classroom broadcast board notices (`id`, `class_id`, `author_id`, `title`, `content`, `is_pinned`, `created_at`, `updated_at`).

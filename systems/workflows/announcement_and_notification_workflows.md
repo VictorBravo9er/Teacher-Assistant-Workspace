@@ -53,22 +53,23 @@ sequenceDiagram
 ## 2. Material Publishing & Update Notification Flow
 
 ### User Journey:
-1. Teacher adds a new assignment or updates the due date of existing coursework in `ClassDetails.tsx`.
-2. When the material is published or updated, `notificationService.notifyMaterial()` is triggered with `event_type = 'published'` or `'updated'`.
-3. The `notify-material` Edge Function retrieves material details (`due_at`, `max_score`) and class roster emails.
-4. An HTML email highlighting assignment due dates and submission requirements is queued through Resend.
-5. Delivery audit logs are stored in `public.notification_logs` (`notification_type = 'material_published' | 'material_updated'`).
+1. Teacher adds a new assignment or coursework material in `ClassDetails.tsx` with **"Notify enrolled students via email"** (`notifyOnCreateMaterial`) checked.
+2. `ClassDetails.tsx` passes `notifyOnCreateMaterial` into `onAddMaterial` (`useClassOperations.handleAddMaterialInClass`).
+3. Once `materialService` persists the new row in `public.materials` and links it in `public.class_materials`, `useClassOperations` invokes `notificationService.notifyMaterial(newMat.id, wsId, 'published', false)` with the persisted `newMat.id`.
+4. The `notify-material` Edge Function retrieves material details (`due_at`, `max_score`) and enrolled student/parent emails via `public.class_students` joined with `public.students`.
+5. An HTML email highlighting assignment due dates and submission requirements is queued through Resend with `reply_to` set to the teacher's email.
+6. Delivery audit logs are stored in `public.notification_logs` (`notification_type = 'material_published' | 'material_updated'`).
 
 ---
 
 ## 3. Student Turn-In Alert Flow
 
 ### User Journey:
-1. Student submits completed assignment files via `StudentTurnInModal.tsx` in the Student Portal.
-2. `studentPortalService.submitAssignment()` creates the `student_submissions` row.
-3. The client calls `notificationService.notifySubmission({ submission_id, class_id })`.
+1. Student submits completed assignment work (`File`, `URL`, or `Text`) via `StudentTurnInModal.tsx` in the Student Portal.
+2. `studentPortalService.submitAssignment()` creates or updates the `public.student_submissions` row (`status = 'Submitted'`).
+3. Immediately after persistence, `studentPortalService.submitAssignment()` dispatches a single non-blocking `notificationService.notifySubmission(resultData.id, classId)` call.
 4. The `notify-submission` Edge Function resolves the class instructor's email via `auth.admin.getUserById()`.
-5. An alert email is dispatched to the instructor's inbox detailing the student name, material, and submission timestamp.
+5. An alert email is dispatched to the instructor's inbox detailing the student name, material, and submission timestamp (with `reply_to` set to the student's email).
 6. The event is recorded in `public.notification_logs` with `notification_type = 'submission_turned_in'`.
 
 ---

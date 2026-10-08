@@ -153,7 +153,7 @@ export default function MaterialPreviewModal({
       <ModalHeader
         title={material.name}
         subtitle={
-          <div className="flex items-center gap-2 text-[10px] text-muted-text font-mono mt-0.5">
+          <span className="flex items-center gap-2 text-[10px] text-muted-text font-mono mt-0.5">
             <span>
               Size:{' '}
               {material.size ||
@@ -184,7 +184,7 @@ export default function MaterialPreviewModal({
                 </span>
               </>
             )}
-          </div>
+          </span>
         }
         badge={
           <div className="flex items-center gap-1.5">

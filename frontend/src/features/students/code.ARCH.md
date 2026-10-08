@@ -79,4 +79,11 @@ sequenceDiagram
    - Clicking **Save** (`student-detail-save-dossier-button`) dispatches a single `onUpdateStudentDetails(student.id, dossierDraft)` call and exits `isEditingDossier`.
 5. **Diff-Only Split Student Persistence (`handleUpdateStudentDetails` in `StudentRegister.tsx` & `studentService.ts`)**:
    - Forwards only `updatedFields` to `studentService.updateStudentClassData(classItem.id, studentId, updatedFields)`, which splits updates between `public.students` (`phone`, `address`, `parent_name`, `parent_contact`) and `public.class_students` (`roll_number`, `parent_notes`, `custom_fields`, `performance_tier`, `current_score`, etc.), ensuring submission list updates (`{ submissions }`) never trigger redundant database writes.
+6. **Multi-Channel Submission Review & Safe URL Resolution (`SubmissionGradingModal.tsx` & `studentService.ts`)**:
+   - `SubmissionGradingModal.tsx` dynamically branches based on submission content item type:
+     - `File`: Displays file name, formatted byte size, and download button calling `getSubmissionDownloadUrl` with signed storage resolution.
+     - `URL`: Displays external link badge, URL destination, and an external link button opening in a new tab.
+     - `Text`: Displays a scrollable monospace response box displaying student written text.
+   - `getSubmissionDownloadUrl` guards against `grade://`, `text://`, and empty paths, returning null safely without triggering unhandled Supabase Storage errors.
+
 

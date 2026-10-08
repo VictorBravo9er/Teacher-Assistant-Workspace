@@ -50,20 +50,23 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **User Form Submission**:
-   - In [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx) (Materials tab), the teacher provides:
-     - **File or Link**: Native PDF, DOCX, PPTX, or external URL / plaintext.
-     - **Title & Category**: `Study Material`, `Note`, `Assigned Book`, `Link`, `Practical`, `Assignment`, `Test`, `Exam`.
-     - **Assignment Parameters**: Due Date, Maximum Score, Rubric Criteria (if scored).
-2. **Binary Storage Upload**:
-   - [`materialService.uploadMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) generates a unique UUID for the material and content item.
-   - Uploads the file to the `class-materials` bucket at path `/{teacher_user_id}/{material_id}/{content_item_id}`.
+   - In [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx) (Materials tab), the teacher selects from the 3-mode resource creator:
+     - **File Upload (`type: 'File'`)**: Local PDF, DOCX, PPTX, or text file attached via dropzone. Uploads to Supabase Storage `class-materials` bucket at `/{teacher_user_id}/{material_id}/{content_item_id}`.
+     - **Web URL (`type: 'URL'`)**: External URL reference (Google Doc, YouTube, online reader). Saved directly with `path = url` without physical storage allocation.
+     - **Notes & Text (`type: 'Text'`)**: Rich markdown/plaintext notes or syllabus definitions. Saved with `path = ''` and body in `value` property, conforming to `valid_content_shape`.
+     - **Metadata**: Title, Category (`Study Material`, `Note`, `Assigned Book`, `Link`, `Practical`, `Assignment`, `Test`, `Exam`), Description, and Tags.
+     - **Assessment Parameters**: Graded Assessment toggle (`toBeScored`). When enabled, enforces non-null `due_at` and `max_score` per database check constraint `to_be_scored = false OR (due_at IS NOT NULL AND max_score IS NOT NULL)`.
+2. **Binary Storage vs Virtual Content Ingestion**:
+   - **For Files**: [`materialService.uploadMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) uploads the binary to `class-materials/{teacher_user_id}/{material_id}/{content_item_id}` and captures `size_bytes` and `mime_type`.
+   - **For Links**: [`materialService.createLinkMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) structures `content` with `type: 'URL'`, `path: url`.
+   - **For Text Notes**: [`materialService.createTextMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) structures `content` with `type: 'Text'`, `path: ''`, and content in `value`.
 3. **Database Relational Linking**:
-   - The material is inserted into `public.materials` with its `content` JSONB array describing the storage path, MIME type, and byte size.
+   - The material is inserted into `public.materials` with its `content` JSONB array conforming to `valid_content_shape` (`validate_content_array`).
    - A junction entry is inserted into `public.class_materials` linking the material to the active `class_id`.
 4. **Asynchronous AI Curriculum Analysis**:
    - A database trigger dispatches an asynchronous HTTP webhook via `pg_net` to the [`trigger-material-analysis`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-material-analysis) Edge Function.
-   - The Edge Function retrieves the document blob, extracts its plaintext content, and dispatches a request to the Backend `POST /api/materials/analyze`.
-   - The Backend's `EvaluatorService` analyzes the content, detects prerequisite knowledge gaps, maps syllabus alignments, and stores findings in `ai.material_insights`.
+   - For file materials, the Edge Function retrieves the document blob and extracts its text. For text materials, it uses the inline `value`. It then calls Backend `POST /api/materials/analyze`.
+   - The Backend's `EvaluatorService` analyzes syllabus alignment and prerequisite gaps, storing findings in `ai.material_insights`.
 
 ---
 
