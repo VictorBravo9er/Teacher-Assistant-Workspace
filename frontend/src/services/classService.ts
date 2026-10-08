@@ -32,21 +32,35 @@ function mapDbRowToClassModel(c: any, students: Student[], ragSessions: RAGSessi
       const customRubric = (cm.custom_rubric_criteria || []).map((r: any) => ({ ...r, isPrivate: true }));
       const augmentedRubric = [...canonicalRubric, ...customRubric];
 
+      const firstItem = mergedContent[0];
+      let computedSize = 'Material';
+      if (firstItem?.size_bytes) {
+        computedSize =
+          firstItem.size_bytes >= 1024 * 1024
+            ? `${(firstItem.size_bytes / (1024 * 1024)).toFixed(1)} MB`
+            : `${(firstItem.size_bytes / 1024).toFixed(0)} KB`;
+      } else if (firstItem?.type === 'Text') {
+        const chars = firstItem.value?.length || firstItem.description?.length || 0;
+        computedSize = `${chars} chars`;
+      } else if (firstItem?.type === 'URL') {
+        computedSize = 'Web Link';
+      }
+
       return {
         id: m.id,
         name: m.name,
         category: m.category,
+        type: firstItem?.type || (m.category === 'Link' ? 'URL' : m.category === 'Note' ? 'Text' : 'File'),
         content: mergedContent,
         customContent: cm.custom_content || [],
         uploadDate: m.created_at,
-        size: m.size,
+        size: computedSize,
         tags: m.tags || [],
         dueAt: m.due_at,
         maxScore: m.max_score,
         toBeScored: m.to_be_scored || false,
         rubricCriteria: augmentedRubric,
         customRubricCriteria: cm.custom_rubric_criteria || [],
-        versionHistory: m.version_history,
         isShared: true,
       } as Material;
     }).filter(Boolean) as Material[],

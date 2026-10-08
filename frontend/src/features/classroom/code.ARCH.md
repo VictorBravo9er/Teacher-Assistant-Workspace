@@ -49,3 +49,11 @@ flowchart TD
    - `isEditMode` in `ClassDetails.tsx` governs **only** the **Class Profile** tab (`class-details-tab-profile`).
    - The Edit, Save, and Cancel controls (`class-profile-edit-button`, `class-profile-save-button`, `class-profile-cancel-button`) are located directly inside the **Class Profile** tab header, completely isolating profile configuration from upper view navigation.
    - Add, edit, rubric-builder, and delete controls in the **Materials** tab (`materials-upload-file-button`, `Trash2` remove button) and **Class Guidelines** tab (`instructions-new-guideline-button`, `Trash2` delete button) are always visible and accessible without requiring Edit Mode.
+6. **Multi-Mode Material Ingestion & Database Constraint Compliance (`ClassDetails.tsx`)**:
+   - Materials creation supports 3 explicit ingestion modes:
+     - `File`: uploads to `class-materials` at `/{teacher_user_id}/{material_id}/{content_item_id}`, recording `size_bytes` and `mime_type`.
+     - `URL`: sets `path = url`, `type = 'URL'` without physical storage allocation.
+     - `Text`: sets `path = ''`, `value = textContent`, `type = 'Text'` conforming to `valid_content_shape` (`validate_content_array`).
+   - Graded assessment parameters strictly enforce the database check constraint `to_be_scored = false OR (due_at IS NOT NULL AND max_score IS NOT NULL)` prior to dispatch, requiring both `dueAt` and `maxScore` when `toBeScored` is true.
+   - Forwards `notifyOnCreateMaterial` to `onAddMaterial` (`useClassOperations.handleAddMaterialInClass`) so student email notifications (`notify-material`) are triggered only after the `public.materials` row (`newMat.id`) is committed.
+   - Dynamic size and type derivation (`classService.mapDbRowToClassModel`): Derives human-readable size (`MB`/`KB`/chars) and material type from `content[0]` rather than referencing non-existent table columns.

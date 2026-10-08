@@ -134,7 +134,7 @@ export default function StudentSubmissionUploadModal({
     try {
       const fileName = fileObj.name;
       const targetMaterialId = selectedMaterialId || crypto.randomUUID();
-      const { itemId, storagePath } = await studentService.uploadSubmissionFile(targetMaterialId, fileObj);
+      const { itemId, storagePath, sizeBytes, mimeType } = await studentService.uploadSubmissionFile(targetMaterialId, fileObj);
 
       const contentItems: ContentItem[] = [
         {
@@ -143,6 +143,8 @@ export default function StudentSubmissionUploadModal({
           type: 'File',
           value: fileName,
           path: storagePath,
+          size_bytes: sizeBytes || fileObj.size,
+          mime_type: mimeType || fileObj.type || 'application/octet-stream',
           description: `Student turn-in document for ${displayTitle}`,
         },
       ];

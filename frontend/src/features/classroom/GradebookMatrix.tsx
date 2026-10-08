@@ -60,7 +60,7 @@ export default function GradebookMatrix({
       (s) =>
         s.materialId === material.id ||
         s.material_id === material.id ||
-        (s.content && s.content[0]?.value?.includes(material.name))
+        (s.content && (s.content[0]?.name?.includes(material.name) || s.content[0]?.value?.includes(material.name)))
     );
   };
 

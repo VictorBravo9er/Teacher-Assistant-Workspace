@@ -144,7 +144,7 @@ flowchart LR
    - Manages active institute and class selection states.
 2. **`useClassOperations`**:
    - Manages granular data for the active class (students roster, linked materials, class instructions, running submissions, attendance records).
-   - Exposes clean mutation handlers (`handleAddMaterial`, `handleUpdateMaterial`, `handleDeleteMaterial`, `handleAddStudent`, `handleGradeSubmission`, `handleLogAttendance`) with optimistic UI updates and error rollbacks.
+   - Exposes clean mutation handlers (`handleAddMaterialInClass`, `handleDeleteMaterialInClass`, `handleAddInstructionInClass`, `handleDeleteInstructionInClass`, `handleUpdateClass`) with optimistic UI updates, error rollbacks, and post-persistence `notificationService.notifyMaterial(newMat.id, wsId, 'published', false)` dispatch when `notifyStudents` is enabled.
 3. **`useAIChat`**:
    - Manages active chat thread messages, streaming state, session history switching, and contextual prompt injection.
 4. **`useTheme`**:

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { notificationService } from '@/services/notificationService';
 import { Material, Instruction, StudentSubmission, ContentCategory } from '@/types/main';
 
 export interface EnrolledClass {
@@ -223,13 +224,13 @@ export const studentPortalService = {
   },
 
   /**
-   * Submits an assignment (file upload or written text response).
+   * Submits an assignment (file upload, web URL link, or written text response).
    */
   async submitAssignment(
     classId: string,
     materialId: string,
     studentId: string,
-    submission: { file?: File; text?: string }
+    submission: { file?: File; text?: string; url?: string }
   ): Promise<StudentSubmission> {
     return logger.measure('STUDENT_PORTAL', `submitAssignment:${classId}:${materialId}`, async () => {
       const contentItemId = crypto.randomUUID();
@@ -259,6 +260,15 @@ export const studentPortalService = {
           size_bytes: file.size,
           mime_type: file.type,
         });
+      } else if (submission.url && submission.url.trim()) {
+        contentList.push({
+          id: contentItemId,
+          name: 'Web Resource Submission',
+          type: 'URL',
+          path: submission.url.trim(),
+          value: submission.url.trim(),
+          description: `External link: ${submission.url.trim()}`,
+        });
       } else if (submission.text && submission.text.trim()) {
         contentList.push({
           id: contentItemId,
@@ -269,7 +279,7 @@ export const studentPortalService = {
           description: 'Student written submission',
         });
       } else {
-        throw new Error('Please provide either an attached file or written response.');
+        throw new Error('Please provide an attached file, external link, or written response.');
       }
 
       // Check for existing submission to update or insert
@@ -316,14 +326,8 @@ export const studentPortalService = {
         resultData = inserted;
       }
 
-      // Best-effort non-blocking notification trigger (Plan 08.5 companion)
-      try {
-        await supabase.functions.invoke('notify-submission', {
-          body: { submission_id: resultData.id, class_id: classId },
-        });
-      } catch {
-        // Silently continue if notification function is not yet deployed
-      }
+      // Best-effort non-blocking notification trigger to class instructor
+      void notificationService.notifySubmission(resultData.id, classId);
 
       return {
         id: resultData.id,
