@@ -27,7 +27,7 @@ dev = [
 
 [tool.poe.tasks]
 run-dev = "uvicorn src.main:app --reload --host 0.0.0.0 --port 8000"
-lint = { shell = "ruff check . && basedpyright ." }
+lint = { shell = "ruff check . && basedpyright" }
 format = "ruff format ."
 
 [tool.uv]
@@ -37,6 +37,7 @@ package = false
 target-version = "py313"
 exclude = [
     ".venv",
+    ".vercel",
     "src/types/db.py",
 ]
 
@@ -48,6 +49,7 @@ include = ["src"]
 exclude = [
     "**/__pycache__",
     ".venv",
+    ".vercel",
     "src/types/db.py",
 ]
 ignore = [
