@@ -510,75 +510,80 @@ export default function ClassDetails({
               <span className="text-[10px] font-mono text-muted-text block uppercase">
                 Institution / School
               </span>
-              {isEditMode ? (
-                <input
-                  type="text"
-                  value={classItem.instituteName || ''}
-                  onChange={(e) => onUpdateClass(classItem.id, { instituteName: e.target.value })}
-                  placeholder="e.g. Lincoln High School"
-                  className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all mt-1"
-                />
-              ) : (
-                <>
-                  <span
-                    className="text-xs font-semibold text-primary-text block mt-1 truncate"
-                    title={classItem.instituteName || "Independent"}
-                  >
-                    {classItem.instituteName || "Independent"}
-                  </span>
-                  {classItem.instituteAddress && (
-                    <span className="text-[10px] text-secondary-text block mt-0.5 truncate" title={classItem.instituteAddress}>
-                      {classItem.instituteAddress}
-                    </span>
-                  )}
-                </>
+              <input
+                type="text"
+                value={classItem.instituteName || ''}
+                disabled={!isEditMode}
+                readOnly={!isEditMode}
+                onChange={(e) => onUpdateClass(classItem.id, { instituteName: e.target.value })}
+                placeholder={isEditMode ? "e.g. Lincoln High School" : "Independent"}
+                title={classItem.instituteName || "Independent"}
+                className={`w-full rounded-md px-1.5 py-1 text-xs font-semibold border focus:outline-none transition-colors mt-0.5 truncate ${
+                  !isEditMode
+                    ? "bg-transparent border-transparent text-primary-text cursor-default disabled:cursor-default disabled:text-primary-text disabled:opacity-100"
+                    : "bg-primary/5 border-primary/30 text-primary-text focus:border-primary"
+                }`}
+              />
+              {classItem.instituteAddress && !isEditMode && (
+                <span className="text-[10px] text-secondary-text block px-1.5 truncate" title={classItem.instituteAddress}>
+                  {classItem.instituteAddress}
+                </span>
               )}
             </div>
             <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
               <span className="text-[10px] font-mono text-muted-text block uppercase">
                 Curriculum Course
               </span>
-              {isEditMode ? (
-                <input
-                  type="text"
-                  value={classItem.subject}
-                  onChange={(e) => onUpdateClass(classItem.id, { subject: e.target.value })}
-                  className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all mt-1"
-                />
-              ) : (
-                <span className="text-xs font-semibold text-primary-text block mt-1 truncate">
-                  {classItem.subject}
-                </span>
-              )}
+              <input
+                type="text"
+                value={classItem.subject}
+                disabled={!isEditMode}
+                readOnly={!isEditMode}
+                onChange={(e) => onUpdateClass(classItem.id, { subject: e.target.value })}
+                title={classItem.subject}
+                className={`w-full rounded-md px-1.5 py-1 text-xs font-semibold border focus:outline-none transition-colors mt-0.5 truncate ${
+                  !isEditMode
+                    ? "bg-transparent border-transparent text-primary-text cursor-default disabled:cursor-default disabled:text-primary-text disabled:opacity-100"
+                    : "bg-primary/5 border-primary/30 text-primary-text focus:border-primary"
+                }`}
+              />
             </div>
             <div className="bg-surface border border-border-color rounded-xl p-3 shadow-sm">
               <span className="text-[10px] font-mono text-muted-text block uppercase">
                 Academic Period
               </span>
-              {isEditMode ? (
-                <div className="flex gap-2 mt-1">
-                  <input
-                    type="text"
-                    placeholder="Semester"
-                    value={classItem.semester}
-                    onChange={(e) => onUpdateClass(classItem.id, { semester: e.target.value })}
-                    className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Year"
-                    value={classItem.academicYear}
-                    onChange={(e) => onUpdateClass(classItem.id, { academicYear: e.target.value })}
-                    className="w-full bg-primary/5 border border-primary/30 rounded-md p-1.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
-                  />
-                </div>
-              ) : (
-                <span className="text-xs font-semibold text-primary-text block mt-1 truncate">
-                    {classItem.semester}, {classItem.academicYear}
-                </span>
-              )}
+              <div className="flex gap-2 mt-0.5">
+                <input
+                  type="text"
+                  placeholder="Semester"
+                  value={classItem.semester}
+                  disabled={!isEditMode}
+                  readOnly={!isEditMode}
+                  onChange={(e) => onUpdateClass(classItem.id, { semester: e.target.value })}
+                  title={classItem.semester}
+                  className={`w-full rounded-md px-1.5 py-1 text-xs font-semibold border focus:outline-none transition-colors truncate ${
+                    !isEditMode
+                      ? "bg-transparent border-transparent text-primary-text cursor-default disabled:cursor-default disabled:text-primary-text disabled:opacity-100"
+                      : "bg-primary/5 border-primary/30 text-primary-text focus:border-primary"
+                  }`}
+                />
+                <input
+                  type="text"
+                  placeholder="Year"
+                  value={classItem.academicYear}
+                  disabled={!isEditMode}
+                  readOnly={!isEditMode}
+                  onChange={(e) => onUpdateClass(classItem.id, { academicYear: e.target.value })}
+                  title={classItem.academicYear}
+                  className={`w-full rounded-md px-1.5 py-1 text-xs font-semibold border focus:outline-none transition-colors truncate ${
+                    !isEditMode
+                      ? "bg-transparent border-transparent text-primary-text cursor-default disabled:cursor-default disabled:text-primary-text disabled:opacity-100"
+                      : "bg-primary/5 border-primary/30 text-primary-text focus:border-primary"
+                  }`}
+                />
               </div>
             </div>
+          </div>
 
             {/* Teaching style details */}
             <div className="bg-surface border border-border-color rounded-xl p-3.5 space-y-3.5 shadow-sm">
@@ -606,7 +611,7 @@ export default function ClassDetails({
                       placeholder="Select teaching styles"
                     />
                   ) : (
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="min-h-[38px] w-full border border-transparent rounded-md px-1.5 py-1 flex flex-wrap gap-1 items-center">
                       {classItem.teachingStyle.length > 0 ? (
                         classItem.teachingStyle.map((ts) => (
                           <span
@@ -628,30 +633,27 @@ export default function ClassDetails({
                   <label className="text-[10px] uppercase font-mono text-muted-text mb-1 block">
                     Experience scale
                   </label>
-                  {isEditMode ? (
-                    <select
-                      value={classItem.experienceLevel}
-                      onChange={(e) =>
-                        onUpdateClass(classItem.id, {
-                          experienceLevel: e.target.value as ExperienceLevel,
-                        })
-                      }
-                      className="w-full bg-elevated border border-border-color rounded-lg p-2 text-xs text-primary-text focus:outline-none focus:border-primary cursor-pointer"
-                    >
-                      {Constants.public.Enums.experience_level.map((level) => (
-                        <option key={level} value={level}>
-                          {formatEnumLabel(level)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p
-                      title={getEnumTooltip(classItem.experienceLevel)}
-                      className="text-xs font-medium text-secondary-text pt-0.5 cursor-help"
-                    >
-                      {classItem.experienceLevel}
-                    </p>
-                  )}
+                  <select
+                    value={classItem.experienceLevel}
+                    disabled={!isEditMode}
+                    onChange={(e) =>
+                      onUpdateClass(classItem.id, {
+                        experienceLevel: e.target.value as ExperienceLevel,
+                      })
+                    }
+                    title={!isEditMode ? getEnumTooltip(classItem.experienceLevel) : undefined}
+                    className={`w-full rounded-md px-1.5 py-1 text-xs border focus:outline-none transition-colors ${
+                      !isEditMode
+                        ? "bg-transparent border-transparent text-secondary-text cursor-default disabled:cursor-default disabled:text-secondary-text disabled:opacity-100 appearance-none pointer-events-none"
+                        : "bg-primary/5 border-primary/30 text-primary-text focus:border-primary cursor-pointer"
+                    }`}
+                  >
+                    {Constants.public.Enums.experience_level.map((level) => (
+                      <option key={level} value={level}>
+                        {formatEnumLabel(level)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -670,7 +672,7 @@ export default function ClassDetails({
                       placeholder="Select assessment preferences"
                     />
                   ) : (
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="min-h-[38px] w-full border border-transparent rounded-md px-1.5 py-1 flex flex-wrap gap-1 items-center">
                       {(classItem.assessmentPreferences || []).length > 0 ? (
                         (classItem.assessmentPreferences || []).map((ap) => (
                           <span
@@ -696,13 +698,18 @@ export default function ClassDetails({
                     id="class-profile-special-notes-input"
                     value={classItem.specialNotes || ""}
                     disabled={!isEditMode}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       onUpdateClass(classItem.id, {
                         specialNotes: e.target.value,
                       })
                     }
                     placeholder="E.g. Focus on bridging Algebra basics before Geometry exams..."
-                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-14 resize-none focus:outline-none transition-all shadow-sm ${!isEditMode ? "bg-surface border border-border-color opacity-75 cursor-not-allowed" : "bg-primary/5 border border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/50"}`}
+                    className={`w-full rounded-lg p-2 text-xs text-secondary-text h-14 resize-none border focus:outline-none shadow-sm transition-colors mt-0.5 ${
+                      !isEditMode
+                        ? "bg-surface border-border-color cursor-default opacity-85 disabled:cursor-default disabled:text-secondary-text disabled:opacity-85"
+                        : "bg-primary/5 border-primary/30 focus:border-primary"
+                    }`}
                   />
                 </div>
               </div>

@@ -48,6 +48,7 @@ flowchart TD
 5. **Profile Tab Edit/Save/Cancel Controls & Always-Visible Materials/Guidelines CRUD (`ClassDetails.tsx`)**:
    - `isEditMode` in `ClassDetails.tsx` governs **only** the **Class Profile** tab (`class-details-tab-profile`).
    - The Edit, Save, and Cancel controls (`class-profile-edit-button`, `class-profile-save-button`, `class-profile-cancel-button`) are located directly inside the **Class Profile** tab header, completely isolating profile configuration from upper view navigation.
+   - Profile inputs (`instituteName`, `subject`, `semester`, `academicYear`, `experienceLevel`, `specialNotes`) and badge wrappers (`teachingStyle`, `assessmentPreferences`) maintain a fixed box model (`border rounded-md px-1.5 py-1` / `min-h-[38px]`) in both view and edit modes, swapping only border color and background with `transition-colors` to guarantee zero layout shifts and prevent cursor focus in view mode (`disabled={!isEditMode}`).
    - Add, edit, rubric-builder, and delete controls in the **Materials** tab (`materials-upload-file-button`, `Trash2` remove button) and **Class Guidelines** tab (`instructions-new-guideline-button`, `Trash2` delete button) are always visible and accessible without requiring Edit Mode.
 6. **Multi-Mode Material Ingestion & Database Constraint Compliance (`ClassDetails.tsx`)**:
    - Materials creation supports 3 explicit ingestion modes:
