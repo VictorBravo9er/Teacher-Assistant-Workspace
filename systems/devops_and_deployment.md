@@ -100,16 +100,19 @@ flowchart TD
     EnvHelper["_env_helper.py (Resolves POSTGRES_URI)"]
     
     SetupDB["db_setup.py (Master Provisioner)"]
+    Migrate["migrate.py (Migration Runner)"]
     LangGraphInit["_setup_langchain_postgres.py"]
     GenTypes["_generate_types.py"]
     EdgeDeploy["deploy_edge_functions.py (Incremental Edge Deployer)"]
     EnvCollector["collect_env_files.sh"]
 
     EnvHelper --> SetupDB
+    EnvHelper --> Migrate
     EnvHelper --> LangGraphInit
     EnvHelper --> EdgeDeploy
 
     SetupDB -->|Executes DDL| PostgreSQL[("PostgreSQL Database")]
+    Migrate -->|Applies 001-007 SQL| PostgreSQL
     SetupDB --> LangGraphInit
     SetupDB --> GenTypes
     SetupDB --> EdgeDeploy

@@ -6,13 +6,13 @@ This directory contains the PostgreSQL Data Definition Language (DDL) scripts, s
 
 ## 📁 Directory Files
 
-- [`schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-db.sql): Core application DDL defining custom PostgreSQL ENUMs, core tables (`institutes`, `classes`, `templates`, `students`, `materials`, `instructions`), junction tables (`class_students`, `class_materials`, `class_instructions`, `template_materials`, `template_instructions`), tracking tables (`student_submissions`, `attendance_records`, `chat_sessions`), foreign key constraints, indexes on all foreign keys, automatic score recalculation trigger (`trg_sync_student_scores`), RPC helper functions (`unlink_material_from_class`, `archive_material`, `delete_submission_atomic`, `delete_material`), and strict user-scoped Row Level Security (RLS) policies.
-- [`schema-ai.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-ai.sql): Hybrid vector & ontological knowledge graph DDL in the private `ai` schema. Contains `material_embeddings` and `submission_embeddings` (HNSW indexed with `pgvector`), `ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`, `material_concept_mappings`, `student_concept_mastery`, `material_insights`, `submission_evaluations`, strict RLS policies, decoupled `pg_net` evaluation trigger handlers (commented out from automatic table execution to allow independent LMS and AI development), and public gateway RPCs (`get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, `get_class_concept_matrix`).
+- [`schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-db.sql): Core application DDL defining PostgreSQL schemas and extensions (`pg_trgm`, `pgcrypto`), custom ENUMs, core tables (`institutes`, `classes`, `templates`, `students`, `materials`, `instructions`), junction tables (`class_students`, `class_materials`, `class_instructions`, `template_materials`, `template_instructions`), tracking and communication tables (`student_submissions`, `attendance_records`, `chat_sessions`, `announcements`, `notification_logs`), foreign key constraints, explicit B-tree indexes on all foreign keys, automated triggers (`trg_sync_student_scores`, `trg_auto_set_to_be_scored`, `on_auth_user_created`, `on_auth_user_updated`, and `trg_*_updated_at` on all operational tables), RPC helper functions (`unlink_material_from_class`, `archive_material`, `delete_submission_atomic`, `delete_material`, `add_student_to_class`, `update_material_contents`, `check_workspace_modifications`, `get_workspace_last_modified`, `search_institutes`, `search_districts`, `search_cities`, `search_states`, `search_countries`), and strict user-scoped Row Level Security (RLS) policies.
+- [`schema-ai.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-ai.sql): Hybrid vector & ontological knowledge graph DDL in the private `ai` schema. Initializes `vector` (`pgvector`), `pgcrypto`, and `pg_net` extensions. Contains `material_embeddings` and `submission_embeddings` (HNSW indexed with `pgvector`), `ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`, `material_concept_mappings`, `student_concept_mastery`, `material_insights`, `submission_evaluations`, strict RLS policies, decoupled `pg_net` evaluation trigger handlers (commented out from automatic table execution to allow independent LMS and AI development), and public gateway RPCs (`get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, `get_class_concept_matrix`).
 - [`schema-langgraph.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-langgraph.sql): Configures RLS policies, ownership constraints, and indexes for the LangGraph state checkpointing and conversation store tables within the isolated `langgraph` schema.
 - [`bucket-materials.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/bucket-materials.sql): Creates the private `class-materials` Supabase Storage bucket with 50MB file size limits, MIME type restrictions, and RLS policies scoped to teacher user IDs.
 - [`bucket-submissions.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/bucket-submissions.sql): Creates the private `student-submissions` Supabase Storage bucket with RLS policies allowing enrolled students to upload/view their own work and teachers to review submissions for their classes.
 - [`schema-reset.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-reset.sql): Database teardown script that cleanly drops all application tables, enums, triggers, `ai` schema, and helper functions in reverse dependency order for reproducible local resets.
-- [`migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/migrations): Incremental SQL migration scripts (`001` through `007`) applied to target databases via `scripts/migrate.py`, including student portfolio fields, student portal RLS, announcements, notification logs, RLS recursion helpers, `updated_at` triggers, and relocating student contact/guardian fields to `public.students`.
+- [`migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/migrations): Incremental SQL migration scripts (`001` through `007`) applied to target databases via `scripts/migrate.py`, including student portfolio fields, student portal RLS, announcements, notification logs, RLS recursion helpers, `updated_at` triggers and cache checking RPC, and relocating student contact/guardian fields to `public.students`.
 - [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/AGENTS.md): Subsystem-specific rules for DDL design, mandatory RLS policies, indexing requirements, and naming conventions.
 
 ---
@@ -42,10 +42,19 @@ erDiagram
     MATERIALS ||--o{ CLASS_MATERIALS : assigned_to
     CLASSES ||--o{ CLASS_INSTRUCTIONS : applies
     INSTRUCTIONS ||--o{ CLASS_INSTRUCTIONS : configured_for
+    TEMPLATES ||--o{ TEMPLATE_MATERIALS : bundles
+    MATERIALS ||--o{ TEMPLATE_MATERIALS : included_in
+    TEMPLATES ||--o{ TEMPLATE_INSTRUCTIONS : bundles
+    INSTRUCTIONS ||--o{ TEMPLATE_INSTRUCTIONS : included_in
     CLASS_STUDENTS ||--o{ STUDENT_SUBMISSIONS : turns_in
     MATERIALS ||--o{ STUDENT_SUBMISSIONS : targets
     CLASSES ||--o{ ATTENDANCE_RECORDS : logs
     CLASSES ||--o{ CHAT_SESSIONS : records
+    CLASSES ||--o{ ANNOUNCEMENTS : publishes
+    CLASSES ||--o{ NOTIFICATION_LOGS : records
+    ANNOUNCEMENTS ||--o{ NOTIFICATION_LOGS : triggers
+    MATERIALS ||--o{ NOTIFICATION_LOGS : tracks
+    STUDENT_SUBMISSIONS ||--o{ NOTIFICATION_LOGS : tracks
 ```
 
 ---

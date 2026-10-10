@@ -15,7 +15,7 @@ flowchart TD
     end
 
     subgraph EdgeRuntime["Supabase Edge Functions Runtime (Deno)"]
-        SharedUtil["_shared Modules (cors.ts, auth.ts, supabaseAdmin.ts)"]
+        SharedUtil["_shared Modules (cors.ts, auth.ts, env.ts, supabaseClient.ts, supabaseAdmin.ts)"]
         
         FnSubEval["trigger-submission-evaluation"]
         FnMatAnalysis["trigger-material-analysis"]

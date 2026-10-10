@@ -18,7 +18,27 @@ flowchart TD
 
 ---
 
-## 2. Key View Patterns & State Invariants
+## 2. `StudentApp.tsx` Student Portal View Architecture
+
+```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+flowchart TD
+    Student["StudentApp.tsx (Authenticated Student)"] --> CourseSelect["Enrolled Course Selector (Dropdown)"]
+    Student --> Header["Course Banner (GPA, Tier, Instructor, Pinned Notices)"]
+    Student --> Tabs{"Active Student Tab"}
+    
+    Tabs -- "assignments" --> TabAssign["Assignments (Turn-In Modal, Status Badges)"]
+    Tabs -- "coursework" --> TabCourse["Coursework (Files, URLs, Notes, Signed URLs)"]
+    Tabs -- "announcements" --> TabAnn["Announcements (Class Feed)"]
+    Tabs -- "calendar" --> TabCal["Calendar (Deadlines, Class Sessions)"]
+    Tabs -- "grades" --> TabGrades["Grades (Evaluations, Rubrics, Teacher Feedback)"]
+    
+    Student --> PassModal["StudentPasswordModal (Self-Service Password Rotation)"]
+```
+
+---
+
+## 3. Key View Patterns & State Invariants
 
 1. **Root View Switching (`App.tsx`)**:
    - Manages top-level routing between `LandingPage`, `AuthPage`, and authenticated workspace shells.
