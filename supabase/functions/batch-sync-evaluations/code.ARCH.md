@@ -18,7 +18,7 @@ flowchart TD
     
     Parse --> Validate["Validate score ranges & rubric JSON"]
     Validate --> Upsert["Bulk upsert student_submissions using supabaseAdmin"]
-    Upsert --> ReturnSuccess["Return 200 OK ({ updatedCount, results })"]
+    Upsert --> ReturnSuccess["Return 200 OK ({ success: true, updatedCount, affectedStudents })"]
     Upsert -- Failure --> ReturnErr["Catch error & return 500 Internal Error"]
 ```
 
@@ -31,12 +31,17 @@ flowchart TD
 interface BatchEvaluationPayload {
   class_id: string;
   evaluations: Array<{
-    submission_id: string;
+    student_id: string;
+    submission_id?: string;
+    material_id?: string;
     score: number;
-    rubric_breakdown: Record<string, number>;
+    max_score?: number;
+    grade?: string;
+    rubric_breakdown: Record<string, any> | Array<any>;
     feedback?: string;
     private_teacher_notes?: string;
     status: 'Evaluated' | 'Graded';
+    content?: Array<any>;
   }>;
 }
 ```

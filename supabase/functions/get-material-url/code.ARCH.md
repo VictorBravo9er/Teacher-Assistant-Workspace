@@ -23,9 +23,9 @@ sequenceDiagram
         EdgeFunc-->>Client: 403 Forbidden { error: "Access denied" }
     else User Authorized
         DB-->>EdgeFunc: Authorization Check Passes
-        EdgeFunc->>Storage: supabaseAdmin.storage.from('class-materials').createSignedUrl(path, 60)
+        EdgeFunc->>Storage: adminSupabase.storage.from('class-materials').createSignedUrl(path, 3600)
         Storage-->>EdgeFunc: Return signedUrl
-        EdgeFunc-->>Client: 200 OK { signedUrl, expiresIn: 60 }
+        EdgeFunc-->>Client: 200 OK { signedUrl, materialId, contentItemId, path, name, type, items }
     end
 ```
 
@@ -33,7 +33,7 @@ sequenceDiagram
 
 ## 2. Key Security Invariants
 
-1. **Short-Lived Expiration**:
-   Signed URLs are configured with short TTLs (e.g. 60 seconds) to prevent URL sharing or link leakage outside the active user session.
+1. **Controlled Expiration (1 Hour)**:
+   Signed URLs are configured with 3600-second (1-hour) TTLs to allow sufficient time for in-app previewing, printing, and reading while preventing indefinite public URL leakage.
 2. **Double-Checked Access Control**:
    Even though Storage RLS guards direct bucket calls, this function adds an application-level membership check before generating administrative signed URLs.

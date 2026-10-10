@@ -6,7 +6,7 @@ This directory manages global application state providers and subscription liste
 
 ## 📁 Directory Files
 
-- [`AuthContext.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/contexts/AuthContext.tsx): Provides authentication state and Supabase session management across the React component tree. Exposes `user`, `session`, `loading`, `signIn`, `signUp`, and `signOut` through the custom `useAuth()` hook.
+- [`AuthContext.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/contexts/AuthContext.tsx): Provides authentication state and Supabase session management across the React component tree. Exposes `session`, `user`, `role`, `isInitializing`, `signOut`, and `updateUserMetadata` through the custom `useAuth()` hook.
 
 ---
 

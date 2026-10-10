@@ -6,10 +6,10 @@ This directory provides the lowest-tier, domain-agnostic atomic design system pr
 
 ## 📁 Directory Files
 
-- [`Button.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Button.tsx): Reusable button component supporting multiple color variants (`primary`, `secondary`, `outline`, `danger`, `ghost`), size variants (`sm`, `md`, `lg`), loading spinner state, and icon prefixes/suffixes.
-- [`Badge.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Badge.tsx): Status badge indicator supporting multiple color tiers (`success`, `warning`, `danger`, `info`, `neutral`) and optional dismissal buttons.
+- [`Button.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Button.tsx): Reusable button component supporting multiple color variants (`primary`, `secondary`, `success`, `danger`, `ghost`, `outline`, `subtle`), size variants (`xs`, `sm`, `md`, `lg`, `icon`), loading spinner state, and icon prefixes/suffixes.
+- [`Badge.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Badge.tsx): Status badge indicator supporting color tiers (`primary`, `secondary`, `success`, `warning`, `error`, `neutral`), size variants (`sm`, `md`), and dot/mono modes.
 - [`Card.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Card.tsx): Base container surface component with standard borders, rounded corners, hover elevations, and dark mode background tokens.
-- [`Input.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Input.tsx): Standard text and number input field wrapper with support for labels, helper text, error messages, and icon prefixes.
+- [`Input.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Input.tsx): Form inputs exporting `Input` (with icon and error states), `Textarea`, and accessible `FormField` wrapper with label/sublabel.
 - [`Modal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/Modal.tsx): Accessible modal dialog primitive featuring backdrop blur, focus containment, ESC key dismiss handler, and header/body/footer structural slots.
 - [`index.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/ui/index.ts): Barrel export file centralizing all UI primitive exports for clean multi-import consumption.
 

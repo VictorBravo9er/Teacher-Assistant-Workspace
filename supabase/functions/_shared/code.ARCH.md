@@ -9,19 +9,14 @@ This document details the shared authentication architecture, client creation pa
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
-    Req["Incoming Deno Request"] --> Extract["auth.ts: extractToken(req)"]
-    Extract --> HasToken{"Bearer Token Present?"}
+    Req["Incoming Deno Request"] --> CallerAuth["auth.ts: verifyCallerAuth(req, classId?)"]
+    CallerAuth --> AuthCheck{"isAuthorized?"}
     
-    HasToken -- No --> Unauth["Return 401 Unauthorized"]
-    HasToken -- Yes --> Verify["auth.ts: verifyUser(token)"]
+    AuthCheck -- No --> Unauth["Return 401 Unauthorized / Error"]
+    AuthCheck -- Yes --> RoleCheck{"isServiceRole?"}
     
-    Verify --> SupabaseAuth["supabaseClient.auth.getUser(token)"]
-    SupabaseAuth -- "Invalid Token" --> Unauth
-    SupabaseAuth -- "Valid User" --> AuthenticatedContext["Authorized User Object (id, email)"]
-    
-    AuthenticatedContext --> ServiceRole{"Requires Admin Privileges?"}
-    ServiceRole -- Yes --> AdminClient["supabaseAdmin.ts (SUPABASE_SERVICE_ROLE_KEY)"]
-    ServiceRole -- No --> UserClient["supabaseClient.ts (SUPABASE_ANON_KEY)"]
+    RoleCheck -- Yes --> AdminClient["adminSupabase (SUPABASE_SERVICE_ROLE_KEY)"]
+    RoleCheck -- No --> UserClient["getAuthClient(authHeader) (User JWT)"]
 ```
 
 ---

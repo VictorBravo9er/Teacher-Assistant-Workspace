@@ -9,20 +9,22 @@ This document details the aggregation architecture, relational joining strategie
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
-    Req["POST /functions/v1/get-class-agent-context { class_id }"] --> Auth["Verify Teacher / Student Auth"]
+    Req["POST /functions/v1/get-class-agent-context { classId }"] --> Auth["Verify Teacher / Student Auth"]
     
-    Auth --> ParallelQueries["Execute Parallel PostgREST Queries"]
+    Auth --> SequentialQueries["Execute Sequential PostgREST Queries"]
     
-    subgraph DataAssembly["Parallel Data Fetching"]
+    subgraph DataAssembly["Sequential Data Fetching"]
         ClassMeta["Query classes & institutes"]
-        Materials["Query class_materials & materials"]
         Instructions["Query class_instructions & instructions"]
-        Students["Query class_students, students & submissions"]
+        Materials["Query class_materials & materials"]
+        Students["Query class_students & students"]
+        Submissions["Query student_submissions"]
+        Attendance["Query attendance_records"]
     end
 
-    ParallelQueries --> ClassMeta & Materials & Instructions & Students
-    ClassMeta & Materials & Instructions & Students --> Aggregator["Compile Structured JSON Context"]
-    Aggregator --> Response["Return 200 OK (Full Classroom Context)"]
+    SequentialQueries --> ClassMeta --> Instructions --> Materials --> Students --> Submissions --> Attendance
+    Attendance --> Aggregator["Compile Structured JSON Context with Scoped Filters"]
+    Aggregator --> Response["Return 200 OK ({ success: true, classContext: { ... } })"]
 ```
 
 ---
@@ -32,27 +34,41 @@ flowchart TD
 ### Context Response Schema:
 ```typescript
 interface ClassAgentContextResponse {
-  class: {
+  success: boolean;
+  classContext: {
     id: string;
     name: string;
     subject: string;
     academicYear: string;
     semester: string;
+    instituteName?: string;
     teachingStyle: string[];
     assessmentPreferences: string[];
     specialNotes?: string;
+    instructions: Array<{ id: string; title: string; type: string; content: string }>;
+    materials: Array<{ id: string; name: string; category: string; content: any[]; maxScore?: number; rubricCriteria?: any }>;
+    students: Array<{
+      id: string;
+      name: string;
+      rollNumber?: string;
+      email?: string;
+      currentScore?: number;
+      currentGrade?: string;
+      performanceTier?: string;
+      attendance?: number;
+      submissions?: any[];
+    }>;
+    totalEnrolled: number;
+    totalMaterials: number;
+    totalInstructions: number;
+    totalSubmissions: number;
+    scopedContext?: {
+      scopeType: 'class' | 'students' | 'materials' | 'assessments';
+      selectedCount: number;
+    };
   };
-  materials: Array<{ id: string; name: string; category: string; content: any[] }>;
-  instructions: Array<{ id: string; title: string; type: string; content: string }>;
-  students: Array<{
-    id: string;
-    name: string;
-    rollNumber: string;
-    attendanceRate: number;
-    submissions: any[];
-  }>;
 }
 ```
 
-### Performance Optimization:
-- Uses `Promise.all` to query database junction tables concurrently, minimizing serverless runtime latency.
+### Scoped Context Invariant:
+- Supports `scope_type` filtering (`'class' | 'students' | 'materials' | 'assessments'`) and `selected_ids` to tailor the assembled prompt context to user-selected items in the copilot drawer.

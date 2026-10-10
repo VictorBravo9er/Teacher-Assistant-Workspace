@@ -6,17 +6,17 @@ This document details the variant composition architecture, accessibility standa
 
 ## 1. Variant Composition & Styling Patterns
 
-UI primitives utilize strict TypeScript interfaces combined with `clsx` and `tailwind-merge` (`twMerge`) to allow callers to pass custom `className` overrides without breaking component base styles:
+UI primitives utilize strict TypeScript interfaces with template literal class composition, combining base styles, variant maps, size maps, and caller-supplied `className` overrides:
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart LR
     Props["Component Props (variant, size, disabled, isLoading)"] --> BaseStyles["Base Style Map"]
     Props --> VariantStyles["Variant Style Map (primary, danger, outline)"]
-    Props --> SizeStyles["Size Style Map (sm, md, lg)"]
+    Props --> SizeStyles["Size Style Map (xs, sm, md, lg, icon)"]
     Props --> UserOverrides["Custom className prop"]
     
-    BaseStyles & VariantStyles & SizeStyles & UserOverrides --> ClassComposer["clsx() + twMerge()"]
+    BaseStyles & VariantStyles & SizeStyles & UserOverrides --> ClassComposer["Template Literal Interpolation"]
     ClassComposer --> FinalDOM["Resolved DOM className string"]
 ```
 

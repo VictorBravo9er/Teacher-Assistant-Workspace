@@ -1,4 +1,4 @@
-# Frontend Subsystem — React 18 / Vite / TypeScript
+# Frontend Subsystem — React 19 / Vite / TypeScript
 
 This directory contains the root configuration, build toolchain, containerization, and static hosting definitions for the **Teach&Learn** React frontend web application.
 
@@ -8,7 +8,7 @@ For the end-user feature manual and classroom workflows, refer to [`USER_GUIDE.m
 
 ## 📁 Directory Files
 
-- [`package.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/package.json): Defines frontend project dependencies (React 18, `@supabase/supabase-js`, `lucide-react`, `tailwindcss`, `vite`, `clsx`, `tailwind-merge`) and lifecycle scripts (`dev`, `build`, `preview`).
+- [`package.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/package.json): Defines frontend project dependencies (React 19, `@supabase/supabase-js`, `lucide-react`, `@tailwindcss/vite`, `vite`) and lifecycle scripts (`dev`, `build`, `preview`).
 - [`frontend/vercel.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vercel.json): Standalone Vite project configuration defining the SPA fallback from client-side routes to the built `index.html`.
 - [`package-lock.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/package-lock.json): Deterministic dependency lockfile ensuring reproducible package installations.
 - [`vite.config.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vite.config.ts): Vite build configuration setting up React plugin, environment prefix bindings, development server port bindings, and build output directories.

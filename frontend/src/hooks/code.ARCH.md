@@ -12,7 +12,7 @@ flowchart TD
     User["Component Interaction"] --> Hook{"Invoked Hook"}
     
     Hook -- "Classroom Edits / Grading" --> ClassOps["useClassOperations(activeClass)"]
-    Hook -- "AI Chat / Diagnostics" --> AIChat["useAIChat(activeClass, students)"]
+    Hook -- "AI Chat / Diagnostics" --> AIChat["useAIChat({ classes, setClasses, triggerToast })"]
     Hook -- "Initial Bootstrap" --> WorkspaceData["useWorkspaceData()"]
     Hook -- "Theme Switch" --> Theme["useTheme()"]
     

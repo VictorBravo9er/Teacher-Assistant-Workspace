@@ -8,55 +8,58 @@ This document details the TypeScript type hierarchy, discriminated unions, and d
 
 ```mermaid
 classDiagram
-    class ClassProject {
+    class ClassModel {
         +string id
         +string name
         +string subject
         +string academicYear
         +string semester
-        +string teachingStyle
-        +string[] teachingStyles
-        +string assessmentPreferences
+        +TeachingStyle[] teachingStyle
+        +ExperienceLevel experienceLevel
+        +AssessmentPreference[] assessmentPreferences
         +string specialNotes
-        +LearningMaterial[] materials
-        +InstructionGuideline[] instructions
-        +StudentPortfolio[] students
-        +StudentSubmissionRecord[] studentSubmissions
+        +Material[] materials
+        +Instruction[] instructions
+        +Student[] students
+        +RAGSession[] ragSessions
         +AttendanceRecord[] attendanceRecords
     }
 
-    class LearningMaterial {
+    class Material {
         +string id
         +string name
-        +string category
+        +ContentCategory category
         +ContentItem[] content
         +number maxScore
-        +RubricCriteria? rubricCriteria
+        +boolean toBeScored
+        +RubricCriterion[] rubricCriteria
     }
 
-    class StudentPortfolio {
+    class Student {
         +string id
         +string name
         +string rollNumber
         +string email
-        +string performanceIndicator
+        +PerformanceTier performanceTier
         +number attendance
-        +StudentGrade[] grades
+        +StudentSubmission[] submissions
+        +CustomField[] customFields
     }
 
-    class StudentSubmissionRecord {
+    class StudentSubmission {
         +string id
         +string studentId
         +string materialId
-        +string status
+        +SubmissionStatus status
         +number score
-        +Record~string, number~ rubricBreakdown
+        +RubricBreakdownItem[] rubricBreakdown
         +string feedback
+        +string privateTeacherNotes
     }
 
-    ClassProject *-- LearningMaterial
-    ClassProject *-- StudentPortfolio
-    ClassProject *-- StudentSubmissionRecord
+    ClassModel *-- Material
+    ClassModel *-- Student
+    ClassModel *-- StudentSubmission
 ```
 
 ---

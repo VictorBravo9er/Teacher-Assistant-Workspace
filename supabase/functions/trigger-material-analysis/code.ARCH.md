@@ -27,9 +27,9 @@ flowchart TD
     MarkProc --> CallBE["POST ${BACKEND_API_URL}/api/materials/analyze"]
     
     CallBE -- Success --> SaveInsights["Persist syllabus alignment, prerequisite gaps, and sample questions in ai.material_insights"]
-    CallBE -- Failure --> MarkErr["Update ai.material_insights status='error'"]
+    CallBE -- Backend Offline / Error --> MarkQueued["Keep status queued / log warning"]
     SaveInsights --> Return200["Return 200 OK ({ status: 'analyzed' })"]
-    MarkErr --> ReturnErr["Return 502 / 500 Structured Error"]
+    MarkQueued --> ReturnQueued["Return 200 OK ({ status: 'queued_for_analysis' })"]
 ```
 
 ---
@@ -47,11 +47,11 @@ interface MaterialAnalysisTriggerPayload {
 ### Backend Forwarding Payload (`POST /api/materials/analyze`):
 ```typescript
 interface BackendMaterialAnalyzePayload {
-  material_text: string;
-  material_name: string;
+  material_id: string;
+  name: string;
   category: string;
-  tags?: string[];
   rubric_criteria?: Array<any>;
+  extracted_text: string;
 }
 ```
 
