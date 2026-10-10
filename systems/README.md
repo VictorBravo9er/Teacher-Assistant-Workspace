@@ -19,7 +19,7 @@ flowchart TD
     classDef external fill:#f1f5f9,stroke:#64748b,stroke-width:2px,color:#334155;
 
     subgraph Tier1["1. Presentation Layer"]
-        ClientApp["🖥️ Frontend Web Client<br/><b>React 19 / TypeScript / Vite / Tailwind</b><br/><i>(Classroom, Student Portfolios, AI Copilot)</i>"]:::client
+        ClientApp["🖥️ Frontend Web Client<br/><b>React 19 / TypeScript / Vite / Tailwind</b><br/><i>(Educator Workspace: ClassApp · Student Portal: StudentApp)</i>"]:::client
     end
 
     subgraph Tier2["2. Compute & Microservice Layer"]
@@ -164,6 +164,48 @@ sequenceDiagram
         EdgeWebhook->>Resend: Dispatches failure notice to Teacher
         Resend->>Teacher: Notifies teacher of invalid student/parent email
     end
+```
+
+### 4. Student Self-Service & Assignment Turn-In Flow
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student as Student
+    participant Portal as Student Portal (StudentApp)
+    participant Svc as studentPortalService
+    participant Storage as Supabase Storage (student-submissions)
+    participant DB as PostgreSQL (public)
+    participant Edge as Edge Function (notify-submission)
+    actor Teacher as Teacher
+
+    Student->>Portal: Navigates assignments & opens StudentTurnInModal
+    Student->>Portal: Selects File, URL, or writes Text response
+    alt File Upload
+        Portal->>Storage: Uploads work to `student-submissions/{material_id}/{content_id}`
+    end
+    Portal->>Svc: Calls submitAssignment(submissionPayload)
+    Svc->>DB: Upserts row in `public.student_submissions` (status='Submitted')
+    Portal-->>Student: 0ms optimistic status update ("Submitted" badge)
+    Svc->>Edge: Invokes POST /functions/v1/notify-submission
+    Edge->>Teacher: Sends submission alert email with student reply_to
+```
+
+### 5. Curriculum Template to Class Instantiation Flow
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Teacher as Teacher
+    participant UI as React UI (CreateClassModal)
+    participant Svc as templateService / classService
+    participant DB as PostgreSQL (public)
+
+    Teacher->>UI: Selects template blueprint & customizes term/dates
+    UI->>Svc: Calls createClassFromTemplate(templateId, classOverrides)
+    Svc->>DB: Inserts new course row in `public.classes`
+    Svc->>DB: Copies `template_materials` into `public.class_materials`
+    Svc->>DB: Copies `template_instructions` into `public.class_instructions`
+    DB-->>UI: Returns newly created class instance
+    UI-->>Teacher: Navigates directly into active class workspace
 ```
 
 ---

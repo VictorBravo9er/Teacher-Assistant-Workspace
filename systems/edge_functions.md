@@ -96,7 +96,11 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 2. **`auth.ts`**:
    - Parses the `Authorization: Bearer <JWT>` header.
    - Validates tokens using `supabase.auth.getUser(token)` to extract authenticated `user_id` and ensure authorization before executing sensitive queries.
-3. **`supabaseAdmin.ts`**:
+3. **`env.ts`**:
+   - Environment variable helper module supporting type-safe retrieval and parsing of environment configurations, JSON blobs, and fallback defaults.
+4. **`supabaseClient.ts`**:
+   - Creates a request-scoped `SupabaseClient` initialized with the caller's JWT bearer token, ensuring that queries run subject to the caller's Row Level Security (RLS) constraints.
+5. **`supabaseAdmin.ts`**:
    - Instantiates a high-privilege `SupabaseClient` using `SUPABASE_SERVICE_ROLE_KEY`.
    - Used for administrative updates (such as updating `ai.submission_evaluations` or generating signed storage download URLs for enrolled students).
 
