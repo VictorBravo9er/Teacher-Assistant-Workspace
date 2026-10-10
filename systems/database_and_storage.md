@@ -51,7 +51,20 @@ flowchart TD
 
 ---
 
-## 2. PostgreSQL Relational Model (`public` Schema)
+## 2. PostgreSQL Extensions
+
+The database infrastructure requires four fundamental extensions initialized in `schema-db.sql` and `schema-ai.sql`:
+
+| Extension | Purpose & Subsystem Usage |
+| :--- | :--- |
+| **`vector` (`pgvector`)** | 1536-dimensional semantic vector embeddings with HNSW cosine distance indexing for curriculum materials and student submission chunks in the `ai` schema. |
+| **`pg_trgm`** | Trigram string similarity functions used by fuzzy RPC endpoints (`search_institutes`, `search_districts`, `search_cities`, `search_states`, `search_countries`) for autocomplete. |
+| **`pgcrypto`** | Cryptographic random UUID generation (`gen_random_uuid()`) for primary keys and secure tokens. |
+| **`pg_net`** | Asynchronous HTTP client executing background webhooks to trigger Edge Functions (`trigger-submission-evaluation`, `trigger-material-analysis`) without blocking client transactions. |
+
+---
+
+## 3. PostgreSQL Relational Model (`public` Schema)
 
 ### 2.1 Domain Enumerations (ENUMs)
 The schema defines domain-specific PostgreSQL custom types to enforce semantic consistency at the database engine boundary:
@@ -107,15 +120,17 @@ erDiagram
 6. **`instructions`**: Assistant prompts, system personas, and grading rubrics (`id`, `title`, `description`, `type`, `content`, `user_id`, `created_at`, `updated_at`).
 
 #### Junction & Execution Entities:
-1. **`class_students`**: Class enrollment junction linking `class_id` and `student_id`, storing class-scoped portfolio details (`parent_notes`, `custom_fields`, `roll_number`), and calculated running metrics (`current_score`, `current_grade`, `performance_tier`, `attendance_rate`, `status`, `joined_at`).
-2. **`class_materials`**: Connects reusable `material_id` to `class_id` with ordering indices (`order_index`), class-specific content overlays (`custom_content`), and augmented criteria (`custom_rubric_criteria`).
-3. **`class_instructions`**: Connects system instructions or rubrics to `class_id` with execution priority (`order_index`).
-4. **`student_submissions`**: Student work records targeting an assignment material (`id`, `class_id`, `student_id`, `material_id`, `status`, `score`, `max_score`, `feedback`, `content` JSONB, `submitted_at`, `evaluated_at`).
+1. **`template_materials`**: Junction binding curriculum materials into reusable templates (`template_id`, `material_id`) with ordering indices (`order_index`), template-level content overrides (`custom_content`), and customized rubric criteria (`custom_rubric_criteria`).
+2. **`template_instructions`**: Junction linking instructions and grading rubrics into reusable templates (`template_id`, `instruction_id`) with execution priority (`order_index`).
+3. **`class_students`**: Class enrollment junction linking `class_id` and `student_id`, storing class-scoped portfolio details (`parent_notes`, `custom_fields`, `roll_number`), and calculated running metrics (`current_score`, `current_grade`, `performance_tier`, `attendance_rate`, `status`, `joined_at`).
+4. **`class_materials`**: Connects reusable `material_id` to `class_id` with ordering indices (`order_index`), class-specific content overlays (`custom_content`), and augmented criteria (`custom_rubric_criteria`).
+5. **`class_instructions`**: Connects system instructions or rubrics to `class_id` with execution priority (`order_index`).
+6. **`student_submissions`**: Student work records targeting an assignment material (`id`, `class_id`, `student_id`, `material_id`, `status`, `score`, `max_score`, `feedback`, `content` JSONB, `submitted_at`, `evaluated_at`).
    - **`valid_content_shape` Constraint**: Also enforced via `validate_content_array(content)`. Supports binary files (uploaded to storage bucket `student-submissions`), external URL references, and inline plaintext answers.
-5. **`attendance_records`**: Session-level attendance tracking (`id`, `class_id`, `student_id`, `date`, `status`, `notes`, `recorded_by`).
-6. **`chat_sessions`**: Persisted conversation sessions between teachers and the AI Assistant (`id`, `class_id`, `user_id`, `title`, `messages` JSONB, `analysis_config` JSONB, `created_at`, `updated_at`).
-7. **`announcements`**: Classroom broadcast board notices (`id`, `class_id`, `author_id`, `title`, `content`, `is_pinned`, `created_at`, `updated_at`).
-8. **`notification_logs`**: Outbound email transmission records and Resend webhook audit log (`id`, `class_id`, `announcement_id`, `material_id`, `submission_id`, `notification_type`, `recipient_email`, `recipient_name`, `recipient_type`, `student_id`, `resend_email_id`, `status`, `error_message`, `created_at`, `updated_at`).
+7. **`attendance_records`**: Session-level attendance tracking (`id`, `class_id`, `student_id`, `date`, `status`, `notes`, `recorded_by`).
+8. **`chat_sessions`**: Persisted conversation sessions between teachers and the AI Assistant (`id`, `class_id`, `user_id`, `title`, `messages` JSONB, `analysis_config` JSONB, `created_at`, `updated_at`).
+9. **`announcements`**: Classroom broadcast board notices (`id`, `class_id`, `author_id`, `title`, `content`, `is_pinned`, `created_at`, `updated_at`).
+10. **`notification_logs`**: Outbound email transmission records and Resend webhook audit log (`id`, `class_id`, `announcement_id`, `material_id`, `submission_id`, `notification_type`, `recipient_email`, `recipient_name`, `recipient_type`, `student_id`, `resend_email_id`, `status`, `error_message`, `created_at`, `updated_at`).
 
 ---
 
@@ -197,14 +212,21 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-### 4.2 Automatic Timestamp Maintenance Trigger (`trg_handle_updated_at`)
+### 4.2 Material Assessment Scoring Trigger (`trg_auto_set_to_be_scored`)
+Executes `public.auto_set_to_be_scored()` on `public.materials` BEFORE INSERT or UPDATE. Automatically flags `to_be_scored = true` whenever the material category is `'Practical'`, `'Assignment'`, `'Test'`, or `'Exam'`, ensuring assessment materials consistently require scores.
+
+### 4.3 Auth User Provisioning & Synchronization Triggers
+1. **`on_auth_user_created`**: Executes `public.handle_new_user()` on `auth.users` AFTER INSERT to automatically create a corresponding record in `public.students` if the user's role is `'student'` or unset.
+2. **`on_auth_user_updated`**: Executes `public.handle_user_update()` on `auth.users` AFTER UPDATE to synchronize `students.email` and `students.name` when user metadata or credentials change.
+
+### 4.4 Automatic Timestamp Maintenance Trigger (`trg_handle_updated_at`)
 Migration `006_add_table_updated_at_triggers.sql` binds a standardized `handle_updated_at` trigger to every operational table across the database (e.g., `classes`, `materials`, `instructions`, `students`, `class_students`, `announcements`, `notification_logs`), guaranteeing that all updates automatically record precise UTC timestamp modifications without requiring application-level timestamp management.
 
 ---
 
 ## 5. Atomic Stored Procedures (RPCs)
 
-The database exposes atomic RPC helper functions for clean, multi-table cascade operations:
+The database exposes atomic RPC helper functions for clean, multi-table cascade operations, caching, and autocomplete:
 
 1. **`unlink_material_from_class(p_class_id UUID, p_material_id UUID)`**:
    - Removes the `class_materials` link without deleting the underlying material or past student submissions.
@@ -214,6 +236,14 @@ The database exposes atomic RPC helper functions for clean, multi-table cascade 
    - Atomically drops submission rows and returns the physical blob storage paths for backend or frontend storage bucket deletion.
 4. **`archive_material(p_material_id UUID)`**:
    - Marks material status as archived, decoupling it from active class assignments.
+5. **`add_student_to_class(p_class_id UUID, p_student_id UUID, p_email TEXT, ...)`**:
+   - Upserts enrollment into `public.class_students` with initial score, performance tier, and custom IEP/accommodation attributes, used during student invitation flows.
+6. **`update_material_contents(p_table_name TEXT, p_record_id UUID, p_diff_array JSONB)`**:
+   - Applies diff updates to `content` JSONB arrays and returns arrays of deleted storage file paths for immediate physical cleanup.
+7. **`check_workspace_modifications(p_client_timestamps JSONB)` / `get_workspace_last_modified(...)`**:
+   - Granular SWR cache verification engine that inspects maximum `updated_at` timestamps across classes, templates, student rosters, and materials, returning only stale resource keys to minimize network traffic.
+8. **Fuzzy Directory Search RPCs**:
+   - `search_institutes(query TEXT)`, `search_districts(query TEXT)`, `search_cities(query TEXT)`, `search_states(query TEXT)`, and `search_countries(query TEXT)` leverage `pg_trgm.word_similarity` to power fast autocomplete across location and institute inputs.
 
 ---
 
