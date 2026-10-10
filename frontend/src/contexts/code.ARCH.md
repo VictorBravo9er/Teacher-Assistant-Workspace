@@ -17,12 +17,12 @@ sequenceDiagram
     App->>AuthContext: Mount AuthProvider
     AuthContext->>Supabase: supabase.auth.getSession()
     Supabase-->>AuthContext: Return initial session
-    AuthContext->>AuthContext: Set user, session, loading=false
+    AuthContext->>AuthContext: Set user, session, role, isInitializing=false
     AuthContext->>Supabase: supabase.auth.onAuthStateChange(callback)
     Supabase-->>AuthContext: Emit SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED
-    AuthContext->>AuthContext: Update state (user, session)
+    AuthContext->>AuthContext: Update state (user, session, role)
     Views->>AuthContext: useAuth()
-    AuthContext-->>Views: { user, session, loading, signIn, signUp, signOut }
+    AuthContext-->>Views: { session, user, role, isInitializing, signOut, updateUserMetadata }
 ```
 
 ---

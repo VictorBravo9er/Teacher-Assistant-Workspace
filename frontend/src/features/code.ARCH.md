@@ -9,19 +9,26 @@ This document details the domain breakdown and cross-feature interaction pattern
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
-    ClassApp["views/ClassApp.tsx"]
+    ClassApp["views/ClassApp.tsx (Teacher Shell)"]
+    StudentApp["views/StudentApp.tsx (Student Shell)"]
     
     subgraph Features["Feature Modules"]
         Classroom["classroom/ (ClassDetails, GradebookMatrix, RubricBuilder)"]
         Students["students/ (StudentRegister, SubmissionGrading, Attendance)"]
+        StudentPortal["student-portal/ (StudentTurnInModal)"]
+        Calendar["calendar/ (CalendarView)"]
         AI["ai-assistant/ (RAGClass, AIDiagnosticDiffModal, Visualizer)"]
         Account["account/ (AccountModals)"]
     end
 
     ClassApp --> Classroom
     ClassApp --> Students
+    ClassApp --> Calendar
     ClassApp --> AI
     ClassApp --> Account
+
+    StudentApp --> StudentPortal
+    StudentApp --> Calendar
 
     Classroom -.->|Grading Modal Trigger| Students
     Students -.->|AI Diagnostic Request| AI

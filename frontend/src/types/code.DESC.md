@@ -7,14 +7,14 @@ This directory defines the authoritative TypeScript domain contracts, UI state m
 ## 📁 Directory Files
 
 - [`main.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/types/main.ts): Core frontend TypeScript interfaces and union types:
-  - `ClassProject`: Complete classroom entity with nested materials, instructions, students, and submissions.
-  - `TeacherTemplate`: Blueprint class structures.
-  - `StudentPortfolio`: Student records with grades, attendance, and parent contacts.
-  - `LearningMaterial` & `ContentItem`: Mixed-media curriculum items (File, URL, Text) with size/mime metadata and grading criteria schemas.
-  - `InstructionGuideline`: AI prompts and behavioral rules.
-  - `StudentSubmissionRecord`: Assignment submissions with structured `rubric_breakdown` (`CriterionScoreItem[]`, `EvaluationSummary`).
-  - `ChatMessage` & `DiagnosticSession`: AI conversation threads and visualizer schemas.
-  - `ViewMode` & `TabType`: UI layout and tab discriminator types.
+  - `ClassModel`: Complete classroom entity with nested materials, instructions, students, and ragSessions.
+  - `Template`: Blueprint curriculum structures.
+  - `Student`: Student records with grades, attendance, custom fields, and parent contacts.
+  - `Material` & `ContentItem`: Mixed-media curriculum items (File, URL, Text) with size/mime metadata and grading criteria schemas.
+  - `Instruction`: AI prompts, personas, and behavioral rules.
+  - `StudentSubmission`: Assignment submissions with structured `rubric_breakdown` (`CriterionScoreItem[]`, `EvaluationSummary`).
+  - `Message` & `RAGSession`: AI conversation threads and visualizer schemas.
+  - `Announcement` & `NotificationLog`: Classroom announcements and Resend email audit records.
 - [`db.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/types/db.ts): Auto-generated TypeScript definitions representing PostgreSQL `public` tables, relations, and enums, generated via the Supabase CLI (`scripts/_generate_types.py`).
 
 ---

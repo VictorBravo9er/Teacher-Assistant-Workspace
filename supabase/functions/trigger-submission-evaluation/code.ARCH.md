@@ -22,9 +22,9 @@ flowchart TD
     MarkProc --> CallBE["POST ${BACKEND_API_URL}/api/grade"]
     
     CallBE -- Success --> UpdateDB["Update score & grade in public.student_submissions<br/>Record full breakdown in ai.submission_evaluations"]
-    CallBE -- Failure --> MarkErr["Update ai.submission_evaluations status='error'"]
+    CallBE -- Backend Offline / Error --> MarkQueued["Keep status queued / log warning"]
     UpdateDB --> Done["Return 200 OK ({ status: 'evaluated' })"]
-    MarkErr --> DoneErr["Return 502 / 500 Structured Error"]
+    MarkQueued --> DoneQueued["Return 200 OK ({ status: 'queued_for_evaluation' })"]
 ```
 
 ---
@@ -44,16 +44,14 @@ interface SubmissionEvaluationTriggerPayload {
 ### Backend Forwarding Payload (`POST /api/grade`):
 ```typescript
 interface BackendGradePayload {
-  submission_text: string;
-  material_title: string;
+  submission_id: string;
+  class_id: string;
+  student_id: string;
+  material_id: string;
+  material_name: string;
   max_score: number;
-  rubric_criteria: Array<{
-    id: string;
-    name: string;
-    description: string;
-    max_score: number;
-    weight: number;
-  }>;
+  rubric_criteria: Array<any>;
+  submission_text: string;
 }
 ```
 

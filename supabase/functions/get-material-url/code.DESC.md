@@ -6,7 +6,7 @@ This directory contains the Edge Function for verifying user authorization and g
 
 ## 📁 Directory Files
 
-- [`index.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/get-material-url/index.ts): Deno serverless function entrypoint that handles `OPTIONS` CORS preflight, extracts the caller's JWT token, validates that the user is either the class teacher or an enrolled student, and generates a temporary signed download URL (e.g. 60-second expiry) via `supabaseAdmin.storage`.
+- [`index.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/get-material-url/index.ts): Deno serverless function entrypoint that handles `OPTIONS` CORS preflight, extracts the caller's JWT token, validates that the user is either the class teacher or an enrolled student, and generates a temporary signed download URL (1-hour expiry / 3600 seconds) via `adminSupabase.storage`.
 
 ---
 

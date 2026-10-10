@@ -17,7 +17,8 @@ flowchart TD
     AuthState -- "Loading" --> LoadingSpinner["Loading Surface / Spinner"]
     AuthState -- "Unauthenticated + Onboarding" --> Landing["views/LandingPage.tsx"]
     AuthState -- "Unauthenticated + Auth Form" --> Auth["views/AuthPage.tsx"]
-    AuthState -- "Authenticated" --> ClassApp["views/ClassApp.tsx"]
+    AuthState -- "Authenticated (role === 'teacher')" --> ClassApp["views/ClassApp.tsx"]
+    AuthState -- "Authenticated (role === 'student')" --> StudentApp["views/StudentApp.tsx"]
     
     ClassApp --> Sidebar["components/layout/Sidebar.tsx"]
     ClassApp --> ViewModes["features/ (ClassDetails / RAGClass / Gradebook)"]
@@ -28,11 +29,10 @@ flowchart TD
 ## 2. Design System & CSS Token Architecture (`index.css`)
 
 1. **CSS Variables for Theme Switching**:
-   - Variables (`--bg-primary`, `--surface-card`, `--border-color`, `--text-primary`) dynamically update between light and dark modes via `.dark` class toggling on `<html>`.
-2. **Four-Tier Tailwind Consolidation**:
-   - Level 1: Atomic UI primitives (`src/components/ui/`).
-   - Level 2: Recurring structural classes via `@apply` in `index.css` (`.card-surface`, `.btn-primary`, `.input-field`).
-   - Level 3: Theme dictionaries in `src/lib/themeStyles.ts`.
-   - Level 4: Dynamic class composition via `clsx` and `tailwind-merge`.
+   - Variables (`--background`, `--surface`, `--elevated`, `--border-color`, `--primary`, `--primary-text`) dynamically update between light and dark modes via `.dark` class toggling on `<html>`.
+2. **Three-Tier Tailwind Consolidation**:
+   - Level 1: Atomic UI primitives (`src/components/ui/`) using template literal class composition.
+   - Level 2: Component utility classes in `index.css` (`.card-surface`, `.btn-primary`, `.input-field`).
+   - Level 3: Design token dictionaries in `src/lib/themeStyles.ts`.
 3. **Scrollbar & Focus Ring Standardization**:
    - Provides unified slim scrollbars and WCAG-compliant accessible focus outlines across browsers.
