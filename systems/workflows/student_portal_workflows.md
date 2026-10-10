@@ -135,3 +135,31 @@ sequenceDiagram
         UI-->>Student: Displays inline error message and re-enables inputs
     end
 ```
+
+---
+
+## 5. Workflow: Student Grade & Performance Review
+
+Students inspect their academic standing, cumulative letter grade, assignment-specific scores, and qualitative instructor feedback via the `grades` sub-tab in [`StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student as Student
+    participant Portal as StudentApp (Tab: grades)
+    participant Svc as studentPortalService
+    participant DB as PostgreSQL (public)
+
+    Student->>Portal: Clicks "Grades" tab in course navigation
+    Portal->>Portal: Reads activeClass state (currentScore, currentGrade, generalFeedback)
+    Portal->>Portal: Reads submissions state (scores, rubric feedback, status)
+    Portal-->>Student: Renders Cumulative Score metric card (e.g., "88%")
+    Portal-->>Student: Renders Letter Grade metric card (e.g., "B+") & attendance stat
+    Portal-->>Student: Displays Instructor Remarks & Portfolio Feedback
+    Portal-->>Student: Displays Graded Work scoreboard (itemized scores & rubric comments)
+```
+
+### Invariants:
+1. **RLS Isolation**: Grade statistics and submission scores are strictly scoped to the student's own `student_id` in `class_students` and `student_submissions`.
+2. **Real-Time Consistency**: When new submissions are evaluated by AI or updated by instructors, active class data is refreshed via `studentPortalService.fetchClassDetails(classId)`.
+

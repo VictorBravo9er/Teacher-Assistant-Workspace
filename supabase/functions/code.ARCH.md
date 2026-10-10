@@ -11,7 +11,7 @@ sequenceDiagram
     autonumber
     participant Client as Browser / Backend Service
     participant EdgeFunc as Deno Edge Function (index.ts)
-    participant Shared as _shared/ (auth.ts & cors.ts)
+    participant Shared as _shared/ (auth.ts, cors.ts, env.ts, supabaseClient.ts)
     participant Supabase as Supabase Admin Client
 
     Client->>EdgeFunc: HTTP Request (POST / GET)

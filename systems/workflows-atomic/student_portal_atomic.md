@@ -129,3 +129,37 @@ interface UpdatePasswordParams {
 
 ### 6. Postconditions
 - Encrypted password digest updated in `auth.users`.
+
+---
+
+## ATOM-SP-05: Inspect Grades, Letter Grade & Feedback
+
+### 1. Trigger
+- **Event**: Student selects the **"Grades"** sub-tab in [`StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx).
+
+### 2. Preconditions
+- The student is authenticated (`auth.role() = 'student'`).
+- The student has an active course selected.
+
+### 3. Input Parameters
+```typescript
+interface InspectGradesParams {
+  classId: string;
+}
+```
+
+### 4. Execution Pipeline
+1. Sets `activeTab = 'grades'` in `StudentApp.tsx`.
+2. Computes summary metrics from `activeClass` state:
+   - Cumulative percentage score (`activeClass.currentScore`).
+   - Assigned letter grade (`activeClass.currentGrade`).
+   - Attendance percentage (`activeClass.attendancePercentage`).
+   - Teacher portfolio remarks (`activeClass.generalFeedback`).
+3. Maps `submissions` array to graded item cards displaying assignment title, turn-in status, rubric feedback, and points earned vs. max points.
+
+### 5. Error Handling & Rollbacks
+- If score data is not yet computed, renders localized fallback states (`"Not Graded Yet"`, `"Pending Evaluation"`).
+
+### 6. Postconditions
+- Read-only presentation; no database or cache mutations.
+
