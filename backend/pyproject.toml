@@ -27,7 +27,7 @@ dev = [
 
 [tool.poe.tasks]
 run-dev = "uvicorn src.main:app --reload --host 0.0.0.0 --port 8000"
-lint = { shell = "ruff check . && basedpyright" }
+lint = { shell = "ruff check . && basedpyright && python ../scripts/verify_doc_coverage.py" }
 format = "ruff format ."
 
 [tool.uv]

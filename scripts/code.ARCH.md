@@ -64,3 +64,7 @@ In [`db_setup.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/s
 
 ### Contract Generation & Tooltip Auditing:
 [`_generate_types.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_generate_types.py) uses the Supabase CLI (`npx -y supabase gen types`) to derive strict types directly from PostgreSQL catalog reflections, guaranteeing that frontend TypeScript types and backend Python models remain in lockstep with the database DDL. Following type generation, [`_verify_enum_tooltips.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_verify_enum_tooltips.py) automatically audits generated enum constants against pedagogical UI tooltip definitions in `frontend/src/utils/enumTooltips.ts`.
+
+### Deterministic Documentation Coverage Linting (`verify_doc_coverage.py`):
+[`verify_doc_coverage.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/verify_doc_coverage.py) acts as a mechanical, zero-token pre-completion quality gate wired directly into `uv run poe lint` and `npm run lint`. It scans all code directories across the repository, ensuring that every non-exempt directory contains both `code.DESC.md` and `code.ARCH.md`, and mechanically validates that every source code file (`.ts`, `.tsx`, `.py`, `.sql`, `.sh`) is explicitly cataloged by name in its parent directory's `code.DESC.md`. Failing doc coverage immediately aborts the lint build with exit code 1.
+

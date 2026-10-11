@@ -103,6 +103,7 @@ flowchart TD
     Migrate["migrate.py (Migration Runner)"]
     LangGraphInit["_setup_langchain_postgres.py"]
     GenTypes["_generate_types.py"]
+    DocLinter["verify_doc_coverage.py (Doc Linter)"]
     EdgeDeploy["deploy_edge_functions.py (Incremental Edge Deployer)"]
     EnvCollector["collect_env_files.sh"]
 
@@ -110,6 +111,7 @@ flowchart TD
     EnvHelper --> Migrate
     EnvHelper --> LangGraphInit
     EnvHelper --> EdgeDeploy
+    SetupDB --> DocLinter
 
     SetupDB -->|Executes DDL| PostgreSQL[("PostgreSQL Database")]
     Migrate -->|Applies 001-007 SQL| PostgreSQL
@@ -136,6 +138,8 @@ flowchart TD
    - Programmatic database migration runner executing versioned SQL migration scripts (`001` through `007`) in sequence and recording state in `supabase_migrations.schema_migrations`.
 5. **`collect_env_files.sh`**:
    - Aggregates environment variables from `.env.local`, `frontend/.env`, and `backend/.env` into a single consolidated root `.env` file for Docker Compose.
+6. **`verify_doc_coverage.py`**:
+   - Mechanical documentation coverage linter attached to `uv run poe lint` and `npm run lint`. Recursively audits all code directories ensuring full presence of `code.DESC.md` and `code.ARCH.md` and complete source file cataloging.
 
 ---
 
