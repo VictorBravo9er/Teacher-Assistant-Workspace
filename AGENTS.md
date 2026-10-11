@@ -11,7 +11,7 @@ Stack: React 19 / Vite / TypeScript / Tailwind (`frontend/`) · Python 3.13 / Fa
 2. **Strict Type Safety**: Backend — Python 3.13+, Pydantic v2, zero BasedPyright/Ruff warnings. Frontend — `strict: true`, no `any`. Validate at parser boundaries (Pydantic / Zod).
 3. **Generated Types Are Read-Only (`db.ts` & `db.py`)**: NEVER edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `schema/` and regenerate via `scripts/_generate_types.py`. Put app models in `main.ts`, `schemas.py`, or `ai.py`.
 4. **Verify Before Done**:
-   - **Build & Lint**: Frontend — `npm run build` (0 errors). Backend — `uv run poe lint` (0 Ruff/BasedPyright issues).
+   - **Build & Lint**: Frontend — `npm run lint` / `npm run build` (0 errors). Backend — `uv run poe lint` (enforces 0 Ruff, BasedPyright & doc-coverage errors).
    - **Documentation Sync Gate**: Before concluding any feature, workflow, or state-flow change, update all 3 documentation tiers: (1) `systems/*.md`, (2) `systems/workflows/*.md` & `systems/workflows-atomic/*.md`, and (3) `code.ARCH.md` / `code.DESC.md` in every modified directory.
 
 ## 3. Documentation Architecture & Docs-First Navigation
