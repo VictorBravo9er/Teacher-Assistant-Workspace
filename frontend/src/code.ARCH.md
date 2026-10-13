@@ -29,10 +29,10 @@ flowchart TD
 ## 2. Design System & CSS Token Architecture (`index.css`)
 
 1. **CSS Variables for Theme Switching**:
-   - Variables (`--background`, `--surface`, `--elevated`, `--border-color`, `--primary`, `--primary-text`) dynamically update between light and dark modes via `.dark` class toggling on `<html>`.
+   - Variables (`--background`, `--surface`, `--elevated`, `--border-color`, `--primary`, `--primary-text`, `--muted-text`) dynamically update between light and dark modes via `.dark` class toggling on `<html>`. Light mode uses high-contrast borders (`#CBD5E1`), while dark mode uses a softened deep slate canvas (`#0F172A`) to eliminate eye fatigue and halation.
 2. **Three-Tier Tailwind Consolidation**:
-   - Level 1: Atomic UI primitives (`src/components/ui/`) using template literal class composition.
-   - Level 2: Component utility classes in `index.css` (`.card-surface`, `.btn-primary`, `.input-field`).
+   - Level 1: Atomic UI primitives (`src/components/ui/`) using template literal class composition with ergonomic sizing (`text-sm` inputs/buttons, `text-xs` badges/labels).
+   - Level 2: Component utility classes in `index.css` (`.card-surface`, `.btn-primary`, `.input-field`, `.badge-pill`).
    - Level 3: Design token dictionaries in `src/lib/themeStyles.ts`.
 3. **Scrollbar & Focus Ring Standardization**:
    - Provides unified slim scrollbars and WCAG-compliant accessible focus outlines across browsers.

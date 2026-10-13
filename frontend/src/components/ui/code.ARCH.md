@@ -27,10 +27,12 @@ flowchart LR
 1. **`Button.tsx`**:
    - Manages an `isLoading` prop that replaces prefix icons with an animated spinner SVG and sets `disabled={true}` to prevent duplicate submissions.
    - Forwards standard HTML button attributes (`onClick`, `type`, `id`).
+   - Scales sizes ergonomically (`md` defaults to `text-sm`, `lg` to `text-base`, `icon` to comfortable `p-2` tap target).
 2. **`Modal.tsx`**:
    - Manages portal rendering or centered overlay positioning with `z-50`.
    - Listens to `keydown` for `Escape` key dismissal when `isOpen={true}` and invokes `onClose()`.
    - Prevents click bubbling from inside the modal content to the backdrop.
 3. **`Input.tsx`**:
-   - Renders semantic `<label>` linked to `<input id={...}>` for screen-reader accessibility.
-   - Dynamically styles error borders and displays an inline red error hint when `error` prop is present.
+   - Renders semantic `<label>` linked to `<input id={...}>` for screen-reader accessibility with readable uppercase `text-xs` font-semibold labels.
+   - Defaults text inputs and textareas to legible `text-sm` font size.
+   - Dynamically styles error borders and displays an inline red error hint (`text-xs`) when `error` prop is present.

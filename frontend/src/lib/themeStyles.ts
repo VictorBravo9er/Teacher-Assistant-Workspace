@@ -13,10 +13,10 @@ export const STYLES = {
   modalCloseButton: 'p-1.5 hover:bg-elevated text-muted-text hover:text-primary-text rounded-xl transition-colors cursor-pointer',
 
   // Forms & Inputs
-  inputBase: 'w-full bg-elevated border border-border-color rounded-xl p-2.5 text-xs text-primary-text outline-none focus:border-primary shadow-sm transition-all',
-  inputSurface: 'w-full bg-surface border border-border-color rounded-xl p-2.5 text-xs text-primary-text outline-none focus:border-primary shadow-sm transition-all',
-  formLabel: 'text-[10px] font-mono uppercase font-bold text-muted-text tracking-wider block mb-1',
-  formLabelSubtle: 'text-[10px] font-semibold text-muted-text mb-1 uppercase tracking-wider block',
+  inputBase: 'w-full bg-elevated border border-border-color rounded-xl p-2.5 text-sm text-primary-text outline-none focus:border-primary shadow-sm transition-all',
+  inputSurface: 'w-full bg-surface border border-border-color rounded-xl p-2.5 text-sm text-primary-text outline-none focus:border-primary shadow-sm transition-all',
+  formLabel: 'text-xs font-semibold uppercase text-muted-text tracking-wider block mb-1',
+  formLabelSubtle: 'text-xs font-medium text-muted-text mb-1 uppercase tracking-wider block',
 
   // Cards & Surfaces
   cardSurface: 'bg-surface border border-border-color rounded-2xl p-4 shadow-sm transition-colors',
@@ -24,7 +24,7 @@ export const STYLES = {
   cardHover: 'hover:border-primary/30 transition-colors',
 
   // Badges & Pills
-  badgePill: 'text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1',
+  badgePill: 'text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5',
   badgeSuccess: 'bg-success/15 border-success/30 text-success',
   badgeWarning: 'bg-warning/15 border-warning/30 text-warning',
   badgeError: 'bg-error/15 border-error/30 text-error',
@@ -32,7 +32,7 @@ export const STYLES = {
   badgeSecondary: 'bg-secondary/15 border-secondary/30 text-secondary',
 
   // Typography
-  subtleHeader: 'text-[10px] font-mono uppercase font-bold text-muted-text tracking-wider',
-  cardTitle: 'text-xs font-bold text-primary-text font-display',
-  sectionTitle: 'text-sm font-bold text-primary-text font-display',
+  subtleHeader: 'text-xs font-semibold uppercase text-muted-text tracking-wider',
+  cardTitle: 'text-sm font-bold text-primary-text font-display',
+  sectionTitle: 'text-base font-bold text-primary-text font-display',
 } as const;

@@ -45,7 +45,7 @@ export interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement>
 
 export function CardTitle({ icon, className = '', children, ...props }: CardTitleProps) {
   return (
-    <h4 className={`text-xs font-bold text-primary-text font-display flex items-center gap-2 ${className}`} {...props}>
+    <h4 className={`text-sm font-bold text-primary-text font-display flex items-center gap-2 ${className}`} {...props}>
       {icon && <span className="text-primary">{icon}</span>}
       {children}
     </h4>

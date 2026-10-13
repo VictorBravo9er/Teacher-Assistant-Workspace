@@ -185,7 +185,11 @@ function StudentPasswordModal({
 export default function StudentApp() {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const toggleTheme = () => {
+    const activeIsDark = document.documentElement.classList.contains('dark');
+    setTheme(activeIsDark ? 'light' : 'dark');
+  };
 
   const [classes, setClasses] = useState<EnrolledClass[]>([]);
   const [activeClassId, setActiveClassId] = useState<string>('');
@@ -343,7 +347,7 @@ export default function StudentApp() {
             className="rounded-xl w-8 h-8 p-0 text-muted-text hover:text-primary-text"
             title="Toggle theme"
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
 
           <div className="flex items-center gap-2 pl-2 border-l border-border-color">

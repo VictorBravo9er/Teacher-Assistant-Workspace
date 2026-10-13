@@ -226,7 +226,8 @@ flowchart LR
 3. **`useAIChat`**:
    - Manages active chat thread messages, streaming state, session history switching, and contextual prompt injection.
 4. **`useTheme`**:
-   - Controls application light/dark theme toggles and dynamic brand styling variables.
+   - Controls application light/dark/system theme toggles, synchronizing `.dark` class on root `<html>`, `localStorage` (`edu_rag_theme`), and OS `prefers-color-scheme`.
+   - Binds to ergonomic design tokens in `index.css`: WCAG-compliant high-contrast slate borders (`#CBD5E1` in light, `#475569` in dark), softened non-glare dark canvas (`#0F172A` / `#1E293B`), and scaled typography (`text-sm` inputs/buttons, `text-xs` badges/labels) optimized for extended reading by educators across all demographics.
 
 ---
 

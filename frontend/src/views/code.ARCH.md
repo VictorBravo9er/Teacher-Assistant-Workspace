@@ -53,3 +53,5 @@ flowchart TD
 5. **Blocking Security & Upload Progress Bars (`ClassApp.tsx`, `AuthPage.tsx`, `StudentApp.tsx`)**:
    - `ClassApp.tsx` connects `loadingState` and `loadingSubMessage` to `<LoadingOverlay showProgressBar={true} />` for binary file uploads.
    - `AuthPage.tsx` (`ResetPasswordPage`) and `StudentApp.tsx` (`StudentPasswordModal`) render indeterminate security progress bars and lock form inputs while session tokens rotate.
+6. **Reactive Theme Toggle Synchronization (`StudentApp.tsx`)**:
+   - Evaluates active DOM class list (`document.documentElement.classList.contains('dark')`) to guarantee immediate 1-click theme inversion even when initial preference is set to `'system'`.

@@ -18,10 +18,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={`w-full bg-elevated/60 border ${
             error ? 'border-error/50 focus:border-error' : 'border-border-color focus:border-primary'
-          } rounded-xl py-2 ${icon ? 'pl-9' : 'px-3'} pr-3 text-xs text-primary-text placeholder-muted-text outline-none transition-all shadow-sm focus:ring-1 focus:ring-primary/20 ${className}`}
+          } rounded-xl py-2 ${icon ? 'pl-9' : 'px-3'} pr-3 text-sm text-primary-text placeholder-muted-text outline-none transition-all shadow-sm focus:ring-1 focus:ring-primary/20 ${className}`}
           {...props}
         />
-        {error && <p className="text-[10px] text-error font-medium mt-1">{error}</p>}
+        {error && <p className="text-xs text-error font-medium mt-1">{error}</p>}
       </div>
     );
   }
@@ -40,10 +40,10 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           className={`w-full bg-elevated/60 border ${
             error ? 'border-error/50 focus:border-error' : 'border-border-color focus:border-primary'
-          } rounded-xl p-3 text-xs text-primary-text placeholder-muted-text outline-none transition-all resize-none shadow-sm focus:ring-1 focus:ring-primary/20 leading-relaxed ${className}`}
+          } rounded-xl p-3 text-sm text-primary-text placeholder-muted-text outline-none transition-all resize-none shadow-sm focus:ring-1 focus:ring-primary/20 leading-relaxed ${className}`}
           {...props}
         />
-        {error && <p className="text-[10px] text-error font-medium mt-1">{error}</p>}
+        {error && <p className="text-xs text-error font-medium mt-1">{error}</p>}
       </div>
     );
   }
@@ -63,14 +63,14 @@ export function FormField({ label, sublabel, error, className = '', children }: 
     <div className={`space-y-1 ${className}`}>
       {label && (
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-mono uppercase font-bold text-muted-text tracking-wider block">
+          <label className="text-xs font-semibold uppercase text-muted-text tracking-wider block">
             {label}
           </label>
-          {sublabel && <span className="text-[10px] text-muted-text font-mono">{sublabel}</span>}
+          {sublabel && <span className="text-xs text-muted-text font-mono">{sublabel}</span>}
         </div>
       )}
       {children}
-      {error && <p className="text-[10px] text-error font-medium mt-0.5">{error}</p>}
+      {error && <p className="text-xs text-error font-medium mt-0.5">{error}</p>}
     </div>
   );
 }

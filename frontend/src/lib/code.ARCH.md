@@ -30,4 +30,5 @@ flowchart TD
    - Binds the auto-generated database interface `Database` from `types/db.ts` to ensure type-safe query builders across all services.
 2. **`themeStyles.ts` Design Dictionaries**:
    - Represents Tier 3 of the Tailwind consolidation architecture.
-   - Centralizes complex multi-class strings (e.g. `CARD_BASE`, `MODAL_BACKDROP`, `BADGE_STATUS_MAP`) to prevent class drift across disparate component files.
+   - Centralizes complex multi-class strings (e.g. `STYLES.modalBackdrop`, `STYLES.inputBase`, `STYLES.cardSurface`, `STYLES.badgePill`) to prevent class drift across disparate component files.
+   - Standardizes ergonomic typography scales (`text-sm` for inputs/cards, `text-xs` for labels/badges) ensuring accessibility across diverse user demographics.
