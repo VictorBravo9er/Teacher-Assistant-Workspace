@@ -98,8 +98,10 @@ flowchart TD
 
 ### Automation Tools:
 1. **`db_setup.py`**:
-   - Master orchestrator for database provisioning. Under `--reset`, executes `schema-reset.sql` teardown and initializes LangGraph tables via `_setup_langchain_postgres.py`, followed by applying all migrations via `migrate.py` (`supabase db push`), auditing/deploying modified Edge Functions via `deploy_edge_functions.py`, and regenerating contracts via `_generate_types.py`. Available via `make db-setup` and `make db-reset`.
-2. **`_setup_langchain_postgres.py`**:
+   - Master orchestrator for database provisioning. Under `--reset`, executes `schema-reset.sql` teardown and initializes LangGraph tables via `_setup_langchain_postgres.py`, followed by applying all migrations via `migrate.py` (`supabase db push`), auditing/deploying modified Edge Functions via `deploy_edge_functions.py`, regenerating contracts via `_generate_types.py`, and updating local schema dumps via `db_dump.py`. Available via `make db-setup` and `make db-reset`.
+2. **`db_dump.py`**:
+   - Uses Supabase CLI (`supabase db dump`) to dump per-schema DDL (`schema.<name>.sql` for `public`, `ai`, and `langgraph` in `supabase/schemas/`) and table fixtures directly into `supabase/seed.sql` (overwriting). Available via `make db-dump-schema`, `make db-dump-data`, and `make db-dump`.
+3. **`_setup_langchain_postgres.py`**:
    - Configures PostgreSQL checkpoint and store tables in schema `langgraph` using `PostgresSaver` and `PostgresStore`.
 3. **`_generate_types.py`**:
    - Uses Supabase CLI (`supabase gen types typescript` and `supabase gen types --lang=python`) to generate `frontend/src/types/db.ts` and `backend/src/types/db.py`, auditing enum pedagogical tooltips upon completion. Available via `make types`.

@@ -28,6 +28,9 @@ The workspace includes a root [`Makefile`](file:///home/victor/antigravity/Teach
 | **`make lint-docs`** | Audit 100% `code.md` micro-doc coverage | `python scripts/verify_doc_coverage.py all` |
 | **`make db-setup`** | Initialize database (safe, applies migrations & types) | `uv run --project backend python scripts/db_setup.py` |
 | **`make db-reset`** | Full destructive teardown, re-migration & setup | `uv run --project backend python scripts/db_setup.py --reset` |
+| **`make db-dump-schema`** | Dump DDL schemas (`schema.<name>.sql` in `supabase/schemas/`) | `python scripts/db_dump.py --schema-only` |
+| **`make db-dump-data`** | Dump table data for all schemas into `supabase/seed.sql` | `python scripts/db_dump.py --data-only` |
+| **`make db-dump`** | Dump both schemas and table data | `python scripts/db_dump.py --both` |
 | **`make migrate-status`** | View applied vs. pending SQL migrations | `python scripts/migrate.py --status` |
 | **`make migrate`** | Apply migrations via Supabase CLI | `python scripts/migrate.py` |
 | **`make types`** | Regenerate TS & Python DB contracts | `python scripts/_generate_types.py` |
