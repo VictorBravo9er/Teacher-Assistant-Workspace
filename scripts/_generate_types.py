@@ -95,7 +95,7 @@ def main(db_url: str | None = None):
         audit_enum_tooltips,
     )
 
-    audit_enum_tooltips()
+    _ = audit_enum_tooltips()
 
 
 if __name__ == "__main__":
