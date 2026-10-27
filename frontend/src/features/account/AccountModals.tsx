@@ -438,7 +438,7 @@ export default function AccountModals({
       {activeModal === 'subscription' && (
         <>
           <ModalHeader
-            title="ClassModel Licensing"
+            title="Teach&Learn Licensing"
             subtitle="Free Tier partner vs. Pro scaling models"
             icon={<Sparkles className="w-6 h-6 animate-pulse" />}
             onClose={onClose}

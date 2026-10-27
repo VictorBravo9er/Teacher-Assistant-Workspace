@@ -21,7 +21,7 @@ This document organizes and lists all important element `id` attributes assigned
 | `sidebar-classes-header` | Clickable section header for "Active Classes" |
 | `sidebar-toggle-archived-button` | Toggle button to switch between active and archived classes |
 | `sidebar-create-class-button` | Plus icon button to open "Create Class" modal |
-| `sidebar-class-item-{id}` | Container for individual class project item |
+| `sidebar-class-item-{id}` | Container for individual class item |
 | `sidebar-class-menu-button-{id}` | Context menu trigger ("..." button) on class item |
 | `sidebar-theme-light-button` | Switch theme to Light mode |
 | `sidebar-theme-dark-button` | Switch theme to Dark mode |

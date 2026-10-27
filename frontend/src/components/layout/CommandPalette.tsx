@@ -132,7 +132,7 @@ export default function CommandPalette({
           {filteredClasses.length > 0 && (
             <div className="space-y-1">
               <span className="text-[9px] font-mono font-bold text-muted-text uppercase px-2 py-1 block">
-                Switch Class ClassModel
+                Switch Class
               </span>
               {filteredClasses.map((ws) => (
                 <div

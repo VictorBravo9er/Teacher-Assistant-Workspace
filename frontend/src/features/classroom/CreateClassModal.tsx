@@ -430,7 +430,13 @@ export default function CreateClassModal({
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="ghost" size="sm" type="button" onClick={onClose}>
+          <Button
+            id="create-class-cancel-button"
+            variant="ghost"
+            size="sm"
+            type="button"
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button

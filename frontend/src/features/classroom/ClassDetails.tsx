@@ -414,6 +414,7 @@ export default function ClassDetails({
           )}
         </button>
         <button
+          id="class-details-tab-instructions"
           onClick={() => setActiveSubTab("prompts")}
           className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             activeSubTab === "prompts"
@@ -601,6 +602,7 @@ export default function ClassDetails({
                   </label>
                   {isEditMode ? (
                     <MultiSelect
+                      id="class-profile-teaching-style-input"
                       options={[...Constants.public.Enums.teaching_style]}
                       selectedValues={classItem.teachingStyle}
                       onChange={(values) =>
@@ -662,6 +664,7 @@ export default function ClassDetails({
                   </label>
                   {isEditMode ? (
                     <MultiSelect
+                      id="class-profile-assessment-preferences-input"
                       options={[...Constants.public.Enums.assessment_preference]}
                       selectedValues={classItem.assessmentPreferences || []}
                       onChange={(values) =>
@@ -692,7 +695,7 @@ export default function ClassDetails({
 
                 <div>
                   <label className="text-[10px] uppercase font-mono text-muted-text">
-                    ClassModel Reminders / Notes
+                    Class Reminders / Notes
                   </label>
                   <textarea
                     id="class-profile-special-notes-input"
