@@ -3,7 +3,8 @@
 # ==============================================================================
 
 .PHONY: help check lint lint-backend lint-frontend build-frontend lint-docs \
-        db-setup db-reset migrate migrate-status types deploy-functions deploy-functions-status \
+        db-setup db-reset db-dump db-dump-schema db-dump-data \
+        migrate migrate-status types deploy-functions deploy-functions-status \
         dev-backend dev-frontend docker-dev docker-prod
 
 .DEFAULT_GOAL := help
@@ -19,6 +20,9 @@ help:
 	@echo "Supabase & Database Commands:"
 	@echo "  make db-setup                 Initialize database (safe, applies migrations & types)"
 	@echo "  make db-reset                 Full destructive teardown, re-migration & setup"
+	@echo "  make db-dump-schema           Dump separate DDL schemas (schema.<name>.sql in supabase/schemas/)"
+	@echo "  make db-dump-data             Dump table data (public, ai, langgraph) into supabase/seed.sql"
+	@echo "  make db-dump                  Dump both separate schemas and data (into seed.sql)"
 	@echo "  make migrate-status           Display status of applied and pending SQL migrations"
 	@echo "  make migrate                  Apply unapplied migrations via Supabase CLI and regen types"
 	@echo "  make types                    Regenerate TypeScript and Python types via Supabase CLI"
@@ -56,6 +60,15 @@ db-setup:
 
 db-reset:
 	uv run --project backend python scripts/db_setup.py --reset $(ARGS)
+
+db-dump-schema:
+	python scripts/db_dump.py --schema-only $(if $(DIR),-d $(DIR),) $(if $(SCHEMA),-s $(SCHEMA),) $(if $(FILE),-f $(FILE),) $(ARGS)
+
+db-dump-data:
+	python scripts/db_dump.py --data-only $(if $(DIR),-d $(DIR),) $(if $(SCHEMA),-s $(SCHEMA),) $(if $(FILE),-f $(FILE),) $(ARGS)
+
+db-dump:
+	python scripts/db_dump.py --both $(if $(DIR),-d $(DIR),) $(if $(SCHEMA),-s $(SCHEMA),) $(if $(FILE),-f $(FILE),) $(ARGS)
 
 migrate-status:
 	python scripts/migrate.py --status

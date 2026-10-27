@@ -90,6 +90,7 @@ class _DBSetupArgs(argparse.Namespace):
     no_types: bool = False
     no_functions: bool = False
     force_functions: bool = False
+    no_dump: bool = False
 
 
 def main():
@@ -126,6 +127,11 @@ def main():
         "--force-functions",
         action="store_true",
         help="Force redeploying all Supabase Edge Functions even if unmodified.",
+    )
+    _ = parser.add_argument(
+        "--no-dump",
+        action="store_true",
+        help="Skip generating local SQL schema file after setup.",
     )
 
     args = parser.parse_args(namespace=_DBSetupArgs())
@@ -208,6 +214,14 @@ def main():
             )
 
             generate_types(db_url)
+
+        # Step 5: Generate local SQL Schema files via Supabase CLI
+        if not args.no_dump:
+            from db_dump import (  # pyright: ignore[reportImplicitRelativeImport]
+                dump_schemas,
+            )
+
+            _ = dump_schemas(db_url)
 
     print("\n" + "=" * 60)
     print("🎉 Database Setup Complete!")

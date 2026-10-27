@@ -67,10 +67,10 @@ CREATE INDEX IF NOT EXISTS store_prefix_idx ON langgraph.store USING btree (pref
 CREATE INDEX IF NOT EXISTS idx_store_expires_at ON langgraph.store (expires_at) WHERE expires_at IS NOT NULL;
 
 -- 3. Seed Migration History so PostgresSaver & PostgresStore recognize schema version
-INSERT INTO langgraph.checkpoint_migrations (v)
-VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)
-ON CONFLICT (v) DO NOTHING;
+-- INSERT INTO langgraph.checkpoint_migrations (v)
+-- VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)
+-- ON CONFLICT (v) DO NOTHING;
 
-INSERT INTO langgraph.store_migrations (v)
-VALUES (0), (1), (2), (3)
-ON CONFLICT (v) DO NOTHING;
+-- INSERT INTO langgraph.store_migrations (v)
+-- VALUES (0), (1), (2), (3)
+-- ON CONFLICT (v) DO NOTHING;
