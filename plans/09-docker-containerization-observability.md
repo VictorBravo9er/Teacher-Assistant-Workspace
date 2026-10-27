@@ -49,7 +49,7 @@ configureServer(server) {
 ### 1.4 Missing Environment Variables & Reverse Proxy Correlation
 - **Environment Configuration**: `LOG_MAX_ENTRIES`, `VITE_LOG_MAX_ENTRIES`, and `VITE_LOG_LEVEL` are not passed through Docker Compose or documented in [`.env.example`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/.env.example).
 - **Request Tracing**: [`frontend/default.conf.template`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/default.conf.template) proxies `/api` requests to `backend` but fails to forward or inject the `X-Request-ID` correlation header required by backend request-tracing middleware.
-- **Alternative Host Drift**: [`alternative-host/Dockerfile`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/alternative-host/Dockerfile) relies on legacy Node 20 and Python 3.11 instead of the workspace standards (Node 24 and Python 3.13).
+- **Alternative Host Decommissioning**: Legacy `alternative-host/` unified container setup was decommissioned and removed in favor of standard multi-container and Vercel hosting models.
 
 ---
 
@@ -297,8 +297,8 @@ VITE_LOG_MAX_ENTRIES=5000
 VITE_LOG_LEVEL=DEBUG
 ```
 
-### Step 3.8: Align Alternative Host Container ([`alternative-host/Dockerfile`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/alternative-host/Dockerfile))
-Upgrade base images to `node:24-slim` and `python:3.13-slim` to prevent environment drift.
+### Step 3.8: Decommission Alternative Host
+Removed legacy `alternative-host/` directory (`Dockerfile`, `deploy.sh`, `docker-compose.yml`, `main.py`) in favor of standard multi-container and Vercel hosting models.
 
 ---
 

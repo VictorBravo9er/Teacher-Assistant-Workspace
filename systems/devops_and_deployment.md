@@ -60,37 +60,7 @@ The Teach&Learn workspace implements strict container hardening standards:
 
 ---
 
-## 3. Alternative Unified Hosting Strategy (`alternative-host/`)
-
-For lightweight or single-instance cloud environments, the `alternative-host/` directory provides a self-contained unified hosting model that bundles the compiled React frontend directly inside the FastAPI backend container:
-
-```mermaid
-%%{init: {'flowchart': {'curve': 'linear'}}}%%
-flowchart LR
-    Browser["Client Browser (Port 8090)"]
-    
-    subgraph UnifiedContainer["Single Unified Container (FastAPI / Uvicorn)"]
-        FastAPIRouter["FastAPI Application"]
-        APIRoutes["/api/* Endpoints"]
-        StaticMount["/assets Static Mount"]
-        SPAFallback["/{full_path:path} SPA Catch-All -> index.html"]
-        
-        FastAPIRouter --> APIRoutes
-        FastAPIRouter --> StaticMount
-        FastAPIRouter --> SPAFallback
-    end
-
-    Browser -->|API Requests| APIRoutes
-    Browser -->|Asset Requests| StaticMount
-    Browser -->|Page Navigation| SPAFallback
-```
-
-- **`deploy.sh`**: Runs `pnpm run build` in `frontend/` and syncs the distribution bundle to `alternative-host/workdir/dist`.
-- **`main.py`**: Mounts `/assets` via `StaticFiles` and serves `index.html` on any non-API route to maintain client-side SPA routing.
-
----
-
-## 4. Automation & Provisioning Scripts (`scripts/`)
+## 3. Automation & Provisioning Scripts (`scripts/`)
 
 The `scripts/` directory contains CLI automation tools for database lifecycle, LangGraph initialization, type generation, and environment configuration:
 
@@ -143,7 +113,7 @@ flowchart TD
 
 ---
 
-## 5. Serverless Multi-Service Hosting (Vercel)
+## 4. Serverless Multi-Service Hosting (Vercel)
 
 For external serverless deployments, the repository-level `vercel.json` orchestrates both the Vite frontend and Python FastAPI backend as distinct services. The top-level rules select the backend for `/api/*` and the frontend for all other public paths; the frontend service then owns its SPA fallback so every client-side route returns the built `index.html` shell. The `frontend/vercel.json` file remains the standalone-project equivalent when `frontend/` is configured as the Vercel project root.
 
@@ -190,7 +160,7 @@ This configuration ensures:
 2. **SPA Client Routing**: All web and deep client-side routes (`/(.*)`) are first routed to the frontend service, whose service-level rewrite serves `dist/index.html` for requests that do not resolve to a built asset. `cleanUrls` remains disabled so the explicit `.html` fallback is not transformed unexpectedly.
 3. **Standalone Frontend Compatibility**: When `frontend/` itself is the Vercel project root, `frontend/vercel.json` applies the same SPA fallback at the project level.
 
-### 5.1 Ignored Build Step Filtering (`bash-decide.sh`)
+### 4.1 Ignored Build Step Filtering (`bash-decide.sh`)
 
 To prevent unnecessary serverless builds and save Vercel build minutes, [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh) is configured as the Vercel **Ignored Build Step** command:
 
