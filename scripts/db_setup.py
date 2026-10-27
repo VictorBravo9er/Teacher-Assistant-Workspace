@@ -12,18 +12,37 @@ from pathlib import Path
 try:
     import psycopg
 except ImportError:
+    import shutil
+
     root_dir = Path(__file__).resolve().parent.parent
     venv_python = root_dir / "backend" / ".venv" / "bin" / "python"
 
     if venv_python.exists() and sys.executable != str(venv_python):
-        print(f"🔄 Relaunching script using python binary: {venv_python}")
+        print(f"🔄 Relaunching script using backend virtualenv: {venv_python}")
         os.execv(str(venv_python), [str(venv_python)] + sys.argv)
-    else:
-        print(
-            "❌ Error: 'psycopg' library is not installed and couldn't find .uv_python virtual environment.",
-            file=sys.stderr,
+
+    uv_bin = shutil.which("uv")
+    if uv_bin:
+        print("🔄 Relaunching script using 'uv run' for backend environment...")
+        os.execv(
+            uv_bin,
+            [
+                uv_bin,
+                "run",
+                "--project",
+                str(root_dir / "backend"),
+                "python",
+                str(Path(__file__).resolve()),
+            ]
+            + sys.argv[1:],
         )
-        sys.exit(1)
+
+    print(
+        "❌ Error: 'psycopg' library is not installed and backend virtual environment was not found.\n"
+        + "   Please run 'uv sync' in backend/ or run with 'uv run --project backend python scripts/db_setup.py'.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 # Add scripts directory to sys.path to allow importing _env_helper
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -150,21 +169,9 @@ def main():
         )
         print("=" * 60)
 
-        # Step 1: Destructive reset ONLY when explicitly requested
+        # Step 1: Teardown (and LangGraph table initialization for reset)
         if args.reset:
             run_sql_file(schema_reset, conn)
-        else:
-            print("🛡️  Skipping destructive schema-reset.sql (data preserved).")
-
-        # Step 2: Apply full migration sequence via Supabase CLI
-        print("\n▶️ Synchronizing database migrations via Supabase CLI...")
-        import migrate  # pyright: ignore[reportImplicitRelativeImport]
-
-        _ = migrate.run_migrations(no_types=True)
-
-        # Step 3: LangGraph checkpoint tables (only if missing, or reset, or explicitly requested)
-        already_has_langgraph = check_langgraph_configured(conn)
-        if args.reset or args.with_langgraph or not already_has_langgraph:
             print("\n▶️ Setting up LangGraph checkpoint & store tables...")
             from _setup_langchain_postgres import (  # pyright: ignore[reportImplicitRelativeImport]
                 setup_database,
@@ -172,9 +179,27 @@ def main():
 
             setup_database(db_langgraph_url)
         else:
-            print(
-                "⏩ LangGraph checkpoint tables already present. Skipping LangGraph setup."
-            )
+            print("🛡️  Skipping destructive schema-reset.sql (data preserved).")
+            if args.with_langgraph or not check_langgraph_configured(conn):
+                print("\n▶️ Setting up missing LangGraph checkpoint & store tables...")
+                from _setup_langchain_postgres import (  # pyright: ignore[reportImplicitRelativeImport]
+                    setup_database,
+                )
+
+                setup_database(db_langgraph_url)
+
+        # Step 2: Apply full migration sequence via Supabase CLI
+        print("\n▶️ Synchronizing database migrations via Supabase CLI...")
+        import migrate  # pyright: ignore[reportImplicitRelativeImport]
+
+        _ = migrate.run_migrations(no_types=True)
+
+        # Step 3: Deploy modified Supabase Edge Functions
+        if not args.no_functions:
+            print("\n▶️ Checking Supabase Edge Functions for modifications...")
+            _ = deploy_modified_functions(force=bool(args.force_functions))
+        else:
+            print("⏩ Skipping Supabase Edge Functions deployment (--no-functions).")
 
         # Step 4: Generate TS and Python Types via Supabase CLI
         if not args.no_types:
@@ -183,13 +208,6 @@ def main():
             )
 
             generate_types(db_url)
-
-        # Step 5: Deploy modified Supabase Edge Functions
-        if not args.no_functions:
-            print("\n▶️ Checking Supabase Edge Functions for modifications...")
-            _ = deploy_modified_functions(force=bool(args.force_functions))
-        else:
-            print("⏩ Skipping Supabase Edge Functions deployment (--no-functions).")
 
     print("\n" + "=" * 60)
     print("🎉 Database Setup Complete!")

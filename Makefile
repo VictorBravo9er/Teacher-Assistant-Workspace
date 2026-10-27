@@ -3,7 +3,7 @@
 # ==============================================================================
 
 .PHONY: help check lint lint-backend lint-frontend build-frontend lint-docs \
-        migrate migrate-status types deploy-functions deploy-functions-status \
+        db-setup db-reset migrate migrate-status types deploy-functions deploy-functions-status \
         dev-backend dev-frontend docker-dev docker-prod
 
 .DEFAULT_GOAL := help
@@ -17,6 +17,8 @@ help:
 	@echo "  make lint-docs                Verify 100% code.md documentation coverage"
 	@echo ""
 	@echo "Supabase & Database Commands:"
+	@echo "  make db-setup                 Initialize database (safe, applies migrations & types)"
+	@echo "  make db-reset                 Full destructive teardown, re-migration & setup"
 	@echo "  make migrate-status           Display status of applied and pending SQL migrations"
 	@echo "  make migrate                  Apply unapplied migrations via Supabase CLI and regen types"
 	@echo "  make types                    Regenerate TypeScript and Python types via Supabase CLI"
@@ -49,6 +51,12 @@ lint-docs:
 # ------------------------------------------------------------------------------
 # Database & Supabase CLI
 # ------------------------------------------------------------------------------
+db-setup:
+	uv run --project backend python scripts/db_setup.py $(ARGS)
+
+db-reset:
+	uv run --project backend python scripts/db_setup.py --reset $(ARGS)
+
 migrate-status:
 	python scripts/migrate.py --status
 
