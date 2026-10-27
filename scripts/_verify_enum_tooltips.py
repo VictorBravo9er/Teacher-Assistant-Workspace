@@ -43,6 +43,7 @@ def audit_enum_tooltips() -> None:
     tooltips_ts = root_dir / "frontend" / "src" / "utils" / "enumTooltips.ts"
 
     if not db_ts.exists():
+        print("   ⚠️  can not find DB types.")
         return
 
     enums = extract_enums_from_db_ts(db_ts)

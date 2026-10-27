@@ -49,4 +49,3 @@ def resolve_supabase_project_ref() -> str | None:
             return ref_text
 
     return None
-
