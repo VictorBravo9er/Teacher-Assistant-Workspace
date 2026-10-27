@@ -12,7 +12,7 @@ In the teacher-facing LMS, [`StudentDetailModal.tsx`](file:///home/victor/antigr
 - **Roll Number**
 - **Custom IEP / Accommodation Fields** (`CustomField[]`)
 
-However, inspecting [`schema/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-db.sql) reveals that neither `public.students` nor `public.class_students` contains these columns:
+However, inspecting [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql) reveals that neither `public.students` nor `public.class_students` contains these columns:
 - `public.students` only contains: `id`, `name`, `email`, `avatar_url`, `is_archived`.
 - `public.class_students` only contains: `learning_style`, `strengths`, `weaknesses`, `current_score`, `current_grade`, `general_feedback`, `performance_tier`, `behavioral_notes`.
 
@@ -22,8 +22,8 @@ Because these columns are absent from PostgreSQL:
 3. PostgREST rejects any updates containing these attributes.
 
 ### 1.2 Missing `'Text'` in `public.content_type` Enum
-Additionally, [`schema/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-db.sql#L18) defines `public.content_type AS ENUM ('File', 'URL')`.
-- Documentation (`schema/code.DESC.md` and `database_and_storage.md`) intended `content_type` to include `'Text'`.
+Additionally, [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql#L18) defines `public.content_type AS ENUM ('File', 'URL')`.
+- Documentation (`supabase/schemas/code.md` and `docs/systems/database_and_storage.md`) intended `content_type` to include `'Text'`.
 - The omission of `'Text'` causes `validate_content_array(arr jsonb)` to reject any submission or material item with `type: 'Text'`.
 - This forced the frontend ([`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx#L100)) to hack text submissions with `type: 'File' as any` and pseudo-paths (`text://${itemId}`), directly causing preview modal crashes in [`MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx).
 
@@ -43,7 +43,7 @@ We evaluated whether student contact details belong in `auth.users.user_metadata
 
 ## 3. Implementation Steps
 
-### Step 3.1: Update Canonical Schema ([`schema/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/schema-db.sql))
+### Step 3.1: Update Canonical Schema ([`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql))
 1. Add missing portfolio columns to `public.class_students`:
 ```sql
 ALTER TABLE public.class_students
@@ -67,7 +67,7 @@ COMMENT ON COLUMN public.class_students.parent_notes IS 'Private teacher observa
 ALTER TYPE public.content_type ADD VALUE IF NOT EXISTS 'Text';
 ```
 
-3. Relax `validate_content_array(arr jsonb)` in `schema/schema-db.sql`:
+3. Relax `validate_content_array(arr jsonb)` in `supabase/schemas/schema-db.sql`:
 Ensure that for items with `elem->>'type' = 'Text'`, `path` is optional or can be an empty string, allowing inline text entries without forcing fake storage paths:
 ```sql
 CREATE OR REPLACE FUNCTION validate_content_array(arr jsonb)
@@ -97,7 +97,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 ```
 
 ### Step 3.2: Create Standalone Migration Script
-Create migration file `schema/migrations/001_add_class_student_portfolio_fields.sql` incorporating the column additions, the `ALTER TYPE public.content_type ADD VALUE 'Text'` statement, and the updated `validate_content_array` function so existing databases can apply this change cleanly without wiping data.
+Create migration file `supabase/migrations/001_add_class_student_portfolio_fields.sql` incorporating the column additions, the `ALTER TYPE public.content_type ADD VALUE 'Text'` statement, and the updated `validate_content_array` function so existing databases can apply this change cleanly without wiping data.
 
 ### Step 3.3: Regenerate Static Types
 Run the automated type generator (Rule 2.5):

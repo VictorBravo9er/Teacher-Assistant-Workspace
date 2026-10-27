@@ -71,7 +71,7 @@ This master tracker combines the completed **Frontend Teacher Experience & Submi
   - Return structured rubric breakdowns (`RubricBreakdownItem`), scores, strength summaries, and pedagogical notes directly to the frontend diff review modal.
   - Implemented `EvaluatorService` and `OntologyService` in backend with strict Pydantic v2 schemas.
 - [x] **6.2 Automated AI Evaluation Triggers for Materials & Submissions Pipeline & Hybrid AI Schema**
-  - **Hybrid AI Schema & Storage (`schema/schema-ai.sql`)**: Dedicated non-exposed `ai` schema holding material/submission vector embeddings (`pgvector`), ontological knowledge graph (`ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`), material-concept bridges, and student mastery state tracking.
+  - **Hybrid AI Schema & Storage (`supabase/schemas/schema-ai.sql`)**: Dedicated non-exposed `ai` schema holding material/submission vector embeddings (`pgvector`), ontological knowledge graph (`ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`), material-concept bridges, and student mastery state tracking.
   - **Material Ingestion/Update Trigger**: `trg_material_ai_analysis` automatically dispatches webhooks to `trigger-material-analysis` Edge Function to execute syllabus alignment, prerequisite gap checks, and sample question generation.
   - **Submission Ingestion/Update Trigger**: `trg_submission_ai_eval` automatically dispatches webhooks to `trigger-submission-evaluation` Edge Function to pre-compute rubric evaluations in `ai.submission_evaluations`.
   - **Public Gateway RPCs**: `get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, and `get_class_concept_matrix` provide authorized, sanitized UI access with strict `auth.uid()` checks.
@@ -82,5 +82,5 @@ This master tracker combines the completed **Frontend Teacher Experience & Submi
 - [ ] **7.1 Server-Sent Events (SSE) Streaming**
   - Refactor `/api/chat` from blocking JSON to SSE streaming for instant token-by-token streaming in the chat UI.
 - [ ] **7.2 LangGraph PostgreSQL Checkpointing**
-  - Connect LangGraph conversation checkpoints (`schema/schema-langgraph.sql`) for robust multi-turn thread persistence.
+  - Connect LangGraph conversation checkpoints (`supabase/schemas/schema-langgraph.sql`) for robust multi-turn thread persistence.
 

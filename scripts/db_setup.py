@@ -141,11 +141,11 @@ def main():
     )
 
     with psycopg.connect(db_url, autocommit=True) as conn:
-        schema_reset = root_dir / "schema" / "schema-reset.sql"
-        schema_db = root_dir / "schema" / "schema-db.sql"
-        bucket_materials = root_dir / "schema" / "bucket-materials.sql"
-        bucket_submissions = root_dir / "schema" / "bucket-submissions.sql"
-        schema_langgraph = root_dir / "schema" / "schema-langgraph.sql"
+        schema_reset = root_dir / "supabase" / "schemas" / "schema-reset.sql"
+        schema_db = root_dir / "supabase" / "schemas" / "schema-db.sql"
+        bucket_materials = root_dir / "supabase" / "schemas" / "bucket-materials.sql"
+        bucket_submissions = root_dir / "supabase" / "schemas" / "bucket-submissions.sql"
+        schema_langgraph = root_dir / "supabase" / "schemas" / "schema-langgraph.sql"
 
         print("=" * 60)
         print(
@@ -165,7 +165,7 @@ def main():
         run_sql_file(bucket_materials, conn)
         run_sql_file(bucket_submissions, conn)
 
-        # Step 3: Run pending incremental migrations from schema/migrations/ via Supabase CLI
+        # Step 3: Run pending incremental migrations from supabase/migrations/ via Supabase CLI
         print("\n▶️ Checking incremental schema migrations...")
         import migrate  # pyright: ignore[reportImplicitRelativeImport]
 

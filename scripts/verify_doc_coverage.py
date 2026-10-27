@@ -36,8 +36,12 @@ CORE_DIRS_MAP: dict[str, list[str]] = {
         "frontend/src/components",
         "frontend/src/contexts",
     ],
+    "supabase": [
+        "supabase/schemas",
+        "supabase/functions",
+    ],
     "schema": [
-        "schema",
+        "supabase/schemas",
     ],
     "edge_functions": [
         "supabase/functions",

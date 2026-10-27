@@ -29,7 +29,7 @@ gantt
 
 ## 2. Detailed Phase Breakdown
 
-### Phase 1: Database DDL & Schema Enhancements (`schema/schema-ai.sql`)
+### Phase 1: Database DDL & Schema Enhancements (`supabase/schemas/schema-ai.sql`)
 - [ ] Add `ai.material_trees` table with recursive JSONB node definitions and B-Tree indexes.
 - [ ] Update `ai.student_concept_mastery` trigger routines for exponential moving average updates.
 - [ ] Verify recursive CTE query performance for prerequisite graph traversal on `ai.ontology_relationships`.

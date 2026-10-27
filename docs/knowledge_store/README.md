@@ -125,7 +125,7 @@ flowchart LR
     Backend -->|Async DB Pool| DB
 ```
 
-- **Database & Storage Subsystem** ([`systems/database_and_storage.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/database_and_storage.md)): Stores raw entities in `public`, hierarchical trees and knowledge graphs in `ai`, and checkpoints in `langgraph`.
-- **AI & Ontology Subsystem** ([`systems/ai_and_ontology_subsystem.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/ai_and_ontology_subsystem.md)): Houses the evaluation engines and prompt serialization logic.
-- **Backend Service Subsystem** ([`systems/backend_service.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/backend_service.md)): Exposes `/api/chat`, `/api/grade`, and `/api/materials/analyze`.
-- **Edge Functions Subsystem** ([`systems/edge_functions.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/systems/edge_functions.md)): Manages file parsing, signed URLs, and async webhook relays.
+- **Database & Storage Subsystem** ([`docs/systems/database_and_storage.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/database_and_storage.md)): Stores raw entities in `public`, hierarchical trees and knowledge graphs in `ai`, and checkpoints in `langgraph`.
+- **AI & Ontology Subsystem** ([`docs/systems/ai_and_ontology_subsystem.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/ai_and_ontology_subsystem.md)): Houses the evaluation engines and prompt serialization logic.
+- **Backend Service Subsystem** ([`docs/systems/backend_service.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/backend_service.md)): Exposes `/api/chat`, `/api/grade`, and `/api/materials/analyze`.
+- **Edge Functions Subsystem** ([`docs/systems/edge_functions.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/edge_functions.md)): Manages file parsing, signed URLs, and async webhook relays.

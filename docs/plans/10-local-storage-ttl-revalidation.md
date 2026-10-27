@@ -1,7 +1,7 @@
 # Plan 10: Multi-Component TTL & Granular Database Revalidation Engine
 
 > **Status**: ✅ **COMPLETED & VERIFIED**  
-> **Target Subsystems**: `schema/` (PostgreSQL), `frontend/src/lib/` (Storage), `frontend/src/hooks/` (Workspace State), `frontend/src/services/` (Data Services), `frontend/src/features/students/` (Observability)
+> **Target Subsystems**: `supabase/` (PostgreSQL), `frontend/src/lib/` (Storage), `frontend/src/hooks/` (Workspace State), `frontend/src/services/` (Data Services), `frontend/src/features/students/` (Observability)
 
 ---
 
