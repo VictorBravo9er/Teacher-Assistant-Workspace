@@ -1,1015 +1,477 @@
 // @ts-nocheck
 /* eslint-disable */
 /* prettier-ignore */
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  public: {
-    Tables: {
-      announcements: {
-        Row: {
-          author_id: string
-          class_id: string
-          content: string
-          created_at: string
-          id: string
-          is_pinned: boolean
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          author_id: string
-          class_id: string
-          content: string
-          created_at?: string
-          id?: string
-          is_pinned?: boolean
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          author_id?: string
-          class_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          is_pinned?: boolean
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "announcements_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      attendance_records: {
-        Row: {
-          class_id: string
-          created_at: string
-          date: string
-          id: string
-          notes: string | null
-          status: Database["public"]["Enums"]["attendance_status"]
-          student_id: string
-          updated_at: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          date: string
-          id?: string
-          notes?: string | null
-          status: Database["public"]["Enums"]["attendance_status"]
-          student_id: string
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          date?: string
-          id?: string
-          notes?: string | null
-          status?: Database["public"]["Enums"]["attendance_status"]
-          student_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "attendance_records_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chat_sessions: {
-        Row: {
-          class_id: string | null
-          created_at: string
-          custom_instructions: string | null
-          id: string
-          is_archived: boolean | null
-          messages: Json | null
-          scope_type: string | null
-          selected_ids: string[] | null
-          title: string
-          type: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string
-          custom_instructions?: string | null
-          id?: string
-          is_archived?: boolean | null
-          messages?: Json | null
-          scope_type?: string | null
-          selected_ids?: string[] | null
-          title?: string
-          type?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string
-          custom_instructions?: string | null
-          id?: string
-          is_archived?: boolean | null
-          messages?: Json | null
-          scope_type?: string | null
-          selected_ids?: string[] | null
-          title?: string
-          type?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_sessions_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      class_instructions: {
-        Row: {
-          class_id: string
-          created_at: string
-          instruction_id: string
-          updated_at: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          instruction_id: string
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          instruction_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "class_instructions_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_instructions_instruction_id_fkey"
-            columns: ["instruction_id"]
-            isOneToOne: false
-            referencedRelation: "instructions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      class_materials: {
-        Row: {
-          class_id: string
-          created_at: string
-          custom_content: Json | null
-          custom_rubric_criteria: Json | null
-          material_id: string
-          updated_at: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          custom_content?: Json | null
-          custom_rubric_criteria?: Json | null
-          material_id: string
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          custom_content?: Json | null
-          custom_rubric_criteria?: Json | null
-          material_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "class_materials_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_materials_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "materials"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      class_students: {
-        Row: {
-          behavioral_notes: string | null
-          class_id: string
-          current_grade: string | null
-          current_score: number | null
-          custom_fields: Json | null
-          general_feedback: string | null
-          learning_style: string | null
-          parent_notes: string | null
-          performance_tier: string | null
-          roll_number: string | null
-          strengths: string[] | null
-          student_id: string
-          updated_at: string
-          weaknesses: string[] | null
-        }
-        Insert: {
-          behavioral_notes?: string | null
-          class_id: string
-          current_grade?: string | null
-          current_score?: number | null
-          custom_fields?: Json | null
-          general_feedback?: string | null
-          learning_style?: string | null
-          parent_notes?: string | null
-          performance_tier?: string | null
-          roll_number?: string | null
-          strengths?: string[] | null
-          student_id: string
-          updated_at?: string
-          weaknesses?: string[] | null
-        }
-        Update: {
-          behavioral_notes?: string | null
-          class_id?: string
-          current_grade?: string | null
-          current_score?: number | null
-          custom_fields?: Json | null
-          general_feedback?: string | null
-          learning_style?: string | null
-          parent_notes?: string | null
-          performance_tier?: string | null
-          roll_number?: string | null
-          strengths?: string[] | null
-          student_id?: string
-          updated_at?: string
-          weaknesses?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "class_students_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_students_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      classes: {
-        Row: {
-          academic_year: string | null
-          assessment_preferences:
-            | Database["public"]["Enums"]["assessment_preference"][]
-            | null
-          created_at: string
-          experience_level:
-            | Database["public"]["Enums"]["experience_level"]
-            | null
-          id: string
-          institute_id: string | null
-          is_archived: boolean | null
-          name: string
-          semester: string | null
-          special_notes: string | null
-          subject: string | null
-          teacher_name: string | null
-          teaching_style: Database["public"]["Enums"]["teaching_style"][] | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          academic_year?: string | null
-          assessment_preferences?:
-            | Database["public"]["Enums"]["assessment_preference"][]
-            | null
-          created_at?: string
-          experience_level?:
-            | Database["public"]["Enums"]["experience_level"]
-            | null
-          id?: string
-          institute_id?: string | null
-          is_archived?: boolean | null
-          name: string
-          semester?: string | null
-          special_notes?: string | null
-          subject?: string | null
-          teacher_name?: string | null
-          teaching_style?:
-            | Database["public"]["Enums"]["teaching_style"][]
-            | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          academic_year?: string | null
-          assessment_preferences?:
-            | Database["public"]["Enums"]["assessment_preference"][]
-            | null
-          created_at?: string
-          experience_level?:
-            | Database["public"]["Enums"]["experience_level"]
-            | null
-          id?: string
-          institute_id?: string | null
-          is_archived?: boolean | null
-          name?: string
-          semester?: string | null
-          special_notes?: string | null
-          subject?: string | null
-          teacher_name?: string | null
-          teaching_style?:
-            | Database["public"]["Enums"]["teaching_style"][]
-            | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "classes_institute_id_fkey"
-            columns: ["institute_id"]
-            isOneToOne: false
-            referencedRelation: "institutes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      institutes: {
-        Row: {
-          city: string | null
-          country: string | null
-          created_at: string
-          district: string | null
-          id: string
-          name: string
-          state: string | null
-          type: Database["public"]["Enums"]["institute_type"] | null
-        }
-        Insert: {
-          city?: string | null
-          country?: string | null
-          created_at?: string
-          district?: string | null
-          id?: string
-          name: string
-          state?: string | null
-          type?: Database["public"]["Enums"]["institute_type"] | null
-        }
-        Update: {
-          city?: string | null
-          country?: string | null
-          created_at?: string
-          district?: string | null
-          id?: string
-          name?: string
-          state?: string | null
-          type?: Database["public"]["Enums"]["institute_type"] | null
-        }
-        Relationships: []
-      }
-      instructions: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          is_archived: boolean | null
-          title: string
-          type: Database["public"]["Enums"]["instruction_type"]
-          updated_at: string
-          user_id: string
-          when_to_apply: string | null
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          is_archived?: boolean | null
-          title: string
-          type?: Database["public"]["Enums"]["instruction_type"]
-          updated_at?: string
-          user_id: string
-          when_to_apply?: string | null
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          is_archived?: boolean | null
-          title?: string
-          type?: Database["public"]["Enums"]["instruction_type"]
-          updated_at?: string
-          user_id?: string
-          when_to_apply?: string | null
-        }
-        Relationships: []
-      }
-      materials: {
-        Row: {
-          category: Database["public"]["Enums"]["content_category"]
-          content: Json | null
-          created_at: string
-          due_at: string | null
-          id: string
-          is_archived: boolean | null
-          max_score: number | null
-          name: string
-          rubric_criteria: Json | null
-          tags: string[] | null
-          to_be_scored: boolean | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          category?: Database["public"]["Enums"]["content_category"]
-          content?: Json | null
-          created_at?: string
-          due_at?: string | null
-          id?: string
-          is_archived?: boolean | null
-          max_score?: number | null
-          name: string
-          rubric_criteria?: Json | null
-          tags?: string[] | null
-          to_be_scored?: boolean | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          category?: Database["public"]["Enums"]["content_category"]
-          content?: Json | null
-          created_at?: string
-          due_at?: string | null
-          id?: string
-          is_archived?: boolean | null
-          max_score?: number | null
-          name?: string
-          rubric_criteria?: Json | null
-          tags?: string[] | null
-          to_be_scored?: boolean | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      notification_logs: {
-        Row: {
-          announcement_id: string | null
-          class_id: string
-          created_at: string
-          error_message: string | null
-          id: string
-          material_id: string | null
-          notification_type: string
-          recipient_email: string
-          recipient_name: string | null
-          recipient_type: string
-          resend_email_id: string | null
-          status: string
-          student_id: string | null
-          submission_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          announcement_id?: string | null
-          class_id: string
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          material_id?: string | null
-          notification_type: string
-          recipient_email: string
-          recipient_name?: string | null
-          recipient_type: string
-          resend_email_id?: string | null
-          status?: string
-          student_id?: string | null
-          submission_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          announcement_id?: string | null
-          class_id?: string
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          material_id?: string | null
-          notification_type?: string
-          recipient_email?: string
-          recipient_name?: string | null
-          recipient_type?: string
-          resend_email_id?: string | null
-          status?: string
-          student_id?: string | null
-          submission_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_logs_announcement_id_fkey"
-            columns: ["announcement_id"]
-            isOneToOne: false
-            referencedRelation: "announcements"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_logs_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_logs_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "materials"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_logs_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_logs_submission_id_fkey"
-            columns: ["submission_id"]
-            isOneToOne: false
-            referencedRelation: "student_submissions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_submissions: {
-        Row: {
-          class_id: string
-          content: Json | null
-          created_at: string
-          due_at: string | null
-          feedback: string | null
-          grade: string | null
-          id: string
-          is_late: boolean | null
-          material_id: string | null
-          private_teacher_notes: string | null
-          reviewed_at: string | null
-          rubric_breakdown: Json | null
-          score: number | null
-          status: Database["public"]["Enums"]["submission_status"]
-          student_id: string
-          submitted_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          class_id: string
-          content?: Json | null
-          created_at?: string
-          due_at?: string | null
-          feedback?: string | null
-          grade?: string | null
-          id?: string
-          is_late?: boolean | null
-          material_id?: string | null
-          private_teacher_notes?: string | null
-          reviewed_at?: string | null
-          rubric_breakdown?: Json | null
-          score?: number | null
-          status?: Database["public"]["Enums"]["submission_status"]
-          student_id: string
-          submitted_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string
-          content?: Json | null
-          created_at?: string
-          due_at?: string | null
-          feedback?: string | null
-          grade?: string | null
-          id?: string
-          is_late?: boolean | null
-          material_id?: string | null
-          private_teacher_notes?: string | null
-          reviewed_at?: string | null
-          rubric_breakdown?: Json | null
-          score?: number | null
-          status?: Database["public"]["Enums"]["submission_status"]
-          student_id?: string
-          submitted_at?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_submissions_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_submissions_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "materials"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_submissions_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      students: {
-        Row: {
-          address: string | null
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          id: string
-          is_archived: boolean | null
-          name: string
-          parent_contact: string | null
-          parent_name: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          id: string
-          is_archived?: boolean | null
-          name: string
-          parent_contact?: string | null
-          parent_name?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          is_archived?: boolean | null
-          name?: string
-          parent_contact?: string | null
-          parent_name?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      template_instructions: {
-        Row: {
-          created_at: string
-          instruction_id: string
-          template_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          instruction_id: string
-          template_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          instruction_id?: string
-          template_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "template_instructions_instruction_id_fkey"
-            columns: ["instruction_id"]
-            isOneToOne: false
-            referencedRelation: "instructions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "template_instructions_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      template_materials: {
-        Row: {
-          created_at: string
-          custom_content: Json | null
-          custom_rubric_criteria: Json | null
-          material_id: string
-          template_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          custom_content?: Json | null
-          custom_rubric_criteria?: Json | null
-          material_id: string
-          template_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          custom_content?: Json | null
-          custom_rubric_criteria?: Json | null
-          material_id?: string
-          template_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "template_materials_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "materials"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "template_materials_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      templates: {
-        Row: {
-          assessment_preferences:
-            | Database["public"]["Enums"]["assessment_preference"][]
-            | null
-          created_at: string
-          description: string | null
-          experience_level:
-            | Database["public"]["Enums"]["experience_level"]
-            | null
-          id: string
-          institute_id: string | null
-          is_archived: boolean | null
-          name: string
-          subject: string | null
-          teaching_style: Database["public"]["Enums"]["teaching_style"][] | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          assessment_preferences?:
-            | Database["public"]["Enums"]["assessment_preference"][]
-            | null
-          created_at?: string
-          description?: string | null
-          experience_level?:
-            | Database["public"]["Enums"]["experience_level"]
-            | null
-          id?: string
-          institute_id?: string | null
-          is_archived?: boolean | null
-          name: string
-          subject?: string | null
-          teaching_style?:
-            | Database["public"]["Enums"]["teaching_style"][]
-            | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          assessment_preferences?:
-            | Database["public"]["Enums"]["assessment_preference"][]
-            | null
-          created_at?: string
-          description?: string | null
-          experience_level?:
-            | Database["public"]["Enums"]["experience_level"]
-            | null
-          id?: string
-          institute_id?: string | null
-          is_archived?: boolean | null
-          name?: string
-          subject?: string | null
-          teaching_style?:
-            | Database["public"]["Enums"]["teaching_style"][]
-            | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "templates_institute_id_fkey"
-            columns: ["institute_id"]
-            isOneToOne: false
-            referencedRelation: "institutes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+  
+  "public": {
+          Tables: {
+            "announcements": {
+                  Row: {
+                    "author_id": string,"class_id": string,"content": string,"created_at": string,"id": string,"is_pinned": boolean,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id": string,"class_id": string,"content": string,"created_at"?: string,"id"?: string,"is_pinned"?: boolean,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "author_id"?: string,"class_id"?: string,"content"?: string,"created_at"?: string,"id"?: string,"is_pinned"?: boolean,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcements_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
     }
-    Views: {
-      [_ in never]: never
+                  ]
+                },"attendance_records": {
+                  Row: {
+                    "class_id": string,"created_at": string,"date": string,"id": string,"notes": string | null,"status": Database["public"]['Enums']["attendance_status"],"student_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"created_at"?: string,"date": string,"id"?: string,"notes"?: string | null,"status": Database["public"]['Enums']["attendance_status"],"student_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"created_at"?: string,"date"?: string,"id"?: string,"notes"?: string | null,"status"?: Database["public"]['Enums']["attendance_status"],"student_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "attendance_records_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attendance_records_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
     }
-    Functions: {
-      add_student_to_class: {
-        Args: {
-          p_behavioral_notes: string
-          p_class_id: string
-          p_current_grade: string
-          p_current_score: number
-          p_general_feedback: string
-          p_learning_style: string
-          p_performance_tier: string
-          p_strengths: string[]
-          p_student_id: string
-          p_weaknesses: string[]
+                  ]
+                },"chat_sessions": {
+                  Row: {
+                    "class_id": string | null,"created_at": string,"custom_instructions": string | null,"id": string,"is_archived": boolean | null,"messages": Json | null,"scope_type": string | null,"selected_ids": (string)[] | null,"title": string,"type": string | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id"?: string | null,"created_at"?: string,"custom_instructions"?: string | null,"id"?: string,"is_archived"?: boolean | null,"messages"?: Json | null,"scope_type"?: string | null,"selected_ids"?: (string)[] | null,"title"?: string,"type"?: string | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "class_id"?: string | null,"created_at"?: string,"custom_instructions"?: string | null,"id"?: string,"is_archived"?: boolean | null,"messages"?: Json | null,"scope_type"?: string | null,"selected_ids"?: (string)[] | null,"title"?: string,"type"?: string | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_sessions_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_instructions": {
+                  Row: {
+                    "class_id": string,"created_at": string,"instruction_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"created_at"?: string,"instruction_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"created_at"?: string,"instruction_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_instructions_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_instructions_instruction_id_fkey"
+      columns: ["instruction_id"]
+isOneToOne: false
+      referencedRelation: "instructions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_materials": {
+                  Row: {
+                    "class_id": string,"created_at": string,"custom_content": Json | null,"custom_rubric_criteria": Json | null,"material_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"created_at"?: string,"custom_content"?: Json | null,"custom_rubric_criteria"?: Json | null,"material_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"created_at"?: string,"custom_content"?: Json | null,"custom_rubric_criteria"?: Json | null,"material_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_materials_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_materials_material_id_fkey"
+      columns: ["material_id"]
+isOneToOne: false
+      referencedRelation: "materials"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_students": {
+                  Row: {
+                    "behavioral_notes": string | null,"class_id": string,"created_at": string,"current_grade": string | null,"current_score": number | null,"custom_fields": Json | null,"general_feedback": string | null,"learning_style": string | null,"parent_notes": string | null,"performance_tier": string | null,"roll_number": string | null,"strengths": (string)[] | null,"student_id": string,"updated_at": string,"weaknesses": (string)[] | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "behavioral_notes"?: string | null,"class_id": string,"created_at"?: string,"current_grade"?: string | null,"current_score"?: number | null,"custom_fields"?: Json | null,"general_feedback"?: string | null,"learning_style"?: string | null,"parent_notes"?: string | null,"performance_tier"?: string | null,"roll_number"?: string | null,"strengths"?: (string)[] | null,"student_id": string,"updated_at"?: string,"weaknesses"?: (string)[] | null
+                  }
+                  Update: {
+                    "behavioral_notes"?: string | null,"class_id"?: string,"created_at"?: string,"current_grade"?: string | null,"current_score"?: number | null,"custom_fields"?: Json | null,"general_feedback"?: string | null,"learning_style"?: string | null,"parent_notes"?: string | null,"performance_tier"?: string | null,"roll_number"?: string | null,"strengths"?: (string)[] | null,"student_id"?: string,"updated_at"?: string,"weaknesses"?: (string)[] | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_students_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_students_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"classes": {
+                  Row: {
+                    "academic_year": string | null,"assessment_preferences": (Database["public"]['Enums']["assessment_preference"])[] | null,"created_at": string,"experience_level": Database["public"]['Enums']["experience_level"] | null,"id": string,"institute_id": string | null,"is_archived": boolean | null,"name": string,"semester": string | null,"special_notes": string | null,"subject": string | null,"teacher_name": string | null,"teaching_style": (Database["public"]['Enums']["teaching_style"])[] | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "academic_year"?: string | null,"assessment_preferences"?: (Database["public"]['Enums']["assessment_preference"])[] | null,"created_at"?: string,"experience_level"?: Database["public"]['Enums']["experience_level"] | null,"id"?: string,"institute_id"?: string | null,"is_archived"?: boolean | null,"name": string,"semester"?: string | null,"special_notes"?: string | null,"subject"?: string | null,"teacher_name"?: string | null,"teaching_style"?: (Database["public"]['Enums']["teaching_style"])[] | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "academic_year"?: string | null,"assessment_preferences"?: (Database["public"]['Enums']["assessment_preference"])[] | null,"created_at"?: string,"experience_level"?: Database["public"]['Enums']["experience_level"] | null,"id"?: string,"institute_id"?: string | null,"is_archived"?: boolean | null,"name"?: string,"semester"?: string | null,"special_notes"?: string | null,"subject"?: string | null,"teacher_name"?: string | null,"teaching_style"?: (Database["public"]['Enums']["teaching_style"])[] | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "classes_institute_id_fkey"
+      columns: ["institute_id"]
+isOneToOne: false
+      referencedRelation: "institutes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"institutes": {
+                  Row: {
+                    "city": string | null,"country": string | null,"created_at": string,"district": string | null,"id": string,"name": string,"state": string | null,"type": Database["public"]['Enums']["institute_type"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "city"?: string | null,"country"?: string | null,"created_at"?: string,"district"?: string | null,"id"?: string,"name": string,"state"?: string | null,"type": Database["public"]['Enums']["institute_type"]
+                  }
+                  Update: {
+                    "city"?: string | null,"country"?: string | null,"created_at"?: string,"district"?: string | null,"id"?: string,"name"?: string,"state"?: string | null,"type"?: Database["public"]['Enums']["institute_type"]
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"instructions": {
+                  Row: {
+                    "content": string,"created_at": string,"id": string,"is_archived": boolean | null,"title": string,"type": Database["public"]['Enums']["instruction_type"],"updated_at": string,"user_id": string,"when_to_apply": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content": string,"created_at"?: string,"id"?: string,"is_archived"?: boolean | null,"title": string,"type"?: Database["public"]['Enums']["instruction_type"],"updated_at"?: string,"user_id": string,"when_to_apply"?: string | null
+                  }
+                  Update: {
+                    "content"?: string,"created_at"?: string,"id"?: string,"is_archived"?: boolean | null,"title"?: string,"type"?: Database["public"]['Enums']["instruction_type"],"updated_at"?: string,"user_id"?: string,"when_to_apply"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"materials": {
+                  Row: {
+                    "category": Database["public"]['Enums']["content_category"],"content": Json | null,"created_at": string,"due_at": string | null,"id": string,"is_archived": boolean | null,"max_score": number | null,"name": string,"rubric_criteria": Json | null,"tags": (string)[] | null,"to_be_scored": boolean | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category"?: Database["public"]['Enums']["content_category"],"content"?: Json | null,"created_at"?: string,"due_at"?: string | null,"id"?: string,"is_archived"?: boolean | null,"max_score"?: number | null,"name": string,"rubric_criteria"?: Json | null,"tags"?: (string)[] | null,"to_be_scored"?: boolean | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "category"?: Database["public"]['Enums']["content_category"],"content"?: Json | null,"created_at"?: string,"due_at"?: string | null,"id"?: string,"is_archived"?: boolean | null,"max_score"?: number | null,"name"?: string,"rubric_criteria"?: Json | null,"tags"?: (string)[] | null,"to_be_scored"?: boolean | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"notification_logs": {
+                  Row: {
+                    "announcement_id": string | null,"class_id": string,"created_at": string,"error_message": string | null,"id": string,"material_id": string | null,"notification_type": string,"recipient_email": string,"recipient_name": string | null,"recipient_type": string,"resend_email_id": string | null,"status": string,"student_id": string | null,"submission_id": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "announcement_id"?: string | null,"class_id": string,"created_at"?: string,"error_message"?: string | null,"id"?: string,"material_id"?: string | null,"notification_type": string,"recipient_email": string,"recipient_name"?: string | null,"recipient_type": string,"resend_email_id"?: string | null,"status"?: string,"student_id"?: string | null,"submission_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "announcement_id"?: string | null,"class_id"?: string,"created_at"?: string,"error_message"?: string | null,"id"?: string,"material_id"?: string | null,"notification_type"?: string,"recipient_email"?: string,"recipient_name"?: string | null,"recipient_type"?: string,"resend_email_id"?: string | null,"status"?: string,"student_id"?: string | null,"submission_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notification_logs_announcement_id_fkey"
+      columns: ["announcement_id"]
+isOneToOne: false
+      referencedRelation: "announcements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notification_logs_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notification_logs_material_id_fkey"
+      columns: ["material_id"]
+isOneToOne: false
+      referencedRelation: "materials"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notification_logs_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notification_logs_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "student_submissions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"student_submissions": {
+                  Row: {
+                    "class_id": string,"content": Json | null,"created_at": string,"due_at": string | null,"feedback": string | null,"grade": string | null,"id": string,"is_late": boolean | null,"material_id": string | null,"private_teacher_notes": string | null,"reviewed_at": string | null,"rubric_breakdown": Json | null,"score": number | null,"status": Database["public"]['Enums']["submission_status"],"student_id": string,"submitted_at": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"content"?: Json | null,"created_at"?: string,"due_at"?: string | null,"feedback"?: string | null,"grade"?: string | null,"id"?: string,"is_late"?: boolean | null,"material_id"?: string | null,"private_teacher_notes"?: string | null,"reviewed_at"?: string | null,"rubric_breakdown"?: Json | null,"score"?: number | null,"status"?: Database["public"]['Enums']["submission_status"],"student_id": string,"submitted_at"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "class_id"?: string,"content"?: Json | null,"created_at"?: string,"due_at"?: string | null,"feedback"?: string | null,"grade"?: string | null,"id"?: string,"is_late"?: boolean | null,"material_id"?: string | null,"private_teacher_notes"?: string | null,"reviewed_at"?: string | null,"rubric_breakdown"?: Json | null,"score"?: number | null,"status"?: Database["public"]['Enums']["submission_status"],"student_id"?: string,"submitted_at"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "student_submissions_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_submissions_material_id_fkey"
+      columns: ["material_id"]
+isOneToOne: false
+      referencedRelation: "materials"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "student_submissions_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"students": {
+                  Row: {
+                    "address": string | null,"avatar_url": string | null,"created_at": string,"email": string | null,"id": string,"is_archived": boolean | null,"name": string,"parent_contact": string | null,"parent_name": string | null,"phone": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address"?: string | null,"avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"id": string,"is_archived"?: boolean | null,"name": string,"parent_contact"?: string | null,"parent_name"?: string | null,"phone"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "address"?: string | null,"avatar_url"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"is_archived"?: boolean | null,"name"?: string,"parent_contact"?: string | null,"parent_name"?: string | null,"phone"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"template_instructions": {
+                  Row: {
+                    "created_at": string,"instruction_id": string,"template_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"instruction_id": string,"template_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"instruction_id"?: string,"template_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "template_instructions_instruction_id_fkey"
+      columns: ["instruction_id"]
+isOneToOne: false
+      referencedRelation: "instructions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "template_instructions_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"template_materials": {
+                  Row: {
+                    "created_at": string,"custom_content": Json | null,"custom_rubric_criteria": Json | null,"material_id": string,"template_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"custom_content"?: Json | null,"custom_rubric_criteria"?: Json | null,"material_id": string,"template_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"custom_content"?: Json | null,"custom_rubric_criteria"?: Json | null,"material_id"?: string,"template_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "template_materials_material_id_fkey"
+      columns: ["material_id"]
+isOneToOne: false
+      referencedRelation: "materials"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "template_materials_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"templates": {
+                  Row: {
+                    "assessment_preferences": (Database["public"]['Enums']["assessment_preference"])[] | null,"created_at": string,"description": string | null,"experience_level": Database["public"]['Enums']["experience_level"] | null,"id": string,"institute_id": string | null,"is_archived": boolean | null,"name": string,"subject": string | null,"teaching_style": (Database["public"]['Enums']["teaching_style"])[] | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assessment_preferences"?: (Database["public"]['Enums']["assessment_preference"])[] | null,"created_at"?: string,"description"?: string | null,"experience_level"?: Database["public"]['Enums']["experience_level"] | null,"id"?: string,"institute_id"?: string | null,"is_archived"?: boolean | null,"name": string,"subject"?: string | null,"teaching_style"?: (Database["public"]['Enums']["teaching_style"])[] | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "assessment_preferences"?: (Database["public"]['Enums']["assessment_preference"])[] | null,"created_at"?: string,"description"?: string | null,"experience_level"?: Database["public"]['Enums']["experience_level"] | null,"id"?: string,"institute_id"?: string | null,"is_archived"?: boolean | null,"name"?: string,"subject"?: string | null,"teaching_style"?: (Database["public"]['Enums']["teaching_style"])[] | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "templates_institute_id_fkey"
+      columns: ["institute_id"]
+isOneToOne: false
+      referencedRelation: "institutes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "add_student_to_class":
+{ Args: { "p_behavioral_notes": string,"p_class_id": string,"p_current_grade": string,"p_current_score": number,"p_general_feedback": string,"p_learning_style": string,"p_performance_tier": string,"p_strengths": (string)[],"p_student_id": string,"p_weaknesses": (string)[] }; Returns: string
+                           },
+"archive_material":
+{ Args: { "p_material_id": string }; Returns: boolean
+                           },
+"check_workspace_modifications":
+{ Args: { "p_client_timestamps"?: Json }; Returns: Json
+                           },
+"delete_material":
+{ Args: { "p_material_id": string }; Returns: (string)[]
+                           },
+"delete_submission_atomic":
+{ Args: { "p_submission_id": string }; Returns: (string)[]
+                           },
+"get_class_concept_matrix":
+{ Args: { "p_class_id": string }; Returns: Json
+                           },
+"get_material_ai_insights":
+{ Args: { "p_material_id": string }; Returns: Json
+                           },
+"get_student_concept_gaps":
+{ Args: { "p_class_id": string,"p_student_id": string }; Returns: Json
+                           },
+"get_submission_ai_diagnostic":
+{ Args: { "p_submission_id": string }; Returns: Json
+                           },
+"get_workspace_last_modified":
+{ Args: { "p_client_timestamps"?: Json }; Returns: Json
+                           },
+"is_class_teacher":
+{ Args: { "lookup_class_id": string }; Returns: boolean
+                           },
+"search_cities":
+{ Args: { "search_term": string }; Returns: {
+              "result": string
+            }[]
+                           },
+"search_countries":
+{ Args: { "search_term": string }; Returns: {
+              "result": string
+            }[]
+                           },
+"search_districts":
+{ Args: { "search_term": string }; Returns: {
+              "result": string
+            }[]
+                           },
+"search_institutes":
+{ Args: { "search_term": string }; Returns: {
+              "city": string | null,
+"country": string | null,
+"created_at": string,
+"district": string | null,
+"id": string,
+"name": string,
+"state": string | null,
+"type": Database["public"]['Enums']["institute_type"]
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "institutes"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"search_states":
+{ Args: { "search_term": string }; Returns: {
+              "result": string
+            }[]
+                           },
+"unlink_material_from_class":
+{ Args: { "p_class_id": string,"p_material_id": string }; Returns: boolean
+                           },
+"update_material_contents":
+{ Args: { "p_diff_array": Json,"p_record_id": string,"p_table_name": string }; Returns: (string)[]
+                           },
+"validate_content_array":
+{ Args: { "arr": Json }; Returns: boolean
+                           }
+          }
+          Enums: {
+            "assessment_preference": "Multiple Choice"|"Short Answer"|"Essays"|"Presentations"|"Single Project"|"Group Projects"|"Oral Exams"|"Peer Review","attendance_status": "Present"|"Absent"|"Late"|"Excused","content_category": "Study Material"|"Note"|"Assigned Book"|"Link"|"Practical"|"Assignment"|"Test"|"Exam","content_type": "File"|"URL"|"Text","experience_level": "Beginner"|"Intermediate"|"Advanced"|"Mixed","institute_type": "Primary School"|"Middle School"|"High School"|"K-12"|"College"|"University"|"Vocational School"|"Tutoring Center"|"Private Tutor"|"Freelancer"|"Training Agency"|"Online Academy"|"Homeschool Co-op"|"Other","instruction_type": "System Persona"|"Grading Rubric"|"Lesson Plan Guideline"|"Material Generation Rule"|"Student Interaction Rule"|"Assessment Creation Rule"|"Content Filtering Rule"|"General Policy","submission_status": "Assigned"|"Pending"|"Submitted"|"Evaluated"|"Graded","teaching_style": "Lecture"|"Socratic Method"|"Interactive"|"Project-Based"|"Flipped Classroom"|"Discussion-Based"|"Hands-On"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         }
-        Returns: string
-      }
-      archive_material: { Args: { p_material_id: string }; Returns: boolean }
-      check_workspace_modifications: {
-        Args: { p_client_timestamps?: Json }
-        Returns: Json
-      }
-      delete_material: { Args: { p_material_id: string }; Returns: string[] }
-      delete_submission_atomic: {
-        Args: { p_submission_id: string }
-        Returns: string[]
-      }
-      get_workspace_last_modified: {
-        Args: { p_client_timestamps?: Json }
-        Returns: Json
-      }
-      is_class_teacher: { Args: { lookup_class_id: string }; Returns: boolean }
-      search_cities: {
-        Args: { search_term: string }
-        Returns: {
-          result: string
-        }[]
-      }
-      search_countries: {
-        Args: { search_term: string }
-        Returns: {
-          result: string
-        }[]
-      }
-      search_districts: {
-        Args: { search_term: string }
-        Returns: {
-          result: string
-        }[]
-      }
-      search_institutes: {
-        Args: { search_term: string }
-        Returns: {
-          city: string | null
-          country: string | null
-          created_at: string
-          district: string | null
-          id: string
-          name: string
-          state: string | null
-          type: Database["public"]["Enums"]["institute_type"] | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "institutes"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      search_states: {
-        Args: { search_term: string }
-        Returns: {
-          result: string
-        }[]
-      }
-      unlink_material_from_class: {
-        Args: { p_class_id: string; p_material_id: string }
-        Returns: boolean
-      }
-      update_material_contents: {
-        Args: { p_diff_array: Json; p_record_id: string; p_table_name: string }
-        Returns: string[]
-      }
-      validate_content_array: { Args: { arr: Json }; Returns: boolean }
-    }
-    Enums: {
-      assessment_preference:
-        | "Multiple Choice"
-        | "Short Answer"
-        | "Essays"
-        | "Presentations"
-        | "Single Project"
-        | "Group Projects"
-        | "Oral Exams"
-        | "Peer Review"
-      attendance_status: "Present" | "Absent" | "Late" | "Excused"
-      content_category:
-        | "Study Material"
-        | "Note"
-        | "Assigned Book"
-        | "Link"
-        | "Practical"
-        | "Assignment"
-        | "Test"
-        | "Exam"
-      content_type: "File" | "URL" | "Text"
-      experience_level: "Beginner" | "Intermediate" | "Advanced" | "Mixed"
-      institute_type:
-        | "Primary School"
-        | "Middle School"
-        | "High School"
-        | "K-12"
-        | "College"
-        | "University"
-        | "Vocational School"
-        | "Tutoring Center"
-        | "Private Tutor"
-        | "Freelancer"
-        | "Training Agency"
-        | "Online Academy"
-        | "Homeschool Co-op"
-        | "Other"
-      instruction_type:
-        | "System Persona"
-        | "Grading Rubric"
-        | "Lesson Plan Guideline"
-        | "Material Generation Rule"
-        | "Student Interaction Rule"
-        | "Assessment Creation Rule"
-        | "Content Filtering Rule"
-        | "General Policy"
-      submission_status:
-        | "Assigned"
-        | "Pending"
-        | "Submitted"
-        | "Evaluated"
-        | "Graded"
-      teaching_style:
-        | "Lecture"
-        | "Socratic Method"
-        | "Interactive"
-        | "Project-Based"
-        | "Flipped Classroom"
-        | "Discussion-Based"
-        | "Hands-On"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
@@ -1017,184 +479,107 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
-  public: {
-    Enums: {
-      assessment_preference: [
-        "Multiple Choice",
-        "Short Answer",
-        "Essays",
-        "Presentations",
-        "Single Project",
-        "Group Projects",
-        "Oral Exams",
-        "Peer Review",
-      ],
-      attendance_status: ["Present", "Absent", "Late", "Excused"],
-      content_category: [
-        "Study Material",
-        "Note",
-        "Assigned Book",
-        "Link",
-        "Practical",
-        "Assignment",
-        "Test",
-        "Exam",
-      ],
-      content_type: ["File", "URL", "Text"],
-      experience_level: ["Beginner", "Intermediate", "Advanced", "Mixed"],
-      institute_type: [
-        "Primary School",
-        "Middle School",
-        "High School",
-        "K-12",
-        "College",
-        "University",
-        "Vocational School",
-        "Tutoring Center",
-        "Private Tutor",
-        "Freelancer",
-        "Training Agency",
-        "Online Academy",
-        "Homeschool Co-op",
-        "Other",
-      ],
-      instruction_type: [
-        "System Persona",
-        "Grading Rubric",
-        "Lesson Plan Guideline",
-        "Material Generation Rule",
-        "Student Interaction Rule",
-        "Assessment Creation Rule",
-        "Content Filtering Rule",
-        "General Policy",
-      ],
-      submission_status: [
-        "Assigned",
-        "Pending",
-        "Submitted",
-        "Evaluated",
-        "Graded",
-      ],
-      teaching_style: [
-        "Lecture",
-        "Socratic Method",
-        "Interactive",
-        "Project-Based",
-        "Flipped Classroom",
-        "Discussion-Based",
-        "Hands-On",
-      ],
-    },
-  },
+  "public": {
+          Enums: {
+            "assessment_preference": ["Multiple Choice", "Short Answer", "Essays", "Presentations", "Single Project", "Group Projects", "Oral Exams", "Peer Review"],"attendance_status": ["Present", "Absent", "Late", "Excused"],"content_category": ["Study Material", "Note", "Assigned Book", "Link", "Practical", "Assignment", "Test", "Exam"],"content_type": ["File", "URL", "Text"],"experience_level": ["Beginner", "Intermediate", "Advanced", "Mixed"],"institute_type": ["Primary School", "Middle School", "High School", "K-12", "College", "University", "Vocational School", "Tutoring Center", "Private Tutor", "Freelancer", "Training Agency", "Online Academy", "Homeschool Co-op", "Other"],"instruction_type": ["System Persona", "Grading Rubric", "Lesson Plan Guideline", "Material Generation Rule", "Student Interaction Rule", "Assessment Creation Rule", "Content Filtering Rule", "General Policy"],"submission_status": ["Assigned", "Pending", "Submitted", "Evaluated", "Graded"],"teaching_style": ["Lecture", "Socratic Method", "Interactive", "Project-Based", "Flipped Classroom", "Discussion-Based", "Hands-On"]
+          }
+        }
 } as const
-

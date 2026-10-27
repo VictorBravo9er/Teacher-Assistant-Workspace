@@ -98,14 +98,13 @@ flowchart TD
 
 ### Automation Tools:
 1. **`db_setup.py`**:
-   - Connects via `psycopg`, executes `schema-reset.sql`, `schema-db.sql`, and `schema-ai.sql` in strict dependency sequence.
-   - Automatically invokes LangGraph checkpointer initialization and type generation.
+   - Executes optional `schema-reset.sql` teardown on `--reset`, runs full migration suite via `migrate.py` (`supabase db push`), configures LangGraph, and regenerates type contracts.
 2. **`_setup_langchain_postgres.py`**:
    - Configures PostgreSQL tables and checkpointer schemas for LangGraph using `PostgresSaver` and `PostgresStore`.
 3. **`_generate_types.py`**:
    - Uses the Supabase CLI (`supabase gen types typescript`) to generate `frontend/src/types/db.ts` and maps relational schemas into `backend/src/types/db.py`.
 4. **`migrate.py`**:
-   - Programmatic database migration runner executing versioned SQL migration scripts (`001` through `007`) in sequence and recording state in `supabase_migrations.schema_migrations`.
+   - Programmatic database migration runner executing versioned SQL migration scripts from `supabase/migrations/` in sequence via Supabase CLI (`db push`) and recording state in `supabase_migrations.schema_migrations`.
 5. **`collect_env_files.sh`**:
    - Aggregates environment variables from `.env.local`, `frontend/.env`, and `backend/.env` into a single consolidated root `.env` file for Docker Compose.
 6. **`verify_doc_coverage.py`**:

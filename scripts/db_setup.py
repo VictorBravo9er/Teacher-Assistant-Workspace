@@ -142,10 +142,6 @@ def main():
 
     with psycopg.connect(db_url, autocommit=True) as conn:
         schema_reset = root_dir / "supabase" / "schemas" / "schema-reset.sql"
-        schema_db = root_dir / "supabase" / "schemas" / "schema-db.sql"
-        bucket_materials = root_dir / "supabase" / "schemas" / "bucket-materials.sql"
-        bucket_submissions = root_dir / "supabase" / "schemas" / "bucket-submissions.sql"
-        schema_langgraph = root_dir / "supabase" / "schemas" / "schema-langgraph.sql"
 
         print("=" * 60)
         print(
@@ -160,18 +156,13 @@ def main():
         else:
             print("🛡️  Skipping destructive schema-reset.sql (data preserved).")
 
-        # Step 2: Main Database Schema & storage buckets (idempotent IF NOT EXISTS)
-        run_sql_file(schema_db, conn)
-        run_sql_file(bucket_materials, conn)
-        run_sql_file(bucket_submissions, conn)
-
-        # Step 3: Run pending incremental migrations from supabase/migrations/ via Supabase CLI
-        print("\n▶️ Checking incremental schema migrations...")
+        # Step 2: Apply full migration sequence via Supabase CLI
+        print("\n▶️ Synchronizing database migrations via Supabase CLI...")
         import migrate  # pyright: ignore[reportImplicitRelativeImport]
 
         _ = migrate.run_migrations(no_types=True)
 
-        # Step 4: LangGraph checkpoint tables (only if missing, or reset, or explicitly requested)
+        # Step 3: LangGraph checkpoint tables (only if missing, or reset, or explicitly requested)
         already_has_langgraph = check_langgraph_configured(conn)
         if args.reset or args.with_langgraph or not already_has_langgraph:
             print("\n▶️ Setting up LangGraph checkpoint & store tables...")
@@ -180,13 +171,12 @@ def main():
             )
 
             setup_database(db_langgraph_url)
-            run_sql_file(schema_langgraph, conn)
         else:
             print(
                 "⏩ LangGraph checkpoint tables already present. Skipping LangGraph setup."
             )
 
-        # Step 5: Generate TS and Python Types via Supabase CLI
+        # Step 4: Generate TS and Python Types via Supabase CLI
         if not args.no_types:
             from _generate_types import (  # pyright: ignore[reportImplicitRelativeImport]
                 main as generate_types,
@@ -194,7 +184,7 @@ def main():
 
             generate_types(db_url)
 
-        # Step 6: Deploy modified Supabase Edge Functions
+        # Step 5: Deploy modified Supabase Edge Functions
         if not args.no_functions:
             print("\n▶️ Checking Supabase Edge Functions for modifications...")
             _ = deploy_modified_functions(force=bool(args.force_functions))

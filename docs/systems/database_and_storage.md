@@ -53,7 +53,7 @@ flowchart TD
 
 ## 2. PostgreSQL Extensions
 
-The database infrastructure requires four fundamental extensions initialized in `schema-db.sql` and `schema-ai.sql`:
+The database infrastructure requires four fundamental extensions initialized in migrations (`20260915100000_core_baseline_schema.sql` and `20260915120000_ai_and_ontology_schema.sql`):
 
 | Extension | Purpose & Subsystem Usage |
 | :--- | :--- |
@@ -269,6 +269,6 @@ flowchart LR
 ```
 
 ### Storage Invariants:
-- **File Size Limit**: Strict 50MB per file boundary configured in `bucket-materials.sql` and `bucket-submissions.sql`.
+- **File Size Limit**: Strict 50MB per file boundary configured in `20260915110000_storage_buckets.sql`.
 - **MIME Type Allowlist**: Restricted to `.pdf`, `.docx`, `.pptx`, `.txt`, `.csv`, `.png`, `.jpg`, `.jpeg`.
 - **Private Access Control**: Direct public URLs are disabled. Students access private curriculum files via short-lived signed URLs generated through the `get-material-url` Edge Function upon verifying active enrollment in `class_students`.

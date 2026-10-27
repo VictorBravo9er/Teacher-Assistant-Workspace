@@ -8,7 +8,7 @@ Use root `Makefile` automation to execute standard quality gates across subsyste
 - **Frontend changes**: Run `make lint-frontend` / `make build-frontend` (or `pnpm run lint` / `pnpm run build` in `frontend/`). Do not run backend checks. Subsystem rules: `frontend/AGENTS.md`.
 - **Backend changes**: Run `make lint-backend` (or `uv run poe lint` in `backend/`). Do not run frontend checks. Subsystem rules: `backend/AGENTS.md`.
 - **Database / Edge Functions**: Check status with `make migrate-status`, apply migrations with `make migrate` (or `python scripts/migrate.py`), and deploy functions via `make deploy-functions`. Subsystem rules: `supabase/AGENTS.md`.
-- **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `supabase/schemas/` or `supabase/migrations/` and run `make types` (or `python scripts/_generate_types.py`).
+- **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `supabase/migrations/` and run `make types` (or `python scripts/_generate_types.py`).
 
 ## 2. Documentation Guidelines
 - **Core Micro-Docs (`code.md`)**: Maintained only in core architectural `src/` modules. Update `code.md` when adding/removing files or changing interfaces in those directories. Audit coverage with `make lint-docs`.

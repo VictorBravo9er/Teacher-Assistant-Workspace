@@ -219,7 +219,7 @@ sequenceDiagram
    - Both frontend (Nginx) and backend (FastAPI/Uvicorn) execute as non-root user `1000:1000`.
    - Production container images enforce read-only source files (`0444`) and directories (`0555`).
 3. **Strict Schema & Type Contracts**:
-   - Schema single source of truth in PostgreSQL (`supabase/schemas/schema-db.sql`, `supabase/schemas/schema-ai.sql`).
+   - Schema single source of truth in PostgreSQL migrations (`supabase/migrations/`).
    - Automated type synchronization via `scripts/_generate_types.py` producing strict TypeScript definitions (`frontend/src/types/db.ts`) and Pydantic models (`backend/src/types/db.py`).
 4. **Resilient AI Processing**:
    - Robust fallback algorithms in `EvaluatorService` and `ChatService` ensuring structured JSON outputs even with varying LLM model outputs.

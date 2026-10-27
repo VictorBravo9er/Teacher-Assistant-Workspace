@@ -7,10 +7,9 @@
 
 -- 1. Schemas & Extensions
 CREATE SCHEMA IF NOT EXISTS ai;
-CREATE SCHEMA IF NOT EXISTS net;
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA net;
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
 
 -- ============================================================================

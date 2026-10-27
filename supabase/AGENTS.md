@@ -2,8 +2,8 @@
 
 Inherits from root `/AGENTS.md`.
 Subsystem layout:
-- Schemas & DDL: `supabase/schemas/` (`schema-db.sql`, `schema-ai.sql`, `schema-langgraph.sql`, `schema-reset.sql`, `bucket-*.sql`)
-- Incremental Migrations: `supabase/migrations/` (`<seq>_<name>.sql` applied via Supabase CLI)
+- Migrations & Canonical DDL: `supabase/migrations/` (14-digit timestamped `YYYYMMDDHHMMSS_<name>.sql` applied via Supabase CLI)
+- Reset Tooling: `supabase/schemas/schema-reset.sql` (database teardown routine)
 - Edge Functions: `supabase/functions/<name>/index.ts`; shared utils: `supabase/functions/_shared/`
 
 ## 1. Tooling & Verification
