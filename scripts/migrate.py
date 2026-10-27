@@ -31,6 +31,7 @@ def list_migration_files(migrations_dir: Path) -> list[Path]:
 def run_migrations(
     status_only: bool = False,
     no_types: bool = False,
+    yes: bool = False,
 ) -> int:
     root_dir = Path(__file__).resolve().parent.parent
     migrations_dir = root_dir / "supabase" / "migrations"
@@ -56,21 +57,18 @@ def run_migrations(
             "--db-url",
             db_url,
         ]
-        result = subprocess.run(
-            cmd_status, cwd=str(root_dir), capture_output=True, text=True
-        )
+        result = subprocess.run(cmd_status, cwd=str(root_dir))
         if result.returncode == 0:
-            print(result.stdout.strip())
             print("\n📁 Local Migration File Mapping (supabase/migrations/):")
             for f in migration_files:
                 ver = f.name.split("_", 1)[0]
                 print(f"   • {ver}  →  {f.name}")
             return 0
         print(
-            f"   ❌ Error listing migrations:\n{result.stderr or result.stdout}",
+            "   ❌ Error listing migrations via Supabase CLI.",
             file=sys.stderr,
         )
-        return 1
+        return result.returncode
 
     print(
         "\n▶️  Pushing unapplied SQL migrations from supabase/migrations/ via Supabase CLI..."
@@ -85,20 +83,17 @@ def run_migrations(
         "--db-url",
         db_url,
     ]
-    result = subprocess.run(
-        cmd_push, cwd=str(root_dir), capture_output=True, text=True
-    )
+    if yes:
+        cmd_push.insert(5, "--yes")
+
+    result = subprocess.run(cmd_push, cwd=str(root_dir))
     if result.returncode != 0:
         print(
-            f"   ❌ Error applying migrations via Supabase CLI:\n{result.stderr or result.stdout}",
+            "   ❌ Error applying migrations via Supabase CLI.",
             file=sys.stderr,
         )
-        return 1
+        return result.returncode
 
-    output_text = (result.stdout or "").strip()
-    if output_text:
-        for line in output_text.splitlines():
-            print(f"   {line}")
     print("   ✅ Schema migrations synchronized cleanly.")
 
     if not no_types:
@@ -115,6 +110,7 @@ def run_migrations(
 class _MigrateCLIArgs(argparse.Namespace):
     status: bool = False
     no_types: bool = False
+    yes: bool = False
 
 
 def main() -> None:
@@ -131,9 +127,17 @@ def main() -> None:
         action="store_true",
         help="Skip regenerating frontend/backend types after applying migrations.",
     )
+    _ = parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Skip interactive confirmation prompts when pushing migrations.",
+    )
     args = parser.parse_args(namespace=_MigrateCLIArgs())
 
-    code = run_migrations(status_only=args.status, no_types=args.no_types)
+    code = run_migrations(
+        status_only=args.status, no_types=args.no_types, yes=args.yes
+    )
     sys.exit(code)
 
 

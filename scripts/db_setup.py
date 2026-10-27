@@ -192,7 +192,7 @@ def main():
         print("\n▶️ Synchronizing database migrations via Supabase CLI...")
         import migrate  # pyright: ignore[reportImplicitRelativeImport]
 
-        _ = migrate.run_migrations(no_types=True)
+        _ = migrate.run_migrations(no_types=True, yes=args.yes)
 
         # Step 3: Deploy modified Supabase Edge Functions
         if not args.no_functions:
