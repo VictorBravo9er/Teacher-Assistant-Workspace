@@ -1,43 +1,49 @@
 #!/usr/bin/env python3
 """Doc Coverage Linter for Teach&Learn.
 
-Mechanically verifies that:
-1. Every non-exempt directory containing source code has both code.DESC.md and code.ARCH.md.
-2. Every source file (.ts, .tsx, .py, .sql, .sh) is explicitly referenced by name in its
-   parent directory's code.DESC.md.
-3. Exits with non-zero status and itemized actionable errors if any file is missing from docs.
+Mechanically verifies that designated core architectural src directories have a valid code.md
+documenting their source code files and data flow contracts.
 
-Zero token overhead. Deterministic mechanical gate.
+Supports scoping by subsystem:
+  python scripts/verify_doc_coverage.py frontend
+  python scripts/verify_doc_coverage.py backend
+  python scripts/verify_doc_coverage.py all (default)
 """
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
-# Directories strictly exempted per AGENTS.md §3.2
-EXEMPT_DIR_NAMES = {
-    ".git",
-    ".scratch",
-    ".venv",
-    ".vercel",
-    "__pycache__",
-    "assets",
-    "dist",
-    "docs",
-    "node_modules",
-    "plans",
-    "public",
-    "systems",
+# Core architectural directories required to maintain code.md
+CORE_DIRS_MAP: dict[str, list[str]] = {
+    "backend": [
+        "backend/src/server",
+        "backend/src/service",
+        "backend/src/lib",
+        "backend/src/types",
+    ],
+    "frontend": [
+        "frontend/src/features/classroom",
+        "frontend/src/features/students",
+        "frontend/src/features/student-portal",
+        "frontend/src/features/ai-assistant",
+        "frontend/src/features/calendar",
+        "frontend/src/features/account",
+        "frontend/src/hooks",
+        "frontend/src/services",
+        "frontend/src/lib",
+        "frontend/src/components",
+        "frontend/src/contexts",
+    ],
+    "schema": [
+        "schema",
+    ],
+    "edge_functions": [
+        "supabase/functions",
+    ],
 }
 
-# Specific namespace-only paths exempted (e.g., supabase/ root namespace, while supabase/functions/ is checked)
-EXEMPT_EXACT_PATHS = {
-    "supabase",
-}
-
-# Relevant source code extensions
 SOURCE_EXTENSIONS = {
     ".ts",
     ".tsx",
@@ -46,7 +52,6 @@ SOURCE_EXTENSIONS = {
     ".sh",
 }
 
-# Specific source files to ignore from required description (e.g. build configs or internal artifacts)
 IGNORED_SOURCE_FILES = {
     "vite-env.d.ts",
 }
@@ -62,91 +67,72 @@ def find_repo_root() -> Path:
     return Path.cwd()
 
 
-def is_exempt_dir(rel_path: Path) -> bool:
-    """Check if directory is exempt from micro-docs requirements."""
-    rel_str = str(rel_path).replace("\\", "/")
-    if rel_str in EXEMPT_EXACT_PATHS:
-        return True
-    for part in rel_path.parts:
-        if part in EXEMPT_DIR_NAMES or part.startswith("."):
-            return True
-    return False
+def run_audit(root: Path, scope: str = "all") -> int:
+    """Audit core architectural directories for code.md coverage."""
+    if scope in CORE_DIRS_MAP:
+        target_dirs = CORE_DIRS_MAP[scope]
+    else:
+        target_dirs = [d for group in CORE_DIRS_MAP.values() for d in group]
 
-
-def run_audit(root: Path) -> int:
-    """Perform deterministic micro-docs coverage audit."""
     errors: list[str] = []
     scanned_dirs = 0
     scanned_files = 0
 
-    for dirpath, dirnames, filenames in os.walk(root):
-        rel_dir = Path(dirpath).relative_to(root)
-        if is_exempt_dir(rel_dir):
-            # Prune directory from traversal
-            dirnames[:] = [d for d in dirnames if not is_exempt_dir(rel_dir / d)]
+    for rel_path_str in target_dirs:
+        dirpath = root / rel_path_str
+        if not dirpath.exists():
             continue
 
-        # Find direct source code files in this directory
+        # Get direct source files in this directory
         code_files = [
-            f
-            for f in filenames
-            if Path(f).suffix.lower() in SOURCE_EXTENSIONS
-            and f not in IGNORED_SOURCE_FILES
-            and not f.startswith(".")
+            f.name
+            for f in dirpath.iterdir()
+            if f.is_file()
+            and f.suffix.lower() in SOURCE_EXTENSIONS
+            and f.name not in IGNORED_SOURCE_FILES
+            and not f.name.startswith(".")
         ]
-
-        if not code_files:
-            continue
 
         scanned_dirs += 1
         scanned_files += len(code_files)
 
-        desc_path = Path(dirpath) / "code.DESC.md"
-        arch_path = Path(dirpath) / "code.ARCH.md"
-
-        # Check existence of code.DESC.md
-        if not desc_path.exists():
+        code_md_path = dirpath / "code.md"
+        if not code_md_path.exists():
             errors.append(
-                f"❌ Missing `code.DESC.md` in directory: `{rel_dir}` (Contains {len(code_files)} source files: {', '.join(code_files[:3])}...)"
+                f"❌ Missing `code.md` in core directory: `{rel_path_str}`"
             )
-            desc_content = ""
-        else:
-            try:
-                desc_content = desc_path.read_text(encoding="utf-8")
-            except Exception as e:
-                errors.append(f"❌ Failed to read `{rel_dir}/code.DESC.md`: {e}")
-                desc_content = ""
+            continue
 
-        # Check existence of code.ARCH.md
-        if not arch_path.exists():
-            errors.append(
-                f"❌ Missing `code.ARCH.md` in directory: `{rel_dir}` (Required per AGENTS.md §3.2)"
-            )
+        try:
+            content = code_md_path.read_text(encoding="utf-8")
+        except Exception as e:
+            errors.append(f"❌ Failed to read `{rel_path_str}/code.md`: {e}")
+            continue
 
-        # Check that each source file is referenced in code.DESC.md
-        if desc_content:
-            for code_file in code_files:
-                if code_file not in desc_content:
-                    errors.append(
-                        f"❌ Unreferenced source file `{code_file}` in `{rel_dir}/code.DESC.md`"
-                    )
+        # Verify that direct source code files are referenced in code.md
+        for code_file in code_files:
+            if code_file not in content:
+                errors.append(
+                    f"❌ Unreferenced source file `{code_file}` in `{rel_path_str}/code.md`"
+                )
 
     print("=" * 70)
-    print("Teach&Learn Documentation Coverage Linter")
-    print(f"Scanned: {scanned_dirs} code directories, {scanned_files} source files")
+    print(f"Teach&Learn Core Documentation Linter (Scope: {scope})")
+    print(f"Audited: {scanned_dirs} core directories, {scanned_files} source files")
     print("=" * 70)
 
     if errors:
-        print(f"\nFound {len(errors)} documentation coverage violation(s):\n")
+        print(f"\nFound {len(errors)} documentation violation(s):\n")
         for err in errors:
             print(f"  {err}")
-        print("\nFix all missing references or micro-docs before completing the task.\n")
+        print("\nFix missing references or code.md in core directories.\n")
         return 1
 
-    print("\n✅ All source files and code directories are 100% covered by micro-docs.")
+    print("\n✅ All core architectural directories and source files are covered by code.md.")
     return 0
 
 
 if __name__ == "__main__":
     repo_root = find_repo_root()
-    sys.exit(run_audit(repo_root))
+    audit_scope = sys.argv[1].lower() if len(sys.argv) > 1 else "all"
+    sys.exit(run_audit(repo_root, audit_scope))

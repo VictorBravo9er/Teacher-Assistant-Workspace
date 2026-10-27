@@ -2,28 +2,13 @@
 
 Inherits from root `/AGENTS.md`.
 
-## 1. Invariants & Pre-Completion Check
-- **Generated Types**: NEVER edit `src/types/db.ts`. Define UI/domain models in `src/types/main.ts`.
-- **Docs-First Inspection**: Before reading `.ts`/`.tsx` files, read `systems/frontend_architecture.md`, the relevant workflow in `systems/workflows/README.md`, and `<dir>/code.DESC.md` + `<dir>/code.ARCH.md` to select exact source files.
-- **Pre-Completion Check**:
-  1. `cd frontend && npm run build` (0 errors).
-  2. Sync `systems/frontend_architecture.md`, affected `systems/workflows[-atomic]/*.md`, and modified folders' `code.ARCH.md` / `code.DESC.md`.
+## 1. Tooling & Verification
+- Verify frontend: `cd frontend && npm run lint && npm run build` (0 errors). Do not run backend checks.
+- NEVER edit `src/types/db.ts` (read-only). Define UI models in `src/types/main.ts`.
 
-## 2. Directory Map
-```
-frontend/src/
-├── components/  # Shared UI (shared/, layout/, ui/)
-├── features/    # Domain modules (classroom, students, student-portal, ai-assistant, calendar, account)
-├── views/       # Top-level screen shells (ClassApp, StudentApp, AuthPage, LandingPage)
-├── contexts/    # React contexts (ThemeContext, AuthContext)
-├── hooks/       # Stateful workflow hooks (useClassOperations, useAIChat, useWorkspaceData)
-├── services/    # Supabase & FastAPI clients
-├── lib/         # Supabase client, theme tokens, logger, calculations
-└── types/       # Domain types (main.ts) & read-only DB schema (db.ts)
-```
-
-## 3. UI & State Conventions
-- **Styling**: Consolidate styles via atomic primitives (`components/ui/`), global utilities (`index.css`), and style dictionaries (`lib/themeStyles.ts`). Avoid inline `style={{ ... }}` unless computing dynamic geometry. Support light/dark mode (`dark:`).
-- **UI Element ID Traceability (Mandatory)**: Every interactive element (`button`, `input`, `select`, modal, tab) must have an explicit `id` (`<feature-scope>-<action>`, or suffixed with `-${item.id}` for lists) and be documented in `frontend/UI_ELEMENT_IDS.md`.
-- **Database Enum Safety**: Never hardcode DB enum arrays. Derive options from `Constants.public.Enums.<enum_name>` in `db.ts` and type with `Database['public']['Enums'][<enum_name>]`. Store labels/tooltips in typed `Record<EnumType, string>` dictionaries; verify with `scripts/_verify_enum_tooltips.py`.
+## 2. Architecture & UI Conventions
+- **Directory Layout**: `features/` (domain modules), `components/` (shared UI primitives), `views/` (screen shells), `hooks/` (stateful workflows), `services/` (API clients), `lib/` (tokens, utils).
+- **Styling**: Use atomic primitives (`components/ui/`), Tailwind tokens (`index.css`, `lib/themeStyles.ts`). Support light/dark mode (`dark:`). Avoid raw inline styles.
+- **UI Element IDs**: Interactive elements must have explicit `id` (`<feature-scope>-<action>` or suffixed with `-${item.id}`).
+- **Enum Safety**: Derive select options and types from `Constants.public.Enums` and `Database['public']['Enums']` in `db.ts`. Keep labels/tooltips in typed record maps.
 - **Logging**: Use `src/lib/logger.ts` (`frontend-*.jsonl`).
