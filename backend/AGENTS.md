@@ -4,7 +4,8 @@ Inherits from root `/AGENTS.md`.
 
 ## 1. Tooling & Verification
 - Manage dependencies via `uv` (`uv add <pkg>`).
-- Verify backend: `cd backend && uv run poe lint` (enforces Ruff, BasedPyright, and backend core `code.md`). Do not run frontend checks.
+- Verify backend: `make lint-backend` (from repo root) or `uv run poe lint` (inside `backend/`) (enforces Ruff, BasedPyright, and backend core `code.md`). Do not run frontend checks.
+- Start dev server: `make dev-backend` or `uv run poe run-dev`.
 - NEVER edit `src/types/db.py` (read-only). Put API models in `schemas.py` or `ai.py`.
 
 ## 2. Layer Boundaries

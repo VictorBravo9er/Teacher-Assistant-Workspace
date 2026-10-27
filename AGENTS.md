@@ -3,13 +3,15 @@
 Stack: React 19 / Vite / TS / Tailwind (`frontend/`) · Python 3.13 / FastAPI / LangChain / uv (`backend/`) · PostgreSQL / Supabase / RLS (`supabase/`).
 
 ## 1. Subsystem Boundaries & Verification
-- **Frontend changes**: Run `pnpm run lint` / `pnpm run build` in `frontend/`. Do not run backend checks. Subsystem rules: `frontend/AGENTS.md`.
-- **Backend changes**: Run `uv run poe lint` in `backend/`. Do not run frontend checks. Subsystem rules: `backend/AGENTS.md`.
-- **Database / Edge Functions**: Apply migrations via `python scripts/migrate.py` or deploy functions via `python scripts/deploy_edge_functions.py`. Subsystem rules: `supabase/AGENTS.md`.
-- **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `supabase/schemas/` or `supabase/migrations/` and run `python scripts/_generate_types.py`.
+Use root `Makefile` automation to execute standard quality gates across subsystems:
+- **Full-Suite Check**: Run `make check` (runs backend lint, frontend lint, and doc coverage).
+- **Frontend changes**: Run `make lint-frontend` / `make build-frontend` (or `pnpm run lint` / `pnpm run build` in `frontend/`). Do not run backend checks. Subsystem rules: `frontend/AGENTS.md`.
+- **Backend changes**: Run `make lint-backend` (or `uv run poe lint` in `backend/`). Do not run frontend checks. Subsystem rules: `backend/AGENTS.md`.
+- **Database / Edge Functions**: Check status with `make migrate-status`, apply migrations with `make migrate` (or `python scripts/migrate.py`), and deploy functions via `make deploy-functions`. Subsystem rules: `supabase/AGENTS.md`.
+- **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `supabase/schemas/` or `supabase/migrations/` and run `make types` (or `python scripts/_generate_types.py`).
 
 ## 2. Documentation Guidelines
-- **Core Micro-Docs (`code.md`)**: Maintained only in core architectural `src/` modules. Update `code.md` when adding/removing files or changing interfaces in those directories.
+- **Core Micro-Docs (`code.md`)**: Maintained only in core architectural `src/` modules. Update `code.md` when adding/removing files or changing interfaces in those directories. Audit coverage with `make lint-docs`.
 - **Macro Dossier (`docs/systems/*.md`, `docs/systems/workflows/*.md`)**: Consult as an advisory reference when exploring unfamiliar architecture. Update only when altering cross-cutting system designs, schemas, or end-to-end user workflows. Minor bug fixes, UI styling, and local refactors do not require macro-doc edits.
 
 ## 3. Workspace Conventions
