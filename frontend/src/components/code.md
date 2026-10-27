@@ -8,12 +8,9 @@ This directory organizes reusable React presentation and structural layout compo
 
 ---
 
+## Architecture & Data Flow
 
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Component Layering Model
+### 1. Component Layering Model
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%

@@ -12,16 +12,9 @@ This directory defines the authoritative data models, Pydantic v2 validation con
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-This directory establishes strict static typing boundaries across the backend, ensuring zero-warning Pyright validation and runtime request validation.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Schema Hierarchy & Model Composition
+### 1. Schema Hierarchy & Model Composition
 
 ```mermaid
 classDiagram
@@ -89,7 +82,7 @@ classDiagram
 
 ---
 
-## 2. Key Architectural Invariants
+### 2. Key Architectural Invariants
 
 1. **Pydantic v2 Contract Boundaries (`schemas.py`, `ai.py`)**:
    - Uses strict field definitions (`BaseModel`) with default empty collections (`= []`) and optional string defaults (`= ""`), eliminating `NoneType` attribute errors during downstream string formatting.

@@ -15,16 +15,9 @@ This directory provides components for managing the student roster, inspecting s
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-This module powers all student-centric workflows: enrollment, portfolio assessment, submission evaluation, attendance tracking, and parent communication.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Submission Lifecycle & Grading Flow
+### 1. Submission Lifecycle & Grading Flow
 
 ```mermaid
 stateDiagram-v2
@@ -38,7 +31,7 @@ stateDiagram-v2
 
 ---
 
-## 2. Component Design & Scoring Invariants
+### 2. Component Design & Scoring Invariants
 
 1. **Criteria Breakdown Scoring (`SubmissionGradingModal.tsx`)**:
    - Calculates real-time total scores across criteria: `computedScore = sum(criteriaScores.map(c => c.score))`.
@@ -53,7 +46,7 @@ stateDiagram-v2
 
 ---
 
-## 3. Optimistic Roster Enrolment Lifecycle
+### 3. Optimistic Roster Enrolment Lifecycle
 
 ```mermaid
 sequenceDiagram
@@ -84,7 +77,7 @@ sequenceDiagram
 
 ---
 
-## 4. Optimistic Mutations & Hybrid Upload Progress (Plan 12)
+### 4. Optimistic Mutations & Hybrid Upload Progress (Plan 12)
 
 1. **Closure-Safe Concurrent Mutations (`classItemRef` in `StudentRegister.tsx`)**:
    - All background mutations (`handleAddStudent`, `handleSaveEvaluation`, `handleUpdateStudentDetails`, `handleDeleteStudent`) read and mutate `classItemRef.current`, capturing a pre-mutation snapshot (`previousClassSnapshot`) so concurrent saves never overwrite each other and automatically roll back on failure.

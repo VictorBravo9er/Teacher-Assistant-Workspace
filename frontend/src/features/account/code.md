@@ -13,16 +13,9 @@ This directory provides modal dialogs and settings forms for managing educator a
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-`AccountModals.tsx` bridges user profile management with the persistent `AuthContext` and backend user tables.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Account Settings & Preferences Flow
+### 1. Account Settings & Preferences Flow
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -40,7 +33,7 @@ flowchart TD
 
 ---
 
-## 2. Component Design & State Handling
+### 2. Component Design & State Handling
 
 1. **Controlled State**:
    Modal forms maintain isolated local form state (`name`, `email`, `phone`, `currentPassword`, `newPassword`) while open, resetting when dismissed to prevent unsaved state pollution.

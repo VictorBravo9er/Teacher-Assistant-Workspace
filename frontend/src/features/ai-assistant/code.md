@@ -12,16 +12,9 @@ This directory provides the AI pedagogical chat experience, interactive rubric d
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-This module represents the primary AI interaction layer, translating teacher queries into context-grounded prompt executions and rendering structured pedagogical outputs.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. AI Diagnostic & Diff Review Architecture
+### 1. AI Diagnostic & Diff Review Architecture
 
 ```mermaid
 sequenceDiagram
@@ -44,7 +37,7 @@ sequenceDiagram
 
 ---
 
-## 2. Component Design & Visualization Contracts
+### 2. Component Design & Visualization Contracts
 
 ### 1. `RAGClass.tsx`:
 - Integrated with `useAIChat` custom hook to manage active `sessionId`, prompt execution states (`isGenerating`), and message histories.

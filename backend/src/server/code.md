@@ -14,16 +14,9 @@ This directory defines the HTTP REST routing boundaries, endpoint definitions, a
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-The server layer acts as the transport gateway, validating client payloads via Pydantic models before delegating execution to the business service layer.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Request Dispatch & Error Mapping Architecture
+### 1. Request Dispatch & Error Mapping Architecture
 
 ```mermaid
 sequenceDiagram
@@ -52,7 +45,7 @@ sequenceDiagram
 
 ---
 
-## 2. Interface Contracts & Design Principles
+### 2. Interface Contracts & Design Principles
 
 1. **Schema-First Validation**: All request bodies are strictly bound to Pydantic v2 models (`ChatPayload`, `GradeRequest`, `MaterialAnalyzeRequest`). FastAPI automatically generates OpenAPI schema documentation and rejects invalid payloads before code execution.
 2. **Environment Configuration**: Default model resolution leverages `os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")`, ensuring model selection can be swapped without code redeployments.

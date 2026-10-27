@@ -10,15 +10,9 @@ This directory provides the interactive Academic Calendar module for aggregating
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-Enables teachers and students to track milestones, upcoming submission dates, and class occurrences without requiring external calendar integrations.
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Domain Event Aggregation
+### 1. Domain Event Aggregation
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -33,7 +27,7 @@ flowchart LR
 
 ---
 
-## 2. Invariants
+### 2. Invariants
 
 - **No Third-Party Calendar Libs**: Uses zero external calendar dependencies for bundle efficiency.
 - **Dynamic Aggregation**: Derives events from existing domain models (`Material`, `AttendanceRecord`, `Announcement`) without separate calendar sync tables.

@@ -19,16 +19,9 @@ This directory encapsulates all outbound HTTP requests, PostgREST queries, and S
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-Services decouple UI components and custom hooks from database schema details, PostgREST query syntax, and backend API endpoints.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Data Access Layer & Communication Architecture
+### 1. Data Access Layer & Communication Architecture
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -50,7 +43,7 @@ flowchart TD
 
 ---
 
-## 2. Key Architecture & Error Handling Invariants
+### 2. Key Architecture & Error Handling Invariants
 
 1. **Junction Table Normalization**:
    - `classService` and `templateService` handle multi-table joins (e.g. `class_materials`, `class_instructions`, `class_students`) in cohesive transactions, reconstructing flat domain objects for the UI.

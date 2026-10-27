@@ -12,16 +12,9 @@ This directory encapsulates the core business logic, prompt orchestration, and L
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-`ChatService` serves as the framework-agnostic business core, isolating AI prompt engineering, context assembly, and LLM invocation from the HTTP server layer.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. `ChatService` Execution Pipeline
+### 1. `ChatService` Execution Pipeline
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -41,7 +34,7 @@ flowchart TD
 
 ---
 
-## 2. Prompt Architecture & Response Contracts
+### 2. Prompt Architecture & Response Contracts
 
 ### System Prompt Structure:
 The system persona instructs the model to return a strict JSON payload matching:
@@ -61,7 +54,7 @@ If no visualization applies, `"visualization"` is returned as `null`.
 ### Error Handling & Fallbacks:
 `ChatService` and `EvaluatorService` follow the **EAFP** (Easier to Ask for Forgiveness than Permission) principle for accessing environment variables, logging critical parameter states before delegating execution to the LLM client, and catching parsing anomalies to prevent silent model hallucinatory formatting bugs.
 
-## 3. `EvaluatorService` Autonomous Grading & Ingestion Flow
+### 3. `EvaluatorService` Autonomous Grading & Ingestion Flow
 - **Auto-Grading (`grade_submission`)**: Evaluates raw submission text against `rubric_criteria`, generates structured item-by-item `RubricBreakdownItem` scores, creates encouraging student feedback, and isolates private pedagogical notes for teacher review.
 - **Material Analysis (`analyze_material`)**: Inspects material content, generates syllabus standards alignments, diagnoses prerequisite concept gaps, and constructs sample comprehension questions with answer keys.
 - **Ontology Operations (`OntologyService`)**: Converts domain entities into formatted knowledge graph records for the private `ai` PostgreSQL schema.

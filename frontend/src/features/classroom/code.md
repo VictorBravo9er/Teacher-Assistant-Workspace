@@ -19,16 +19,9 @@ This directory provides components for configuring classes, managing learning ma
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-This module provides the primary workspace panels for classroom administration, rubric design, curriculum repository management, and grade evaluation.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Classroom State Architecture & Tab Management
+### 1. Classroom State Architecture & Tab Management
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -54,7 +47,7 @@ flowchart TD
 
 ---
 
-## 2. Component Design & Mathematical Invariants
+### 2. Component Design & Mathematical Invariants
 
 1. **Grading Criteria Builder Computation (`RubricBuilderModal.tsx`)**:
    - Maintains an array of `RubricCriterion` objects (`{ id, name, description, maxScore, weight }`).

@@ -64,12 +64,11 @@ erDiagram
 - **`class-materials` Bucket**: Path pattern `/{teacher_user_id}/{material_id}/{content_item_id}`. Managed directly by teachers via RLS; students retrieve signed URLs via `get-material-url`.
 - **`student-submissions` Bucket**: Path pattern `/{material_id}/{content_item_id}`. Uploaded by enrolled students, reviewed by class teachers.
 
-
 ---
 
-## 🏛️ Architecture & Data Flow
+## Architecture & Data Flow
 
-## 1. Multi-Tenant Security & RLS Execution Architecture
+### 1. Multi-Tenant Security & RLS Execution Architecture
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -89,7 +88,7 @@ flowchart TD
 
 ---
 
-## 2. DDL Design Patterns & Indexing Invariants
+### 2. DDL Design Patterns & Indexing Invariants
 
 1. **Foreign Key Indexing Requirement**:
    As mandated in [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/schema/AGENTS.md), **every foreign key column contains an explicit B-tree index** (e.g. `idx_classes_teacher_id`, `idx_class_materials_class_id`, `idx_student_submissions_student_id`) to prevent table-scan locks during cascade operations and join queries.

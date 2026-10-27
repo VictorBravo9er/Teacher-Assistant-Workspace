@@ -13,16 +13,9 @@ This directory encapsulates stateful workflows, asynchronous data fetching, them
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-Hooks isolate side-effects and business data synchronization from presentation components, adhering to the Single Responsibility Principle.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Custom Hook Architecture & Data Flow
+### 1. Custom Hook Architecture & Data Flow
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -42,7 +35,7 @@ flowchart TD
 
 ---
 
-## 2. Key Hook Patterns & Invariants
+### 2. Key Hook Patterns & Invariants
 
 1. **Derived State & Closure-Safe Optimistic Mutations (`useClassOperations.ts`)**:
    - Maintains `classesRef = useRef(classes)` and `applyClassesMutation(updater)` so rapid, concurrent background promises (class renaming, archiving, material unlinking, URL material addition, and rubric/instruction add/delete) apply `0ms` optimistic UI updates and roll back cleanly on failure without stale React closure overwrites.

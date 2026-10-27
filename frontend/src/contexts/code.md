@@ -10,16 +10,9 @@ This directory manages global application state providers and subscription liste
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-`AuthContext` abstracts Supabase authentication and token synchronization away from UI components, offering a unified API for user authentication and authorization.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Authentication Lifecycle & State Synchronization
+### 1. Authentication Lifecycle & State Synchronization
 
 ```mermaid
 sequenceDiagram
@@ -42,7 +35,7 @@ sequenceDiagram
 
 ---
 
-## 2. Key Architectural Invariants
+### 2. Key Architectural Invariants
 
 1. **Strict Context Guard**:
    `useAuth()` throws a descriptive error if invoked outside an `<AuthProvider>` ancestor, preventing undefined context bugs during testing or rendering.

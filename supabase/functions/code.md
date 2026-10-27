@@ -24,12 +24,9 @@ This directory contains Deno-based serverless Edge Functions for secure document
 
 ---
 
+## Architecture & Data Flow
 
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Edge Function Request Lifecycle
+### 1. Edge Function Request Lifecycle
 
 ```mermaid
 sequenceDiagram
@@ -57,7 +54,7 @@ sequenceDiagram
 
 ---
 
-## 2. Shared Protocol Invariants
+### 2. Shared Protocol Invariants
 
 1. **Standardized CORS Handling**:
    Every edge function immediately intercepts `OPTIONS` requests, returning standard CORS headers (`Access-Control-Allow-Origin: *`, `Access-Control-Allow-Headers: ...`).

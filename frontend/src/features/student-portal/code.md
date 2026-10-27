@@ -10,15 +10,9 @@ This directory provides UI components specific to the Student Portal workflow, a
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-Provides specialized modals and components for student self-service within `StudentApp.tsx`.
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Submission Flow Architecture
+### 1. Submission Flow Architecture
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -38,7 +32,7 @@ flowchart TD
 
 ---
 
-## 2. Invariants
+### 2. Invariants
 
 - **Storage Paths**: Files are uploaded to `student-submissions/{material_id}/{content_item_id}` with `size_bytes` and `mime_type`.
 - **Text Shape**: Clean `type: 'Text'`, `path: ''`, text in `value` field. No `text://` synthetic prefixes.

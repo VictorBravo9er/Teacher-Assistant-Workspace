@@ -14,16 +14,9 @@ This directory provides client configuration helpers, storage abstractions, calc
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-`src/lib/` contains shared, framework-independent helper functions, eliminating duplicated calculations and centralizing client initializers.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Domain Calculations & Score Reducers (`studentCalculations.ts`)
+### 1. Domain Calculations & Score Reducers (`studentCalculations.ts`)
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -42,7 +35,7 @@ flowchart TD
 
 ---
 
-## 2. Component Design & Structural Invariants
+### 2. Component Design & Structural Invariants
 
 1. **`supabase.ts` Singleton**:
    - Reads `import.meta.env.VITE_SUPABASE_URL` and `import.meta.env.VITE_SUPABASE_ANON_KEY`.

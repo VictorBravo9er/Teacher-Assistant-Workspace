@@ -12,16 +12,9 @@ This directory provides shared infrastructure utilities, prompt formatters, LLM 
 
 ---
 
-## 💡 Role in the Application
+## Architecture & Data Flow
 
-The library functions decouple external LLM transport protocols and data serialization from core business logic in `src/service/`.
-
-
----
-
-## 🏛️ Architecture & Data Flow
-
-## 1. Prompt Transformation & LLM Gateway Architecture
+### 1. Prompt Transformation & LLM Gateway Architecture
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -41,7 +34,7 @@ flowchart LR
 
 ---
 
-## 2. Component Design & Structural Invariants
+### 2. Component Design & Structural Invariants
 
 ### 1. `formatter.py` Pure Functions:
 - **`format_classroom_context(payload)`**: Serializes active workspace metadata, subject, teacher name, teaching style, materials list, and instructional rubrics into markdown lists.
