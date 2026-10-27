@@ -220,7 +220,7 @@ Executes `public.auto_set_to_be_scored()` on `public.materials` BEFORE INSERT or
 2. **`on_auth_user_updated`**: Executes `public.handle_user_update()` on `auth.users` AFTER UPDATE to synchronize `students.email` and `students.name` when user metadata or credentials change.
 
 ### 4.4 Automatic Timestamp Maintenance Trigger (`trg_handle_updated_at`)
-Migration `006_add_table_updated_at_triggers.sql` binds a standardized `handle_updated_at` trigger to every operational table across the database (e.g., `classes`, `materials`, `instructions`, `students`, `class_students`, `announcements`, `notification_logs`), guaranteeing that all updates automatically record precise UTC timestamp modifications without requiring application-level timestamp management.
+Migration `20260920101538_add_table_updated_at_triggers.sql` binds a standardized `handle_updated_at` trigger to every operational table across the database (e.g., `classes`, `materials`, `instructions`, `students`, `class_students`, `announcements`, `notification_logs`), guaranteeing that all updates automatically record precise UTC timestamp modifications without requiring application-level timestamp management.
 
 ---
 

@@ -26,6 +26,8 @@ The workspace includes a root [`Makefile`](file:///home/victor/antigravity/Teach
 | **`make lint-frontend`** | Verify TypeScript types & contracts | `cd frontend && pnpm run lint` |
 | **`make build-frontend`** | Compile production Vite bundle | `cd frontend && pnpm run build` |
 | **`make lint-docs`** | Audit 100% `code.md` micro-doc coverage | `python scripts/verify_doc_coverage.py all` |
+| **`make db-setup`** | Initialize database (safe, applies migrations & types) | `uv run --project backend python scripts/db_setup.py` |
+| **`make db-reset`** | Full destructive teardown, re-migration & setup | `uv run --project backend python scripts/db_setup.py --reset` |
 | **`make migrate-status`** | View applied vs. pending SQL migrations | `python scripts/migrate.py --status` |
 | **`make migrate`** | Apply migrations via Supabase CLI | `python scripts/migrate.py` |
 | **`make types`** | Regenerate TS & Python DB contracts | `python scripts/_generate_types.py` |

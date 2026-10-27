@@ -84,13 +84,13 @@ flowchart TD
     SetupDB --> DocLinter
 
     SetupDB -->|Executes DDL| PostgreSQL[("PostgreSQL Database")]
-    Migrate -->|Applies 001-007 SQL| PostgreSQL
+    Migrate -->|Applies Timestamped SQL Migrations| PostgreSQL
     SetupDB --> LangGraphInit
     SetupDB --> GenTypes
     SetupDB --> EdgeDeploy
 
     GenTypes -->|Supabase CLI| TypeScriptTypes["frontend/src/types/db.ts"]
-    GenTypes -->|SQLAlchemy Model Codegen| PythonTypes["backend/src/types/db.py"]
+    GenTypes -->|Supabase CLI Python Gen| PythonTypes["backend/src/types/db.py"]
     EdgeDeploy -->|SHA-256 Diff + Supabase CLI| SupabaseEdge["Supabase Edge Functions Runtime"]
 
     EnvCollector -->|Merges .env.local + sub-envs| RootEnv[".env"]
@@ -98,13 +98,13 @@ flowchart TD
 
 ### Automation Tools:
 1. **`db_setup.py`**:
-   - Executes optional `schema-reset.sql` teardown on `--reset`, runs full migration suite via `migrate.py` (`supabase db push`), configures LangGraph, and regenerates type contracts.
+   - Master orchestrator for database provisioning. Under `--reset`, executes `schema-reset.sql` teardown and initializes LangGraph tables via `_setup_langchain_postgres.py`, followed by applying all migrations via `migrate.py` (`supabase db push`), auditing/deploying modified Edge Functions via `deploy_edge_functions.py`, and regenerating contracts via `_generate_types.py`. Available via `make db-setup` and `make db-reset`.
 2. **`_setup_langchain_postgres.py`**:
-   - Configures PostgreSQL tables and checkpointer schemas for LangGraph using `PostgresSaver` and `PostgresStore`.
+   - Configures PostgreSQL checkpoint and store tables in schema `langgraph` using `PostgresSaver` and `PostgresStore`.
 3. **`_generate_types.py`**:
-   - Uses the Supabase CLI (`supabase gen types typescript`) to generate `frontend/src/types/db.ts` and maps relational schemas into `backend/src/types/db.py`.
+   - Uses Supabase CLI (`supabase gen types typescript` and `supabase gen types --lang=python`) to generate `frontend/src/types/db.ts` and `backend/src/types/db.py`, auditing enum pedagogical tooltips upon completion. Available via `make types`.
 4. **`migrate.py`**:
-   - Programmatic database migration runner executing versioned SQL migration scripts from `supabase/migrations/` in sequence via Supabase CLI (`db push`) and recording state in `supabase_migrations.schema_migrations`.
+   - Database migration runner executing versioned SQL migration scripts from `supabase/migrations/` in sequence via Supabase CLI (`db push`) with real-time terminal streaming and interactive confirmation, supporting `--status` inspection and `-y` / `--yes` flags. Available via `make migrate` and `make migrate-status`.
 5. **`collect_env_files.sh`**:
    - Aggregates environment variables from `.env.local`, `frontend/.env`, and `backend/.env` into a single consolidated root `.env` file for Docker Compose.
 6. **`verify_doc_coverage.py`**:
