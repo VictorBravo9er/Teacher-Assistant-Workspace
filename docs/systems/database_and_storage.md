@@ -53,7 +53,7 @@ flowchart TD
 
 ## 2. PostgreSQL Extensions
 
-The database infrastructure requires four fundamental extensions initialized in migrations (`20260915100000_core_baseline_schema.sql` and `20260915120000_ai_and_ontology_schema.sql`):
+The database infrastructure requires four fundamental extensions initialized in migration `20260915100000_init_schemas_and_extensions.sql`:
 
 | Extension | Purpose & Subsystem Usage |
 | :--- | :--- |
