@@ -5,6 +5,8 @@ FROM node:24-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f935954
 
 WORKDIR /app
 
+RUN corepack enable && corepack prepare pnpm@11.3.0 --activate
+
 # 2. Create directories before switching users (if any)
 RUN mkdir -p /app/node_modules /app/dist /app/logs
 
@@ -24,8 +26,8 @@ RUN chown -R node:node /app
 USER node
 
 # Copy dependency manifests first for layer caching
-COPY --chmod=0555 package*.json ./
-RUN npm ci
+COPY --chmod=0555 package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+RUN pnpm install --frozen-lockfile
 
 
 # 5. Full build stage for production artifacts
@@ -33,7 +35,7 @@ FROM prep AS build
 
 # Copy all source files and run the Vite build
 COPY --chmod=0555 . .
-RUN npm run build
+RUN pnpm run build
 
 
 # 6. Development runtime stage
@@ -46,11 +48,11 @@ ENV FRONTEND_PORT=8080
 ENV VITE_LOGS_DIR=/app/logs
 EXPOSE ${FRONTEND_PORT}
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q --spider http://127.0.0.1:${FRONTEND_PORT}/ || exit 1
 
 # Dev deployment command (moved from docker-compose.dev.yml)
-CMD ["sh", "-c", "exec npm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT}"]
+CMD ["sh", "-c", "exec pnpm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT}"]
 
 
 # 7. Production runtime stage

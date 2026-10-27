@@ -28,7 +28,7 @@ services:
     container_name: ta-frontend-dev
     build:
       target: dev
-    # Note: Startup command (npm run dev) is safely baked into the Dockerfile dev stage
+    # Note: Startup command (pnpm run dev) is safely baked into the Dockerfile dev stage
     volumes:
       # Mount source files explicitly to avoid host node_modules conflicts
       - ./frontend/src:/app/src:ro

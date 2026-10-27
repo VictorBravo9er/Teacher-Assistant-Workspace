@@ -85,7 +85,7 @@ flowchart LR
     Browser -->|Page Navigation| SPAFallback
 ```
 
-- **`deploy.sh`**: Runs `npm run build` in `frontend/` and syncs the distribution bundle to `alternative-host/workdir/dist`.
+- **`deploy.sh`**: Runs `pnpm run build` in `frontend/` and syncs the distribution bundle to `alternative-host/workdir/dist`.
 - **`main.py`**: Mounts `/assets` via `StaticFiles` and serves `index.html` on any non-API route to maintain client-side SPA routing.
 
 ---
@@ -139,7 +139,7 @@ flowchart TD
 5. **`collect_env_files.sh`**:
    - Aggregates environment variables from `.env.local`, `frontend/.env`, and `backend/.env` into a single consolidated root `.env` file for Docker Compose.
 6. **`verify_doc_coverage.py`**:
-   - Documentation coverage linter attached to `uv run poe lint` and `npm run lint`. Audits core architectural `src/` directories ensuring presence of `code.md` and complete source file cataloging.
+   - Documentation coverage linter attached to `uv run poe lint` and `pnpm run lint`. Audits core architectural `src/` directories ensuring presence of `code.md` and complete source file cataloging.
 
 ---
 

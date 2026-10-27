@@ -3,7 +3,7 @@
 Stack: React 19 / Vite / TS / Tailwind (`frontend/`) · Python 3.13 / FastAPI / LangChain / uv (`backend/`) · PostgreSQL / Supabase / RLS (`schema/`, `supabase/functions/`).
 
 ## 1. Subsystem Boundaries & Verification
-- **Frontend changes**: Run `npm run lint` / `npm run build` in `frontend/`. Do not run backend checks. Subsystem rules: `frontend/AGENTS.md`.
+- **Frontend changes**: Run `pnpm run lint` / `pnpm run build` in `frontend/`. Do not run backend checks. Subsystem rules: `frontend/AGENTS.md`.
 - **Backend changes**: Run `uv run poe lint` in `backend/`. Do not run frontend checks. Subsystem rules: `backend/AGENTS.md`.
 - **Database / Edge Functions**: Apply migrations via `python scripts/migrate.py` or deploy functions via `python scripts/deploy_edge_functions.py`. Subsystem rules: `schema/AGENTS.md`, `supabase/functions/AGENTS.md`.
 - **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `schema/` and run `python scripts/_generate_types.py`.

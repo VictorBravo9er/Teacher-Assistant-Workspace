@@ -3,7 +3,7 @@
 Inherits from root `/AGENTS.md`.
 
 ## 1. Tooling & Verification
-- Verify frontend: `cd frontend && npm run lint && npm run build` (0 errors). Do not run backend checks.
+- Verify frontend: `cd frontend && pnpm run lint && pnpm run build` (0 errors). Do not run backend checks.
 - NEVER edit `src/types/db.ts` (read-only). Define UI models in `src/types/main.ts`.
 
 ## 2. Architecture & UI Conventions
