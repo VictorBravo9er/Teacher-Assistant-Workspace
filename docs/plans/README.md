@@ -10,12 +10,12 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 
 | Metric | Current Status |
 | :--- | :--- |
-| **Total Plans** | **15 Plans** (Phase 0 through Phase 7) |
-| **Plans Completed** | **15 / 15** (`100%`) |
-| **Plans In Progress** | **0 / 15** (`0%`) |
-| **Plans Pending Execution** | **0 / 15** (`0%`) |
+| **Total Plans** | **16 Plans** (Phase 0 through Phase 8) |
+| **Plans Completed** | **16 / 16** (`100%`) |
+| **Plans In Progress** | **0 / 16** (`0%`) |
+| **Plans Pending Execution** | **0 / 16** (`0%`) |
 | **Current Execution Target** | **All Remediation Plans Successfully Implemented & Verified** |
-| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–7 100% complete; role routing, student portal, announcements, calendar, notification engine, containerization, optimistic mutations, and blocking progress bars fully operational. |
+| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–8 100% complete; role routing, student portal, announcements, calendar, notification engine, containerization, optimistic mutations, blocking progress bars, and two-tier concurrent pipeline fully operational. |
 
 ---
 
@@ -61,6 +61,10 @@ flowchart TD
         P12["12: Frontend-Wide Optimistic Mutations & Blocking Progress<br/>(Attendance, Announcements, Grading, Archive/Rename & Upload Progress)"]
     end
 
+    subgraph Phase 8: Concurrency & DevOps Optimization
+        P13["13: Two-Tier Concurrent Pipeline & Guarded Edge Deployments<br/>(Parallel db_setup, deployed.json manifest, remote drift guardrails)"]
+    end
+
     P00 -.-> P01
     P00 -.-> P02
     P00 -.-> P03
@@ -81,6 +85,8 @@ flowchart TD
     P09 -.-> P10
     P10 -.-> P11
     P11 --> P12
+    P09 -.-> P13
+    P00 -.-> P13
 ```
 
 ---
@@ -104,6 +110,7 @@ flowchart TD
 | [**`10-local-storage-ttl-revalidation.md`**](./10-local-storage-ttl-revalidation.md) | Multi-Component TTL & Granular Database Revalidation Engine | Phase 6 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Decouples TTL & modified_at, granular component stale list RPC, student role support. |
 | [**`11-optimistic-student-invite.md`**](./11-optimistic-student-invite.md) | Optimistic Student Roster Enrolment & Background Invitation Flow | Phase 7 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Instant roster card injection, loading animation overlay, non-blocking background promise. |
 | [**`12-optimistic-mutations-and-blocking-progress.md`**](./12-optimistic-mutations-and-blocking-progress.md) | Frontend-Wide Optimistic Mutations & Blocking Progress Indicators | Phase 7 | `HIGH` | ✅ Completed | `100%` | 🟢 Verified | Optimistic attendance, announcements, rubric grading, class ops & blocking upload/auth progress bars. |
+| [**`13-concurrent-pipeline-guarded-edge-deployments.md`**](./13-concurrent-pipeline-guarded-edge-deployments.md) | Two-Tier Concurrent Pipeline & Guarded Edge Functions Deployment | Phase 8 | `DEVOPS/PERF` | ✅ Completed | `100%` | 🟢 Verified | Two-tier concurrent db_setup (21s), deployed.json manifest tracking, remote drift guardrails. |
 
 ---
 
@@ -135,6 +142,13 @@ flowchart TD
 
 ### Phase 6: Client Persistence & Database Synchronization
 - [x] **Plan 10**: Robust Local Storage TTL & Conditional Database Revalidation Engine (`updated_at` triggers on relevant tables, `get_workspace_last_modified` RPC, TTL/modified_at separation in client cache, and lifecycle revalidation on reload/network recovery).
+
+### Phase 7: Optimistic Roster & Universal Mutations
+- [x] **Plan 11**: Optimistic Student Roster Enrolment & Background Invitation Flow (instant card insert, non-blocking invitation dispatch, visual pending badges).
+- [x] **Plan 12**: Frontend-Wide Optimistic Mutations & Blocking Progress Indicators (optimistic attendance, rubric grading, class operations, announcements, and blocking upload/auth progress bars).
+
+### Phase 8: Concurrency & DevOps Optimization
+- [x] **Plan 13**: Two-Tier Concurrent Pipeline & Guarded Edge Functions Deployment (parallelized post-migration workers in `db_setup.py`, tracked manifest `deployed.json`, out-of-band remote drift protection, and bounded function deployment concurrency).
 
 ---
 

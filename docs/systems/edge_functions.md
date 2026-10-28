@@ -232,3 +232,26 @@ The `_shared/` directory provides common reusable utilities across all edge endp
   - Secrets are injected via Supabase Secrets Manager and never committed to version control.
 - **Fail-Safe Webhook Responses**:
   - Webhook endpoints immediately acknowledge reception with HTTP 202/200 while dispatching background async tasks to prevent PostgreSQL connection timeouts.
+
+---
+
+## 5. Deployment Lifecycle & Manifest Tracking (`deployed.json`)
+
+Edge Function deployments are automated incrementally through [`scripts/deploy_edge_functions.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/deploy_edge_functions.py) and integrated into `make deploy-functions` and `make db-setup`:
+
+1. **State Manifest (`supabase/functions/deployed.json`)**:
+   - Version-controlled JSON manifest mapping each function to:
+     - `hash`: Composite SHA-256 digest of the function directory source files and `_shared/` modules.
+     - `version`: Sequential integer version reported by the Supabase Management API.
+     - `updated_at`: ISO 8601 UTC timestamp of the remote server deployment.
+2. **Out-of-Band Remote Drift Detection**:
+   - Queries `npx -y supabase functions list -o json` prior to deployment.
+   - Compares remote versions against local state. If the remote version exceeds the locally recorded version, the deployer halts with an out-of-band warning and prompts for user confirmation before overwriting (`--yes` to auto-confirm).
+3. **Internal Bounded Concurrency**:
+   - When multiple functions need deployment, they are dispatched concurrently via `ThreadPoolExecutor(max_workers=concurrency)` (default `concurrency=4`).
+   - Manifest updates are protected by a threading lock and persisted atomically (`.json.tmp` -> `.json`).
+4. **CLI Capabilities**:
+   - `python scripts/deploy_edge_functions.py --status`: Inspects deployment status, local vs. remote versions, timestamps, and hashes across all functions.
+   - `python scripts/deploy_edge_functions.py --force`: Force redeploys all functions regardless of hash matching.
+   - `python scripts/deploy_edge_functions.py --function <name>`: Deploys targeted function(s).
+   - `python scripts/deploy_edge_functions.py -y`: Non-interactively accepts overwrite of drifted functions.

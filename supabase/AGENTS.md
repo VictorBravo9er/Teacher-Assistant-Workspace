@@ -7,11 +7,12 @@ Subsystem layout:
 - Reset Tooling: `supabase/schemas/schema-reset.sql` (database teardown routine)
 - Seed Data: `supabase/seed.sql` (local development table data fixtures)
 - Edge Functions: `supabase/functions/<name>/index.ts`; shared utils: `supabase/functions/_shared/`
+- Deployment Manifest: `supabase/functions/deployed.json` (version-controlled content hashes, remote versions & timestamps)
 
 ## 1. Tooling & Verification
-- **Migrations & Schemas**: Setup or reset database via `make db-setup` / `make db-reset` (using `scripts/db_setup.py`). Check status via `make migrate-status` and apply incremental SQL migrations via `make migrate` (or `python scripts/migrate.py`, which uses official Supabase CLI `db push`). Dump schema DDL (`schema.<name>.sql` in `supabase/schemas/`) via `make db-dump-schema` and table fixtures to `supabase/seed.sql` via `make db-dump-data` (or both via `make db-dump` / `scripts/db_dump.py`).
-- **Contract Synchronization**: After modifying database schema or migrations, regenerate TypeScript and Python contracts via `make types` (or `python scripts/_generate_types.py`). Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py` directly.
-- **Edge Functions**: Deploy functions via `make deploy-functions` (or `python scripts/deploy_edge_functions.py`), and audit deployment diffs via `make deploy-functions-status`.
+- **Migrations & Schemas**: Setup or reset database via `make db-setup` / `make db-reset` (using `scripts/db_setup.py` with Two-Tier concurrency). Check status via `make migrate-status` and apply incremental SQL migrations via `make migrate` (or `python scripts/migrate.py`, which uses official Supabase CLI `db push`). Dump schema DDL (`schema.<name>.sql` in `supabase/schemas/`) via `make db-dump-schema` (concurrently by default) and table fixtures to `supabase/seed.sql` via `make db-dump-data` (or both via `make db-dump` / `scripts/db_dump.py`).
+- **Contract Synchronization**: After modifying database schema or migrations, regenerate TypeScript and Python contracts concurrently via `make types` (or `python scripts/_generate_types.py`). Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py` directly.
+- **Edge Functions**: Deploy functions incrementally with remote-drift protection and bounded concurrency via `make deploy-functions` (or `python scripts/deploy_edge_functions.py`), and audit deployment status via `make deploy-functions-status` (or `python scripts/deploy_edge_functions.py --status`). State is tracked in `supabase/functions/deployed.json`.
 
 ## 2. Database & DDL Invariants
 1. **Row Level Security**: Enable RLS on every table with explicit, scoped `SELECT`, `INSERT`, `UPDATE`, and `DELETE` policies.

@@ -35,6 +35,7 @@ The workspace includes a root [`Makefile`](file:///home/victor/antigravity/Teach
 | **`make migrate`** | Apply migrations via Supabase CLI | `python scripts/migrate.py` |
 | **`make types`** | Regenerate TS & Python DB contracts | `python scripts/_generate_types.py` |
 | **`make deploy-functions`** | Deploy modified Supabase Edge Functions | `python scripts/deploy_edge_functions.py` |
+| **`make deploy-functions-status`** | Audit status & remote drift of Edge Functions | `python scripts/deploy_edge_functions.py --status` |
 | **`make dev-backend`** | Start FastAPI backend server | `cd backend && uv run poe run-dev` |
 | **`make dev-frontend`** | Start Vite frontend dev server | `cd frontend && pnpm run dev` |
 | **`make docker-dev`** | Boot rootless multi-container dev stack | `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` |
