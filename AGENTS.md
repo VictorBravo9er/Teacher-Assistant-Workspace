@@ -11,6 +11,7 @@ Use root `Makefile` automation to execute standard quality gates across subsyste
 - **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `supabase/migrations/` and run `make types` (or `python scripts/_generate_types.py`).
 
 ## 2. Documentation Guidelines
+- **Doc-First Discovery**: Before analyzing code or wandering through files to figure out the structure or purpose of an unfamiliar subsystem/file, search documentation first (`docs/` and module-level `code.md` files). They contain curated architectural context, schema summaries, and file responsibilities.
 - **Core Micro-Docs (`code.md`)**: Maintained only in core architectural `src/` modules. Update `code.md` when adding/removing files or changing interfaces in those directories. Audit coverage with `make lint-docs`.
 - **Macro Dossier (`docs/systems/*.md`, `docs/systems/workflows/*.md`)**: Consult as an advisory reference when exploring unfamiliar architecture. Update only when altering cross-cutting system designs, schemas, or end-to-end user workflows. Minor bug fixes, UI styling, and local refactors do not require macro-doc edits.
 

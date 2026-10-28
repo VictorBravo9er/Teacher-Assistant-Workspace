@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
     for (const studentId of affectedStudentIds) {
       const { data: allStudentSubs, error: subsFetchErr } = await adminSupabase
         .from("student_submissions")
-        .select("score, grade, max_score")
+        .select("score, grade, materials(max_score)")
         .eq("class_id", class_id)
         .eq("student_id", studentId);
 
@@ -167,7 +167,8 @@ Deno.serve(async (req) => {
 
       if (scoredSubs.length > 0) {
         const totalPct = scoredSubs.reduce((acc: number, s: any) => {
-          const max = s.max_score || 100;
+          const mat = Array.isArray(s.materials) ? s.materials[0] : s.materials;
+          const max = mat?.max_score || 100;
           return acc + (Number(s.score) / max) * 100;
         }, 0);
 

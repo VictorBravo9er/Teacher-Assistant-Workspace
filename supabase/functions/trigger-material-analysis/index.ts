@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
 
     // 4. Update status in hidden ai.material_insights
     await adminSupabase
+      .schema("ai")
       .from("material_insights")
       .upsert({
         material_id: material.id,

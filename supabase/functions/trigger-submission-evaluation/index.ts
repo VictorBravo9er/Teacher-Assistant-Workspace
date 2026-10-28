@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
 
     // 5. Update processing status in hidden ai.submission_evaluations
     await adminSupabase
+      .schema("ai")
       .from("submission_evaluations")
       .upsert({
         submission_id: submission.id,
