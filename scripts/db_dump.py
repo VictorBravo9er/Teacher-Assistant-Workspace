@@ -8,10 +8,15 @@ Teach&Learn Database Dump Tool (Supabase CLI)
   (overwriting existing seed fixtures).
 """
 
+from __future__ import annotations
+
 import argparse
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import TextIO
 
 # Add scripts directory to sys.path to allow importing _env_helper
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -20,6 +25,13 @@ import _env_helper  # pyright: ignore[reportImplicitRelativeImport]
 DEFAULT_SCHEMAS: str = "public,ai,langgraph"
 DEFAULT_SCHEMA_DIR: str = "supabase/schemas"
 DEFAULT_DATA_FILE: str = "supabase/seed.sql"
+
+_dump_print_lock = threading.Lock()
+
+
+def _safe_dump_print(*args: object, file: TextIO | None = None) -> None:
+    with _dump_print_lock:
+        print(*args, file=file)
 
 
 class _DBDumpArgs(argparse.Namespace):
@@ -35,6 +47,7 @@ class _DBDumpArgs(argparse.Namespace):
     use_copy: bool = False
     keep_comments: bool = False
     dry_run: bool = False
+    parallel: bool = True
 
 
 def _run_supabase_dump(
@@ -47,11 +60,12 @@ def _run_supabase_dump(
     use_copy: bool = False,
     keep_comments: bool = False,
     dry_run: bool = False,
+    quiet: bool = False,
 ) -> int:
     """Internal helper to execute `supabase db dump`."""
     root_dir = Path(__file__).resolve().parent.parent
 
-    cmd: list[str] = ["npx", "-y", "supabase", "db", "dump"]
+    cmd: list[str] = ["npx", "-y", "--quiet", "supabase", "db", "dump"]
 
     if local:
         cmd.append("--local")
@@ -60,7 +74,7 @@ def _run_supabase_dump(
     elif db_url:
         cmd.extend(["--db-url", db_url])
     else:
-        print(
+        _safe_dump_print(
             "❌ Error: No database target specified. Missing POSTGRES_URI or --local/--linked flag.",
             file=sys.stderr,
         )
@@ -88,26 +102,33 @@ def _run_supabase_dump(
         if local
         else ("linked project" if linked else "configured database")
     )
-    print(
-        f"\n▶️  Generating local SQL file for [{schemas}] ({kind_label}) from {target_label}..."
-    )
-    if not dry_run:
-        try:
-            rel_path = output_file.relative_to(root_dir)
-        except ValueError:
-            rel_path = output_file
-        print(f"   Destination: {rel_path}")
+    if not quiet:
+        _safe_dump_print(
+            f"\n▶️  Generating local SQL file for [{schemas}] ({kind_label}) from {target_label}..."
+        )
+        if not dry_run:
+            try:
+                rel_path = output_file.relative_to(root_dir)
+            except ValueError:
+                rel_path = output_file
+            _safe_dump_print(f"   Destination: {rel_path}")
 
-    result = subprocess.run(cmd, cwd=str(root_dir))
+    if quiet:
+        result = subprocess.run(cmd, cwd=str(root_dir), capture_output=True, text=True)
+    else:
+        result = subprocess.run(cmd, cwd=str(root_dir))
+
     if result.returncode != 0:
-        print(
+        _safe_dump_print(
             f"   ❌ Error generating {kind_label} for [{schemas}] via Supabase CLI (exit {result.returncode}).",
             file=sys.stderr,
         )
+        if quiet and result.stderr:
+            _safe_dump_print(f"      {result.stderr.strip()}", file=sys.stderr)
         return result.returncode
 
-    if not dry_run:
-        print(
+    if not dry_run and not quiet:
+        _safe_dump_print(
             f"   ✅ Successfully generated local SQL file: {output_file.name}"
         )
     return 0
@@ -122,6 +143,8 @@ def dump_schemas(
     linked: bool = False,
     keep_comments: bool = False,
     dry_run: bool = False,
+    quiet: bool = False,
+    parallel: bool = True,
 ) -> int:
     """Generates separate local DDL schema SQL files for each specified schema."""
     root_dir = Path(__file__).resolve().parent.parent
@@ -130,20 +153,21 @@ def dump_schemas(
     )
     schema_list = [s.strip() for s in schemas.split(",") if s.strip()]
 
-    for s in schema_list:
+    def _resolve_target_file(s: str) -> Path:
         if file_override is not None:
             if "{schema}" in str(file_override):
-                target_file = Path(str(file_override).format(schema=s))
+                return Path(str(file_override).format(schema=s))
             elif len(schema_list) == 1:
-                target_file = file_override
+                return file_override
             else:
-                target_file = (
+                return (
                     file_override.parent
                     / f"{file_override.stem}_{s}{file_override.suffix}"
                 )
-        else:
-            target_file = target_dir / f"schema.{s}.sql"
+        return target_dir / f"schema.{s}.sql"
 
+    def _execute_dump(s: str) -> tuple[str, int, Path]:
+        target_file = _resolve_target_file(s)
         rc = _run_supabase_dump(
             mode="schema",
             output_file=target_file,
@@ -153,9 +177,48 @@ def dump_schemas(
             linked=linked,
             keep_comments=keep_comments,
             dry_run=dry_run,
+            quiet=quiet,
         )
-        if rc != 0:
-            return rc
+        return s, rc, target_file
+
+    results_by_schema: dict[str, tuple[int, Path]] = {}
+
+    if parallel and len(schema_list) > 1:
+        with ThreadPoolExecutor(max_workers=len(schema_list)) as executor:
+            futures = [executor.submit(_execute_dump, s) for s in schema_list]
+            for future in futures:
+                s, rc, target_file = future.result()
+                results_by_schema[s] = (rc, target_file)
+    else:
+        for s in schema_list:
+            s, rc, target_file = _execute_dump(s)
+            results_by_schema[s] = (rc, target_file)
+            if rc != 0:
+                break
+
+    # Check for any failures
+    for s in schema_list:
+        if s in results_by_schema:
+            rc, _target_file = results_by_schema[s]
+            if rc != 0:
+                return rc
+
+    # Render deterministic progress tree if quiet and not dry_run
+    if quiet and not dry_run:
+        for idx, s in enumerate(schema_list):
+            if s in results_by_schema:
+                _rc, target_file = results_by_schema[s]
+                is_last = idx == len(schema_list) - 1
+                branch = "└──" if is_last else "├──"
+                size_kb = (
+                    target_file.stat().st_size / 1024
+                    if target_file.exists()
+                    else 0.0
+                )
+                _safe_dump_print(
+                    f"   {branch} {target_file.name:<26} ({size_kb:.1f} KB)"
+                )
+
     return 0
 
 
@@ -168,6 +231,7 @@ def dump_data(
     use_copy: bool = False,
     keep_comments: bool = False,
     dry_run: bool = False,
+    quiet: bool = False,
 ) -> int:
     """Dumps table data for the specified schemas directly into seed.sql (overwrites)."""
     root_dir = Path(__file__).resolve().parent.parent
@@ -175,7 +239,7 @@ def dump_data(
         output_file if output_file is not None else (root_dir / DEFAULT_DATA_FILE)
     )
 
-    return _run_supabase_dump(
+    rc = _run_supabase_dump(
         mode="data",
         output_file=target_file,
         schemas=schemas,
@@ -185,7 +249,18 @@ def dump_data(
         use_copy=use_copy,
         keep_comments=keep_comments,
         dry_run=dry_run,
+        quiet=quiet,
     )
+    if rc != 0:
+        return rc
+
+    if quiet and not dry_run:
+        size_kb = target_file.stat().st_size / 1024 if target_file.exists() else 0.0
+        _safe_dump_print(
+            f"   └── {target_file.name:<26} ({size_kb:.1f} KB, schemas: {schemas})"
+        )
+
+    return 0
 
 
 def main() -> None:
@@ -258,6 +333,12 @@ def main() -> None:
         action="store_true",
         help="Print the pg_dump command that would be executed without writing files.",
     )
+    _ = parser.add_argument(
+        "--no-parallel",
+        dest="parallel",
+        action="store_false",
+        help="Dump schemas sequentially instead of in parallel.",
+    )
 
     args = parser.parse_args(namespace=_DBDumpArgs())
 
@@ -275,6 +356,7 @@ def main() -> None:
             linked=args.linked,
             keep_comments=args.keep_comments,
             dry_run=args.dry_run,
+            parallel=args.parallel,
         )
         if rc != 0:
             sys.exit(rc)
@@ -313,6 +395,7 @@ def main() -> None:
                 linked=args.linked,
                 keep_comments=args.keep_comments,
                 dry_run=args.dry_run,
+                parallel=args.parallel,
             )
 
         if rc != 0:

@@ -1,41 +1,34 @@
 #!/usr/bin/env python3
+"""Supabase TypeScript and Python Type Generator
+
+Uses the official Supabase CLI to generate types from the database schema concurrently.
 """
-Supabase TypeScript and Python Type Generator
-Uses the official Supabase CLI to generate types from the database schema.
-"""
+
+from __future__ import annotations
 
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 # Add scripts directory to sys.path to allow importing _env_helper
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _env_helper  # pyright: ignore[reportImplicitRelativeImport]
 
 
-def main(db_url: str | None = None):
+def generate_typescript_types(db_url: str, quiet: bool = False) -> Path:
+    """Generates TypeScript definitions for the frontend from the public schema."""
     root_dir = Path(__file__).resolve().parent.parent
-
-    # Destination files
     ts_file = root_dir / "frontend" / "src" / "types" / "db.ts"
-    py_file = root_dir / "backend" / "src" / "types" / "db.py"
-
-    # Make sure target directories exist
     ts_file.parent.mkdir(parents=True, exist_ok=True)
-    py_file.parent.mkdir(parents=True, exist_ok=True)
 
-    if not db_url:
-        print("Error: POSTGRES_URI environment variable is not set.", file=sys.stderr)
-        print(
-            "Please set it. Example: export POSTGRES_URI='postgresql://postgres:password@host:5432/postgres'",
-            file=sys.stderr,
-        )
-        raise ValueError("POSTGRES_URI environment variable is not set.")
+    if not quiet:
+        print("▶️  Generating TypeScript types for frontend...")
 
-    # We only generate types for the 'public' schema since 'langgraph' is purely backend-internal memory.
-    print("1. Generating TypeScript types for frontend...")
     cmd_ts = [
         "npx",
         "-y",
+        "--quiet",
         "supabase",
         "gen",
         "types",
@@ -49,20 +42,33 @@ def main(db_url: str | None = None):
 
     if result_ts.returncode == 0:
         ts_header = "// @ts-nocheck\n/* eslint-disable */\n/* prettier-ignore */\n"
-        with open(ts_file, "w", encoding="utf-8") as f:
-            _ = f.write(ts_header + result_ts.stdout)
-        print(f"   ✅ TypeScript types saved to {ts_file.relative_to(root_dir)}")
-    else:
-        print(
-            f"   ❌ Error generating TypeScript types:\n{result_ts.stderr}",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
+        _ = ts_file.write_text(ts_header + result_ts.stdout, encoding="utf-8")
+        if not quiet:
+            print(f"   ✅ TypeScript types saved to {ts_file.relative_to(root_dir)}")
+        else:
+            print(f"   ├── TypeScript: {ts_file.relative_to(root_dir)}")
+        return ts_file
 
-    print("\n2. Generating Python types for backend...")
+    print(
+        f"   ❌ Error generating TypeScript types:\n{result_ts.stderr}",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+
+def generate_python_types(db_url: str, quiet: bool = False) -> Path:
+    """Generates Python type models for the backend from the public schema."""
+    root_dir = Path(__file__).resolve().parent.parent
+    py_file = root_dir / "backend" / "src" / "types" / "db.py"
+    py_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if not quiet:
+        print("▶️  Generating Python types for backend...")
+
     cmd_py = [
         "npx",
         "-y",
+        "--quiet",
         "supabase",
         "gen",
         "types",
@@ -80,27 +86,51 @@ def main(db_url: str | None = None):
             "# pyright: reportGeneralTypeIssues=false, reportDeprecated=false, reportExplicitAny=false\n"
             "# type: ignore\n"
         )
-        with open(py_file, "w", encoding="utf-8") as f:
-            _ = f.write(py_header + result_py.stdout)
-        print(f"   ✅ Python types saved to {py_file.relative_to(root_dir)}")
-    else:
-        print(
-            f"   ❌ Error generating Python types:\n{result_py.stderr}", file=sys.stderr
-        )
-        raise SystemExit(1)
+        _ = py_file.write_text(py_header + result_py.stdout, encoding="utf-8")
+        if not quiet:
+            print(f"   ✅ Python types saved to {py_file.relative_to(root_dir)}")
+        else:
+            print(f"   ├── Python:     {py_file.relative_to(root_dir)}")
+        return py_file
 
-    print("\n🎉 Type generation complete!")
+    print(
+        f"   ❌ Error generating Python types:\n{result_py.stderr}",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+
+def main(db_url: str | None = None, quiet: bool = False) -> None:
+    resolved_db_url = db_url or _env_helper.POSTGRES_URI
+    if not resolved_db_url:
+        print("Error: POSTGRES_URI environment variable is not set.", file=sys.stderr)
+        print(
+            "Please set it. Example: export POSTGRES_URI='postgresql://postgres:password@host:5432/postgres'",
+            file=sys.stderr,
+        )
+        raise ValueError("POSTGRES_URI environment variable is not set.")
+
+    # Execute TypeScript and Python type generation concurrently
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_ts = executor.submit(
+            generate_typescript_types, resolved_db_url, quiet
+        )
+        future_py = executor.submit(
+            generate_python_types, resolved_db_url, quiet
+        )
+
+        for future in as_completed([future_ts, future_py]):
+            _ = future.result()
+
+    if not quiet:
+        print("\n🎉 Type generation complete!")
 
     from _verify_enum_tooltips import (  # pyright: ignore[reportImplicitRelativeImport]
         audit_enum_tooltips,
     )
 
-    _ = audit_enum_tooltips()
+    _ = audit_enum_tooltips(quiet=quiet)
 
 
 if __name__ == "__main__":
-    from _env_helper import (  # pyright: ignore[reportImplicitRelativeImport]
-        POSTGRES_URI,
-    )
-
-    main(POSTGRES_URI)
+    main()

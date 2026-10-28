@@ -32,6 +32,7 @@ def run_migrations(
     status_only: bool = False,
     no_types: bool = False,
     yes: bool = False,
+    quiet: bool = False,
 ) -> int:
     root_dir = Path(__file__).resolve().parent.parent
     migrations_dir = root_dir / "supabase" / "migrations"
@@ -42,15 +43,17 @@ def run_migrations(
         print("📂 No migration files found in supabase/migrations/.")
         return 0
 
-    print("=" * 60)
-    print("🚀 Teach&Learn Database Migration Tool (Supabase CLI)")
-    print("=" * 60)
+    if not quiet:
+        print("=" * 60)
+        print("🚀 Teach&Learn Database Migration Tool (Supabase CLI)")
+        print("=" * 60)
 
     if status_only:
         print("\n📊 Querying migration status via Supabase CLI...")
         cmd_status = [
             "npx",
             "-y",
+            "--quiet",
             "supabase",
             "migration",
             "list",
@@ -70,12 +73,15 @@ def run_migrations(
         )
         return result.returncode
 
-    print(
-        "\n▶️  Pushing unapplied SQL migrations from supabase/migrations/ via Supabase CLI..."
-    )
+    if not quiet:
+        print(
+            "\n▶️  Pushing unapplied SQL migrations from supabase/migrations/ via Supabase CLI..."
+        )
+
     cmd_push = [
         "npx",
         "-y",
+        "--quiet",
         "supabase",
         "db",
         "push",
@@ -84,25 +90,35 @@ def run_migrations(
         db_url,
     ]
     if yes:
-        cmd_push.insert(5, "--yes")
+        cmd_push.insert(6, "--yes")
 
-    result = subprocess.run(cmd_push, cwd=str(root_dir))
+    if quiet:
+        result = subprocess.run(cmd_push, cwd=str(root_dir), capture_output=True, text=True)
+    else:
+        result = subprocess.run(cmd_push, cwd=str(root_dir))
+
     if result.returncode != 0:
         print(
             "   ❌ Error applying migrations via Supabase CLI.",
             file=sys.stderr,
         )
+        if quiet and result.stderr:
+            print(result.stderr, file=sys.stderr)
         return result.returncode
 
-    print("   ✅ Schema migrations synchronized cleanly.")
+    if quiet:
+        print(f"   └── Migrations synchronized ({len(migration_files)} local files active, database up to date)")
+    else:
+        print("   ✅ Schema migrations synchronized cleanly.")
 
     if not no_types:
-        print("\n▶️  Regenerating TypeScript and Python contracts...")
+        if not quiet:
+            print("\n▶️  Regenerating TypeScript and Python contracts...")
         from _generate_types import (  # pyright: ignore[reportImplicitRelativeImport]
             main as generate_types,
         )
 
-        generate_types(db_url)
+        generate_types(db_url, quiet=quiet)
 
     return 0
 

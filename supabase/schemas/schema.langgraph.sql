@@ -261,55 +261,30 @@ ALTER TABLE "langgraph"."store_migrations" ENABLE ROW LEVEL SECURITY;
 
 
 GRANT USAGE ON SCHEMA "langgraph" TO "langgraph_writer";
-GRANT USAGE ON SCHEMA "langgraph" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "langgraph"."checkpoint_blobs" TO "langgraph_writer";
-GRANT ALL ON TABLE "langgraph"."checkpoint_blobs" TO "service_role";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "langgraph"."checkpoint_blobs" TO "langgraph_writer";
 
 
 
-GRANT ALL ON TABLE "langgraph"."checkpoint_migrations" TO "langgraph_writer";
-GRANT ALL ON TABLE "langgraph"."checkpoint_migrations" TO "service_role";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "langgraph"."checkpoint_migrations" TO "langgraph_writer";
 
 
 
-GRANT ALL ON TABLE "langgraph"."checkpoint_writes" TO "langgraph_writer";
-GRANT ALL ON TABLE "langgraph"."checkpoint_writes" TO "service_role";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "langgraph"."checkpoint_writes" TO "langgraph_writer";
 
 
 
-GRANT ALL ON TABLE "langgraph"."checkpoints" TO "langgraph_writer";
-GRANT ALL ON TABLE "langgraph"."checkpoints" TO "service_role";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "langgraph"."checkpoints" TO "langgraph_writer";
 
 
 
-GRANT ALL ON TABLE "langgraph"."store" TO "langgraph_writer";
-GRANT ALL ON TABLE "langgraph"."store" TO "service_role";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "langgraph"."store" TO "langgraph_writer";
 
 
 
-GRANT ALL ON TABLE "langgraph"."store_migrations" TO "langgraph_writer";
-GRANT ALL ON TABLE "langgraph"."store_migrations" TO "service_role";
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON SEQUENCES TO "service_role";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON SEQUENCES TO "langgraph_writer";
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON FUNCTIONS TO "service_role";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON FUNCTIONS TO "langgraph_writer";
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON TABLES TO "service_role";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "langgraph" GRANT ALL ON TABLES TO "langgraph_writer";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "langgraph"."store_migrations" TO "langgraph_writer";
 
 
 

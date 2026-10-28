@@ -7,6 +7,7 @@ This directory contains Deno-based serverless Edge Functions for secure document
 ## 📁 Directory Files & Functions
 
 - [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/AGENTS.md): Coding rules, CORS requirements, error handling guidelines, and authentication verification practices for Deno Edge Functions.
+- [`deployed.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/deployed.json): Version-controlled deployment manifest tracking content SHA-256 digests, remote server versions, and update timestamps.
 
 ### Subordinate Function Endpoints:
 - [`_shared/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/_shared): Reusable Deno modules (CORS headers, JWT auth verification, environment variables, Supabase admin client).
