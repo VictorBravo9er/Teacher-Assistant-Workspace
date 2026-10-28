@@ -89,7 +89,7 @@ def run_migrations(
         "--db-url",
         db_url,
     ]
-    if yes:
+    if yes or quiet:
         cmd_push.insert(6, "--yes")
 
     if quiet:

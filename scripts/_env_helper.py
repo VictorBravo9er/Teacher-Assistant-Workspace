@@ -8,13 +8,14 @@ _scripts_dir = Path(__file__).resolve().parent
 _root_dir = _scripts_dir.parent
 
 for _env_file in (
+    _scripts_dir / ".env",
+    _root_dir / ".env",
     _root_dir / "backend" / ".env",
     _root_dir / "frontend" / ".env",
-    _root_dir / ".env.local",
-    _root_dir / ".env",
 ):
     if _env_file.exists():
-        _ = load_dotenv(_env_file, override=False)
+        if load_dotenv(_env_file, override=False):
+            break
 
 
 POSTGRES_URI: str = os.getenv(

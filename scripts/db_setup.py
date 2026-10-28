@@ -239,6 +239,7 @@ def main() -> None:
                     "❌ Aborted: Confirmation did not match 'RESET'. No changes made."
                 )
                 sys.exit(1)
+            args.yes = True
 
     db_url = _env_helper.POSTGRES_URI
     db_langgraph_url = _env_helper.DB_OPTIONS_URI
@@ -318,7 +319,7 @@ def main() -> None:
         import migrate  # pyright: ignore[reportImplicitRelativeImport]
 
         rc_migrate = migrate.run_migrations(
-            no_types=True, yes=args.yes, quiet=True
+            no_types=True, yes=True, quiet=True
         )
         if rc_migrate != 0:
             step_results.append(
