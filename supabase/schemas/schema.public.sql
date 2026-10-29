@@ -721,6 +721,41 @@ $$;
 ALTER FUNCTION "public"."get_workspace_last_modified"("p_client_timestamps" "jsonb") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."guard_student_submission_tamper"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  -- If executed in an authenticated user context and the caller is not the class teacher:
+  IF (SELECT auth.uid()) IS NOT NULL AND NOT public.is_class_teacher(NEW.class_id) THEN
+    -- Check if student is trying to alter grade fields on update
+    IF TG_OP = 'UPDATE' THEN
+      IF (NEW.score IS DISTINCT FROM OLD.score) OR
+         (NEW.grade IS DISTINCT FROM OLD.grade) OR
+         (NEW.feedback IS DISTINCT FROM OLD.feedback) OR
+         (NEW.private_teacher_notes IS DISTINCT FROM OLD.private_teacher_notes) OR
+         (NEW.rubric_breakdown IS DISTINCT FROM OLD.rubric_breakdown) THEN
+        RAISE EXCEPTION 'Access denied: Students are not permitted to modify score, grade, or feedback fields.'
+          USING ERRCODE = '42501';
+      END IF;
+    ELSIF TG_OP = 'INSERT' THEN
+      IF NEW.score IS NOT NULL OR NEW.grade IS NOT NULL OR NEW.feedback IS NOT NULL OR NEW.private_teacher_notes IS NOT NULL THEN
+        RAISE EXCEPTION 'Access denied: Cannot supply score or feedback when submitting work.'
+          USING ERRCODE = '42501';
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."guard_student_submission_tamper"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."guard_student_submission_tamper"() IS 'Security guard trigger preventing student sessions from tampering with submission grades, scores, or instructor feedback.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_class_material_ai_analysis_trigger"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1948,6 +1983,10 @@ CREATE OR REPLACE TRIGGER "trg_classes_updated_at" BEFORE UPDATE ON "public"."cl
 
 
 
+CREATE OR REPLACE TRIGGER "trg_guard_student_submission_tamper" BEFORE INSERT OR UPDATE ON "public"."student_submissions" FOR EACH ROW EXECUTE FUNCTION "public"."guard_student_submission_tamper"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_instructions_updated_at" BEFORE UPDATE ON "public"."instructions" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
@@ -2163,15 +2202,11 @@ CREATE POLICY "Students and enrolled class teachers can update student profile" 
 
 
 
-CREATE POLICY "Teachers manage class announcements" ON "public"."announcements" USING ((EXISTS ( SELECT 1
-   FROM "public"."classes"
-  WHERE (("classes"."id" = "announcements"."class_id") AND ("classes"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
+CREATE POLICY "Teachers manage class announcements" ON "public"."announcements" USING ("public"."is_class_teacher"("class_id"));
 
 
 
-CREATE POLICY "Teachers view notification logs for their classes" ON "public"."notification_logs" USING ((EXISTS ( SELECT 1
-   FROM "public"."classes"
-  WHERE (("classes"."id" = "notification_logs"."class_id") AND ("classes"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
+CREATE POLICY "Teachers view notification logs for their classes" ON "public"."notification_logs" USING ("public"."is_class_teacher"("class_id"));
 
 
 
@@ -2179,23 +2214,13 @@ CREATE POLICY "Users can access attendance" ON "public"."attendance_records" USI
 
 
 
-CREATE POLICY "Users can access attendance via class ownership" ON "public"."attendance_records" USING ((EXISTS ( SELECT 1
-   FROM "public"."classes"
-  WHERE (("classes"."id" = "attendance_records"."class_id") AND ("classes"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
-
-
-
-CREATE POLICY "Users can access class_instructions" ON "public"."class_instructions" USING (((EXISTS ( SELECT 1
-   FROM "public"."classes" "c"
-  WHERE (("c"."id" = "class_instructions"."class_id") AND ("c"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))) OR (EXISTS ( SELECT 1
+CREATE POLICY "Users can access class_instructions" ON "public"."class_instructions" USING (("public"."is_class_teacher"("class_id") OR (EXISTS ( SELECT 1
    FROM "public"."class_students" "cs"
   WHERE (("cs"."class_id" = "class_instructions"."class_id") AND ("cs"."student_id" = ( SELECT "auth"."uid"() AS "uid")))))));
 
 
 
-CREATE POLICY "Users can access class_materials" ON "public"."class_materials" USING (((EXISTS ( SELECT 1
-   FROM "public"."classes" "c"
-  WHERE (("c"."id" = "class_materials"."class_id") AND ("c"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))) OR (EXISTS ( SELECT 1
+CREATE POLICY "Users can access class_materials" ON "public"."class_materials" USING (("public"."is_class_teacher"("class_id") OR (EXISTS ( SELECT 1
    FROM "public"."class_students" "cs"
   WHERE (("cs"."class_id" = "class_materials"."class_id") AND ("cs"."student_id" = ( SELECT "auth"."uid"() AS "uid")))))));
 
@@ -2205,19 +2230,7 @@ CREATE POLICY "Users can access class_students" ON "public"."class_students" USI
 
 
 
-CREATE POLICY "Users can access class_students via class ownership" ON "public"."class_students" USING ((EXISTS ( SELECT 1
-   FROM "public"."classes"
-  WHERE (("classes"."id" = "class_students"."class_id") AND ("classes"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
-
-
-
 CREATE POLICY "Users can access student_submissions" ON "public"."student_submissions" USING ((("student_id" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."is_class_teacher"("class_id")));
-
-
-
-CREATE POLICY "Users can access student_submissions via class ownership" ON "public"."student_submissions" USING ((EXISTS ( SELECT 1
-   FROM "public"."classes"
-  WHERE (("classes"."id" = "student_submissions"."class_id") AND ("classes"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
 
 
 
@@ -2446,6 +2459,12 @@ GRANT ALL ON FUNCTION "public"."get_submission_ai_diagnostic"("p_submission_id" 
 GRANT ALL ON FUNCTION "public"."get_workspace_last_modified"("p_client_timestamps" "jsonb") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_workspace_last_modified"("p_client_timestamps" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_workspace_last_modified"("p_client_timestamps" "jsonb") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."guard_student_submission_tamper"() TO "anon";
+GRANT ALL ON FUNCTION "public"."guard_student_submission_tamper"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."guard_student_submission_tamper"() TO "service_role";
 
 
 

@@ -37,7 +37,9 @@ flowchart TD
    - Restricts port bindings to `80:80` (Frontend) and `8090:8090` (Backend).
    - Enforces production environment variables via `.env`.
 2. **`docker-compose.dev.yml` (Local Development Layer)**:
+   - Manages the local Supabase server lifecycle via the `supabase` service (`ta-supabase-dev`), mounting `/var/run/docker.sock` to start local Supabase containers (`npx --yes supabase start`) on compose startup and gracefully stop them (`npx --yes supabase stop`) via signal traps across its lifetime.
    - Overlays bind mounts from host directories (`./frontend:/app`, `./backend:/app`) to enable live hot-reloading for Vite and Uvicorn (`--reload`).
+   - Automatically directs `frontend` and `backend` to local Supabase endpoints (`http://localhost:54321` and `http://host.docker.internal:54321` / `postgresql://postgres:postgres@host.docker.internal:54322/postgres`) with healthcheck dependency gates (`condition: service_healthy`).
    - Mounts anonymous volumes for container-internal `node_modules` and Python `.venv` to prevent host OS binary conflicts.
 
 ---
