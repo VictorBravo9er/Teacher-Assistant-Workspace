@@ -10,11 +10,11 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 
 | Metric | Current Status |
 | :--- | :--- |
-| **Total Plans** | **16 Plans** (Phase 0 through Phase 8) |
-| **Plans Completed** | **16 / 16** (`100%`) |
-| **Plans In Progress** | **0 / 16** (`0%`) |
-| **Plans Pending Execution** | **0 / 16** (`0%`) |
-| **Current Execution Target** | **All Remediation Plans Successfully Implemented & Verified** |
+| **Total Plans** | **17 Plans** (Phase 0 through Phase 9) |
+| **Plans Completed** | **17 / 17** (`100%`) |
+| **Plans In Progress** | **0 / 17** (`0%`) |
+| **Plans Pending Execution** | **0 / 17** (`0%`) |
+| **Current Execution Target** | **All Remediation & Verification Plans Successfully Implemented** |
 | **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–8 100% complete; role routing, student portal, announcements, calendar, notification engine, containerization, optimistic mutations, blocking progress bars, and two-tier concurrent pipeline fully operational. |
 
 ---
@@ -149,6 +149,9 @@ flowchart TD
 
 ### Phase 8: Concurrency & DevOps Optimization
 - [x] **Plan 13**: Two-Tier Concurrent Pipeline & Guarded Edge Functions Deployment (parallelized post-migration workers in `db_setup.py`, tracked manifest `deployed.json`, out-of-band remote drift protection, and bounded function deployment concurrency).
+
+### Phase 9: Comprehensive End-to-End System Verification
+- [x] **E2E Testing Suite**: Comprehensive End-to-End Local Testing Review & AI Verification Roadmap ([`../tests/plan-e2e-testing.md`](../tests/plan-e2e-testing.md)). Full verification of multi-role authentication, class lifecycle, roster, materials, submissions, manual grading, attendance, template creation, calendar sync, and audit logs. Defines technical prerequisites for remaining AI/LLM test suites.
 
 ---
 

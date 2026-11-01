@@ -28,7 +28,7 @@ AuthCodeChallengeMethod: TypeAlias = Literal["s256", "plain"]
 
 AuthFactorStatus: TypeAlias = Literal["unverified", "verified"]
 
-AuthFactorType: TypeAlias = Literal["totp", "webauthn", "phone"]
+AuthFactorType: TypeAlias = Literal["totp", "webauthn", "phone", "recovery_code"]
 
 AuthOauthAuthorizationStatus: TypeAlias = Literal["pending", "approved", "denied", "expired"]
 
