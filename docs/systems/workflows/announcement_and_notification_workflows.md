@@ -1,6 +1,6 @@
 # Announcement & Notification Workflows
 
-This document outlines the end-to-end lifecycles for class announcements, broadcast email notifications via Resend, and asynchronous delivery tracking in the Teach&Learn platform.
+This document outlines the end-to-end lifecycles for class announcements, broadcast email notifications via Resend, and asynchronous delivery tracking in the Didactiq platform.
 
 ---
 

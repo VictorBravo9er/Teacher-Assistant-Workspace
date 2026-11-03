@@ -1,6 +1,6 @@
 # Curriculum & Materials Knowledge Store
 
-The **Curriculum & Materials Knowledge Store** is the repository and compilation engine for all educational resources in Teach&Learn, including syllabi, textbooks, lecture slides, assignment briefs, and rubric definitions.
+The **Curriculum & Materials Knowledge Store** is the repository and compilation engine for all educational resources in Didactiq, including syllabi, textbooks, lecture slides, assignment briefs, and rubric definitions.
 
 ---
 
@@ -111,7 +111,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_mat_trees_material_id ON ai.material_trees(mat
 
 ## 4. Direct Context Ingestion & Lightweight Full-Text Search (FTS)
 
-Standard educational materials in Teach&Learn (such as 2- to 15-page syllabi, assignment prompts, and lab handouts) average 1,500 to 8,000 tokens. Modern frontier models (Gemini 2.5 Flash / Claude 3.5 Sonnet) operate with **200k to 1M+ token context windows**, rendering 500-token vector chunking obsolete for standard classroom documents:
+Standard educational materials in Didactiq (such as 2- to 15-page syllabi, assignment prompts, and lab handouts) average 1,500 to 8,000 tokens. Modern frontier models (Gemini 2.5 Flash / Claude 3.5 Sonnet) operate with **200k to 1M+ token context windows**, rendering 500-token vector chunking obsolete for standard classroom documents:
 
 1. **Context Integrity**: By bypassing chunk slicing, the model sees the entire document structure, complete rubric criteria tables, and grading policies with zero boundary loss.
 2. **Zero Overhead**: Eliminates external embedding API calls, rate limits, 1536-dimensional float storage, and `pgvector` memory consumption.

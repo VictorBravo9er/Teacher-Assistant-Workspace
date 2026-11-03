@@ -1,6 +1,6 @@
-# Teach&Learn Workflows & Operations Guide
+# Didactiq Workflows & Operations Guide
 
-Welcome to the **Workflows Directory** for the **Teach&Learn** platform. This directory contains end-to-end, start-to-finish operational flow specifications for every primary capability and user journey in the platform.
+Welcome to the **Workflows Directory** for the **Didactiq** platform. This directory contains end-to-end, start-to-finish operational flow specifications for every primary capability and user journey in the platform.
 
 ---
 
@@ -11,7 +11,7 @@ Each workflow document breaks down the execution lifecycle from **UI Trigger $\r
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
-    subgraph MasterWorkflows["Teach&Learn Operational Workflows"]
+    subgraph MasterWorkflows["Didactiq Operational Workflows"]
         W1["1. Template Workflows (template_workflows.md)"]
         W2["2. Material Workflows (material_workflows.md)"]
         W3["3. Student & Roster Workflows (student_roster_workflows.md)"]

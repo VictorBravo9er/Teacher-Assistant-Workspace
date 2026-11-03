@@ -1,6 +1,6 @@
 # DevOps, Deployment & Containerization Subsystem
 
-The **DevOps, Deployment & Containerization Subsystem** governs multi-container orchestration, rootless container security, build pipelines, database provisioning automation, static edge hosting, and environment variable synchronization across the Teach&Learn platform.
+The **DevOps, Deployment & Containerization Subsystem** governs multi-container orchestration, rootless container security, build pipelines, database provisioning automation, static edge hosting, and environment variable synchronization across the Didactiq platform.
 
 ---
 
@@ -46,7 +46,7 @@ flowchart TD
 
 ## 2. Container Security & Immutability Standards
 
-The Teach&Learn workspace implements strict container hardening standards:
+The Didactiq workspace implements strict container hardening standards:
 
 1. **Rootless Container Execution**:
    - Both the frontend Nginx image (`nginxinc/nginx-unprivileged:alpine`) and the backend Python image execute as unprivileged UID/GID `1000:1000`.
@@ -200,7 +200,7 @@ To prevent unnecessary serverless builds and save Vercel build minutes, [`bash-d
 
 ## 5. Continuous Deployment (CD) Automation (`.github/workflows/cd.yml`)
 
-The Teach&Learn workspace implements automated Continuous Deployment on merges to `main`:
+The Didactiq workspace implements automated Continuous Deployment on merges to `main`:
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%

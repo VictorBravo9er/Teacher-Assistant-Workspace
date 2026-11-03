@@ -8,7 +8,7 @@
 
 ## 1. Problem Statement & Root Cause
 
-Following the implementation of [Plan 00](./00-enum-tooltip-audit-tooling.md) through [Plan 08.5](./08.5-classroom-notifications-resend.md), Teach&Learn features a full-stack coordinated logging engine and rich multi-event notifications. However, running the application inside Docker containers currently encounters startup crashes and telemetry black holes due to four architectural mismatches:
+Following the implementation of [Plan 00](./00-enum-tooltip-audit-tooling.md) through [Plan 08.5](./08.5-classroom-notifications-resend.md), Didactiq features a full-stack coordinated logging engine and rich multi-event notifications. However, running the application inside Docker containers currently encounters startup crashes and telemetry black holes due to four architectural mismatches:
 
 ### 1.1 Backend Container Startup Crash (`PermissionError: [Errno 13]`)
 In [`backend/src/lib/logger.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/logger.py#L22-L26):

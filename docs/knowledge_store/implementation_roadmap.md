@@ -1,6 +1,6 @@
 # Knowledge Store Implementation Roadmap & Verification Plan
 
-This document details the step-by-step engineering roadmap to implement, migrate, and verify the **Teach&Learn Knowledge Store Subsystem** across the database, edge functions, backend services, and frontend interfaces.
+This document details the step-by-step engineering roadmap to implement, migrate, and verify the **Didactiq Knowledge Store Subsystem** across the database, edge functions, backend services, and frontend interfaces.
 
 ---
 

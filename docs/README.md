@@ -1,6 +1,6 @@
-# Teach&Learn Documentation
+# Didactiq Documentation
 
-Welcome to the Teach&Learn platform documentation repository. This directory houses architectural specifications, operational plans, system designs, and visual diagrams for the entire workspace.
+Welcome to the Didactiq platform documentation repository. This directory houses architectural specifications, operational plans, system designs, and visual diagrams for the entire workspace.
 
 ---
 

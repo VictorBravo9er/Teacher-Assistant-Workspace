@@ -1,6 +1,6 @@
-# Teach&Learn Knowledge Store Subsystem
+# Didactiq Knowledge Store Subsystem
 
-The **Teach&Learn Knowledge Store Subsystem** is an educational knowledge compilation, indexing, and diagnostic engine designed specifically for classroom workflows. It draws architectural inspiration from **OpenKB** (compiled LLM wikis & persistent knowledge graphs), **PageIndex / RAPTOR** (hierarchical tree indexing for long educational documents), and **GraphRAG / LightRAG** (dual-level concept & prerequisite graphs), tailoring them directly to the needs of educators managing curriculum materials and student assignment submissions.
+The **Didactiq Knowledge Store Subsystem** is an educational knowledge compilation, indexing, and diagnostic engine designed specifically for classroom workflows. It draws architectural inspiration from **OpenKB** (compiled LLM wikis & persistent knowledge graphs), **PageIndex / RAPTOR** (hierarchical tree indexing for long educational documents), and **GraphRAG / LightRAG** (dual-level concept & prerequisite graphs), tailoring them directly to the needs of educators managing curriculum materials and student assignment submissions.
 
 ---
 
@@ -11,7 +11,7 @@ Traditional RAG systems suffer from three major shortcomings in educational envi
 2. **Ephemerality & Rediscovery**: Standard RAG rediscovers context from scratch on every question instead of maintaining a compounding understanding of a student's learning trajectory.
 3. **Absence of Pedagogical Grounding**: Without an explicit ontology (Bloom's Taxonomy levels, concept prerequisite trees, error taxonomies), generic vector search cannot detect whether a student is missing foundational prerequisite concepts.
 
-The **Teach&Learn Knowledge Store** bridges this gap using a **Lean Dual-Plane Knowledge Architecture** (Hierarchical Tree Index + Relational Ontological Graph, completely eliminating vector database overhead):
+The **Didactiq Knowledge Store** bridges this gap using a **Lean Dual-Plane Knowledge Architecture** (Hierarchical Tree Index + Relational Ontological Graph, completely eliminating vector database overhead):
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -67,7 +67,7 @@ flowchart TB
 
 ## 2. Inspiration & Comparative Analysis
 
-| Dimension | Standard Chunk-Based RAG | OpenKB (Compiled LLM Wiki) | PageIndex / RAPTOR | **Teach&Learn Knowledge Store (Our Implementation)** |
+| Dimension | Standard Chunk-Based RAG | OpenKB (Compiled LLM Wiki) | PageIndex / RAPTOR | **Didactiq Knowledge Store (Our Implementation)** |
 | :--- | :--- | :--- | :--- | :--- |
 | **Primary Data Structure** | Flat vector index (`vector(1536)`) | Interlinked Markdown files (`[[wikilinks]]`) | Recursive Tree of Abstracts / TOC Trees | **Lean Dual-Engine: PostgreSQL Private `ai` Schema + Hierarchical Tree JSONB + Relational Graph (Zero Vector DB Overhead)** |
 | **Long Document Handling** | Fixed-size chunking with overlaps | PageIndex tree index + LLM reading | Multi-layer summarization tree | **Dual-route: Direct full-text (<20 pages) vs. Hierarchical Tree Index (≥20 pages) in `ai.material_trees`** |
@@ -103,7 +103,7 @@ The Knowledge Store is organized across 4 detailed design documents:
 
 ---
 
-## 4. Integration with Existing Teach&Learn Systems
+## 4. Integration with Existing Didactiq Systems
 
 The Knowledge Store seamlessly integrates with the existing system architecture:
 

@@ -11,7 +11,7 @@
 During local testing, when the database was reset, the frontend continued to render stale classes and templates from `localStorage` because cached items were saved without a bounded TTL. When attempting to enroll a student in that nonexistent class, Supabase edge functions and PostgreSQL rejected the request.
 
 However, resolving this with a crude "all-or-nothing" workspace timestamp invalidation creates a performance bottleneck:
-- In Teach&Learn LMS, a classroom workspace is composed of multiple independent components:
+- In Didactiq LMS, a classroom workspace is composed of multiple independent components:
   1. **Classes Metadata** (`classes`, `institutes`)
   2. **Student Roster & Portfolios** (`class_students`, `students`, `attendance_records`)
   3. **Course Materials & Assignments** (`class_materials`, `materials`)

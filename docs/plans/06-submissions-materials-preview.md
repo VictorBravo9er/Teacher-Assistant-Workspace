@@ -8,7 +8,7 @@
 - **Affected Files**: 
   - [`frontend/src/features/classroom/MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx)
   - [`frontend/src/features/students/StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx)
-- **Defect**: In Teach&Learn, student submissions can be uploaded files (PDF, DOCX) or direct text entries. Because `'Text'` was historically omitted from the database `public.content_type` enum (Plan 01/02), the upload modal coerced text entries to `type: 'File' as any` and stored pseudo-paths like `text://${itemId}` or `grade://${submissionId}`.
+- **Defect**: In Didactiq, student submissions can be uploaded files (PDF, DOCX) or direct text entries. Because `'Text'` was historically omitted from the database `public.content_type` enum (Plan 01/02), the upload modal coerced text entries to `type: 'File' as any` and stored pseudo-paths like `text://${itemId}` or `grade://${submissionId}`.
 - When a teacher clicks to preview the submission, `MaterialPreviewModal` sees `type: 'File'` and attempts to download the pseudo-URI from Supabase Storage via `supabase.storage.from('student-submissions').createSignedUrl(path, ...)`.
 - Supabase Storage rejects `text://...` with HTTP 400 Bad Request, resulting in a blank modal or infinite loading spinner.
 

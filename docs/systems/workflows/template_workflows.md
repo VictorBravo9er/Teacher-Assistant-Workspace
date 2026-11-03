@@ -1,6 +1,6 @@
 # Curriculum Template Workflows
 
-This document outlines the start-to-finish workflows for creating, managing, and instantiating **Curriculum Templates** in the Teach&Learn platform.
+This document outlines the start-to-finish workflows for creating, managing, and instantiating **Curriculum Templates** in the Didactiq platform.
 
 ---
 

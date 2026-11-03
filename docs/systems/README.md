@@ -1,12 +1,12 @@
-# Teach&Learn Subsystems Documentation
+# Didactiq Subsystems Documentation
 
-Welcome to the comprehensive subsystems documentation for **Teach&Learn**, an AI-powered full-stack workspace designed for educators to manage classes, track student portfolios, build repeatable curriculum templates, evaluate rubric criteria, and perform pedagogical gap analyses via LangGraph/RAG assistants.
+Welcome to the comprehensive subsystems documentation for **Didactiq**, an AI-powered full-stack workspace designed for educators to manage classes, track student portfolios, build repeatable curriculum templates, evaluate rubric criteria, and perform pedagogical gap analyses via LangGraph/RAG assistants.
 
 ---
 
 ## 🗺️ Subsystem Architecture Map
 
-The Teach&Learn platform is architected as a set of decoupled, specialized subsystems cooperating across client-side UI, serverless edge computing, backend AI orchestration, and multi-tenant database layers:
+The Didactiq platform is architected as a set of decoupled, specialized subsystems cooperating across client-side UI, serverless edge computing, backend AI orchestration, and multi-tenant database layers:
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%

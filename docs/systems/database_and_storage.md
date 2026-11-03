@@ -1,6 +1,6 @@
 # Database & Storage Subsystem Architecture
 
-The **Database & Storage Subsystem** provides the authoritative data persistence, multi-tenant isolation, relational data modeling, audit tracking, atomic deletion routines, and secure object storage for the Teach&Learn platform.
+The **Database & Storage Subsystem** provides the authoritative data persistence, multi-tenant isolation, relational data modeling, audit tracking, atomic deletion routines, and secure object storage for the Didactiq platform.
 
 ---
 

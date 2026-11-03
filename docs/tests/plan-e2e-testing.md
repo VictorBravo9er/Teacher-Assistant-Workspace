@@ -11,7 +11,7 @@
 
 ## 1. Executive Summary
 
-This document provides a permanent, repository-tracked audit of the local end-to-end tests conducted across the Teach&Learn platform.
+This document provides a permanent, repository-tracked audit of the local end-to-end tests conducted across the Didactiq platform.
 
 Testing confirmed that the **LMS Application Core** (React 19, Vite, PostgREST, GoTrue Auth, and PostgreSQL 17) operates with complete autonomy and data integrity without requiring the backend FastAPI AI service.
 

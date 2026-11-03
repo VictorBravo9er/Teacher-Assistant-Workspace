@@ -1,6 +1,6 @@
-# Teach&Learn Test Suites & Quality Assurance
+# Didactiq Test Suites & Quality Assurance
 
-Welcome to the test documentation and quality assurance repository for **Teach&Learn**. This directory contains detailed execution logs, verified test matrices, regression coverage, and roadmaps for pending integration tests across both the LMS application layer and backend AI services.
+Welcome to the test documentation and quality assurance repository for **Didactiq**. This directory contains detailed execution logs, verified test matrices, regression coverage, and roadmaps for pending integration tests across both the LMS application layer and backend AI services.
 
 ---
 

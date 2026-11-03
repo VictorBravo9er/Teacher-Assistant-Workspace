@@ -1,6 +1,6 @@
-# Teach&Learn — LMS Architectural Remediation & Implementation Plans
+# Didactiq — LMS Architectural Remediation & Implementation Plans
 
-Welcome to the modular implementation planning and execution directory for **Teach&Learn LMS**. 
+Welcome to the modular implementation planning and execution directory for **Didactiq LMS**. 
 
 Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory divides all identified bugs, schema discrepancies, unpersisted forms, and architectural gaps into discrete, reviewable engineering plans and tracks their live implementation progress.
 

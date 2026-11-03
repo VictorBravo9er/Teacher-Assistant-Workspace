@@ -8,7 +8,7 @@
 ## 1. Context & Architectural Need
 
 ### 1.1 The Synchronous Enrolment Latency Problem
-In Teach&Learn LMS, enrolling a student triggers the Supabase `invite-student` edge function. This function creates or looks up the auth user, generates secure tokens, writes to `class_students`, and dispatches an invitation email via Resend SMTP. This network and cryptographic pipeline typically takes 3 to 6 seconds to complete.
+In Didactiq LMS, enrolling a student triggers the Supabase `invite-student` edge function. This function creates or looks up the auth user, generates secure tokens, writes to `class_students`, and dispatches an invitation email via Resend SMTP. This network and cryptographic pipeline typically takes 3 to 6 seconds to complete.
 
 Previously:
 - The teacher filled out the "Add New Student" modal and submitted it.

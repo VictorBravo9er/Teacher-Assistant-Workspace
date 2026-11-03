@@ -1,6 +1,6 @@
 # AI, Vector Search & Ontological Knowledge Subsystem
 
-The **AI, Vector Search & Ontological Knowledge Subsystem** powers the intelligent capabilities of the Teach&Learn platform. It combines dense semantic retrieval (`pgvector`), structured pedagogical knowledge graphs (`ai` schema), autonomous grading pipelines, and interactive Retrieval-Augmented Generation (RAG) chat assistants.
+The **AI, Vector Search & Ontological Knowledge Subsystem** powers the intelligent capabilities of the Didactiq platform. It combines dense semantic retrieval (`pgvector`), structured pedagogical knowledge graphs (`ai` schema), autonomous grading pipelines, and interactive Retrieval-Augmented Generation (RAG) chat assistants.
 
 ---
 
@@ -183,7 +183,7 @@ Performs pedagogical analysis of uploaded syllabus documents and study materials
 
 ---
 
-### 3.3 Interactive RAG Teacher Assistant (`/api/chat`)
+### 3.3 Interactive RAG Didactiq Assistant (`/api/chat`)
 The interactive assistant compiles classroom metadata, student rosters, running gradebook statistics, and active session configurations into the prompt context:
 
 #### Assistant Output Format:

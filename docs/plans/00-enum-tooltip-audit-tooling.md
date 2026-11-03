@@ -3,7 +3,7 @@
 > **Status**: ✅ **COMPLETED** (Verified with `npm run build`, `uv run poe lint`, and `_verify_enum_tooltips.py`)
 
 ## 1. Problem Statement & Context
-As Teach&Learn scales its LMS capabilities, developers, testers, and AI agents face four visibility, developer-experience, and code hygiene gaps:
+As Didactiq scales its LMS capabilities, developers, testers, and AI agents face four visibility, developer-experience, and code hygiene gaps:
 
 1. **Enum Verification Gap**:
    - Whenever PostgreSQL enums are modified, developers can easily forget to provide accompanying UI tooltips in `frontend/src/utils/enumTooltips.ts`.
@@ -144,7 +144,7 @@ Create a structured, level-aware, namespaced logger with execution timers and ci
 
 ```typescript
 /**
- * Teach&Learn Exhaustive Frontend Logging Utility
+ * Didactiq Exhaustive Frontend Logging Utility
  * Provides namespaced, level-filtered, contextual logging with diagnostic buffering.
  */
 
@@ -391,7 +391,7 @@ import path from 'path';
 
 ```python
 """
-Teach&Learn Backend Exhaustive Logging Utility
+Didactiq Backend Exhaustive Logging Utility
 Provides namespaced loggers, async execution measurement, contextvars-based
 request ID correlation, timestamped log file cohorts, and coordinated entry-count rotation in ./logs/.
 """
@@ -667,16 +667,18 @@ from src.lib.logger import llm_logger
 
 def get_openrouter_llm(model: str, api_key: str) -> ChatOpenAI:
     llm_logger.debug("Configuring OpenRouter LLM client: model=%s", model)
+    extra_headers: dict[str, str] = {
+        "X-Title": os.getenv("OPENROUTER_TITLE", "Didactiq"),
+    }
+    site_url = os.getenv("OPENROUTER_HTTP_REFERER") or os.getenv("APP_URL")
+    if site_url:
+        extra_headers["HTTP-Referer"] = site_url
+
     return ChatOpenAI(
         model=model,
         api_key=SecretStr(api_key),
         base_url="https://openrouter.ai/api/v1",
-        model_kwargs={
-            "extra_headers": {
-                "HTTP-Referer": "https://github.com/Google-Developer-Assistant/Teacher-Assistant",
-                "X-Title": "Teacher Assistant Workspace",
-            }
-        },
+        model_kwargs={"extra_headers": extra_headers},
         temperature=0.7,
     )
 
@@ -736,7 +738,7 @@ Instrument `ChatService` and `EvaluatorService` to log domain-specific telemetry
    ```
 2. **Directory Structure on Disk (Timestamped Cohorts)**:
    ```
-   Teach&Learn Workspace/
+   Didactiq Workspace/
    └── logs/
        ├── frontend-YYYY-MM-DD-HH-mm-ss.log          # Human-readable frontend events & PostgREST errors
        ├── frontend-YYYY-MM-DD-HH-mm-ss.jsonl        # Structured frontend JSON events (for AI agent analysis)

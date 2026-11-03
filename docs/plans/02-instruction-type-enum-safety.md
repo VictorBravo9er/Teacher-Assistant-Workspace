@@ -3,7 +3,7 @@
 > **Status**: ✅ **COMPLETED** (Verified via `npm run build`, `scripts/_verify_enum_tooltips.py`, and `uv run poe lint`)
 
 ## 1. Problem Statement & Root Cause
-In Teach&Learn, several React UI components contain hardcoded strings and option arrays for fields that are backed by strict PostgreSQL `ENUM` types. This has led to severe runtime crashes, data loss, and constraint violations whenever a teacher submits a form.
+In Didactiq, several React UI components contain hardcoded strings and option arrays for fields that are backed by strict PostgreSQL `ENUM` types. This has led to severe runtime crashes, data loss, and constraint violations whenever a teacher submits a form.
 
 ### The Forensic Audit of UI Enum Crashes:
 

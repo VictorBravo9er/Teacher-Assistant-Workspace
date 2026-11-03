@@ -1,6 +1,6 @@
 # Unified Retrieval, Reasoning & RAG Engine
 
-The **Unified Retrieval, Reasoning & RAG Engine** coordinates multi-modal search, hierarchical tree traversal, ontological graph expansion, and prompt context packaging across the Teach&Learn platform.
+The **Unified Retrieval, Reasoning & RAG Engine** coordinates multi-modal search, hierarchical tree traversal, ontological graph expansion, and prompt context packaging across the Didactiq platform.
 
 ---
 
