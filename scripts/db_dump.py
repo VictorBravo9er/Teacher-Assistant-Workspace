@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Teach&Learn Database Dump Tool (Supabase CLI)
+Didactiq Database Dump Tool (Supabase CLI)
 
 - Schemas: Generates separate local SQL files for each schema (schema.public.sql,
   schema.ai.sql, schema.langgraph.sql in supabase/schemas/).
@@ -294,7 +294,7 @@ def dump_data(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Teach&Learn Database Dump Tool (Supabase CLI)",
+        description="Didactiq Database Dump Tool (Supabase CLI)",
     )
     group = parser.add_mutually_exclusive_group()
     _ = group.add_argument(
@@ -372,7 +372,7 @@ def main() -> None:
     args = parser.parse_args(namespace=_DBDumpArgs())
 
     print("=" * 60)
-    print("📦 Teach&Learn Database Dump Tool (Supabase CLI)")
+    print("📦 Didactiq Database Dump Tool (Supabase CLI)")
     print("=" * 60)
 
     if args.both:

@@ -1,5 +1,5 @@
 # ==============================================================================
-# Teach&Learn Workspace — Task Automation Makefile
+# Didactiq Workspace — Task Automation Makefile
 # ==============================================================================
 
 .PHONY: help check lint lint-backend lint-frontend build-frontend lint-docs \
@@ -10,7 +10,7 @@
 .DEFAULT_GOAL := help
 
 help:
-	@echo "Teach&Learn Development Commands:"
+	@echo "Didactiq Development Commands:"
 	@echo "  make check                    Run full workspace linter (backend, frontend, doc coverage)"
 	@echo "  make lint-backend             Run backend Ruff, BasedPyright, and micro-doc checks"
 	@echo "  make lint-frontend            Run frontend TypeScript and micro-doc checks"

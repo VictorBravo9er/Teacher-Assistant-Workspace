@@ -1,4 +1,4 @@
-# Teach&Learn — Workspace Rules
+# Didactiq — Workspace Rules
 
 Stack: React 19 / Vite / TS / Tailwind (`frontend/`) · Python 3.13 / FastAPI / LangChain / uv (`backend/`) · PostgreSQL / Supabase / RLS (`supabase/`).
 

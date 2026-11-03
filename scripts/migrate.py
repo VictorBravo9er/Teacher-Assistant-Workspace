@@ -45,7 +45,7 @@ def run_migrations(
 
     if not quiet:
         print("=" * 60)
-        print("🚀 Teach&Learn Database Migration Tool (Supabase CLI)")
+        print("🚀 Didactiq Database Migration Tool (Supabase CLI)")
         print("=" * 60)
 
     if status_only:

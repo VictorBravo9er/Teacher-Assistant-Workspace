@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Doc Coverage Linter for Teach&Learn.
+"""Doc Coverage Linter for Didactiq.
 
 Mechanically verifies that designated core architectural src directories have a valid code.md
 documenting their source code files and data flow contracts.
@@ -121,7 +121,7 @@ def run_audit(root: Path, scope: str = "all") -> int:
                 )
 
     print("=" * 70)
-    print(f"Teach&Learn Core Documentation Linter (Scope: {scope})")
+    print(f"Didactiq Core Documentation Linter (Scope: {scope})")
     print(f"Audited: {scanned_dirs} core directories, {scanned_files} source files")
     print("=" * 70)
 

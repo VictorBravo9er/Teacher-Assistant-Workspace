@@ -1,4 +1,4 @@
-# Teach&Learn — Master Project Roadmap & Milestone Tracker
+# Didactiq — Master Project Roadmap & Milestone Tracker
 
 ## 🎯 Primary Goal: Document-Aware Vector RAG, Automated Rubric Grading & Student Submission Pipeline
 

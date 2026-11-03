@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Teach&Learn Database Setup & Initialization Orchestrator
+"""Didactiq Database Setup & Initialization Orchestrator
 
 Executes the database setup sequence:
   Phase 1: Database teardown (if --reset) & LangGraph storage verification (Serial Gate 1)
@@ -177,7 +177,7 @@ class _DBSetupArgs(argparse.Namespace):
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Teach&Learn Database Setup & Initialization",
+        description="Didactiq Database Setup & Initialization",
     )
     _ = parser.add_argument(
         "--reset",
@@ -254,7 +254,7 @@ def main() -> None:
     safe_print()
     safe_print(
         UI.header_card(
-            title=f"Teach&Learn — Database Setup Orchestrator ({mode_str})",
+            title=f"Didactiq — Database Setup Orchestrator ({mode_str})",
             subtitle=f"Target: {target_info}",
         )
     )
@@ -327,7 +327,7 @@ def main() -> None:
             )
             elapsed = time.time() - start_time
             UI.summary_box(
-                title="Teach&Learn — Database Setup Failed",
+                title="Didactiq — Database Setup Failed",
                 items=step_results,
                 elapsed_sec=elapsed,
             )
@@ -483,7 +483,7 @@ def main() -> None:
 
     elapsed = time.time() - start_time
     UI.summary_box(
-        title="Teach&Learn — Database Setup Complete",
+        title="Didactiq — Database Setup Complete",
         items=step_results,
         elapsed_sec=elapsed,
     )
