@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
             <h2>${eventVerb} ${material.category}: ${material.name}</h2>
             ${material.due_at ? `<p><strong>Due Date:</strong> ${new Date(material.due_at).toLocaleDateString()}</p>` : ""}
             ${material.max_score ? `<p><strong>Max Points:</strong> ${material.max_score}</p>` : ""}
-            <p>Please log in to your Teach&Learn Student Portal to review the coursework details and submit your work.</p>
+            <p>Please log in to your Didactiq Student Portal to review the coursework details and submit your work.</p>
             <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;" />
             <p style="font-size: 12px; color: #6b7280;">Instructor: ${classItem.teacher_name || "Instructor"}${teacherEmail ? ` &bull; Direct inquiries to <a href="mailto:${teacherEmail}">${teacherEmail}</a>` : ""}</p>
           </div>`,

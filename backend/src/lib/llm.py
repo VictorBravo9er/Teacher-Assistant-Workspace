@@ -1,4 +1,5 @@
 import json
+import os
 from typing import cast
 
 from langchain_openai import ChatOpenAI
@@ -9,16 +10,18 @@ from src.lib.logger import llm_logger
 def get_openrouter_llm(model: str, api_key: str) -> ChatOpenAI:
     """Instantiate and return the LangChain OpenRouter-backed ChatOpenAI client."""
     llm_logger.debug("Configuring OpenRouter LLM client: model=%s", model)
+    extra_headers: dict[str, str] = {
+        "X-Title": os.getenv("OPENROUTER_TITLE", "Didactiq"),
+    }
+    site_url = os.getenv("OPENROUTER_HTTP_REFERER") or os.getenv("APP_URL")
+    if site_url:
+        extra_headers["HTTP-Referer"] = site_url
+
     return ChatOpenAI(
         model=model,
         api_key=SecretStr(api_key),
         base_url="https://openrouter.ai/api/v1",
-        model_kwargs={
-            "extra_headers": {
-                "HTTP-Referer": "https://github.com/Google-Developer-Assistant/Teacher-Assistant",
-                "X-Title": "Teacher Assistant Workspace",
-            }
-        },
+        model_kwargs={"extra_headers": extra_headers},
         temperature=0.7,
     )
 

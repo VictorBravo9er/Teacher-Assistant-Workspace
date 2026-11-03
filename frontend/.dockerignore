@@ -6,6 +6,7 @@ dist/
 .vite
 .node
 .npm
+.pnpm-store
 .supabase
 .vscode
 UI_ELEMENT_IDS.md

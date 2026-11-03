@@ -1,9 +1,9 @@
-# Teach&Learn — User Guide
+# Didactiq — User Guide
 
-Welcome to **Teach&Learn**, the next-generation workspace for educators. This guide will help you navigate the application, set up your classes, and harness the power of AI to supercharge your classroom evaluation and reporting.
+Welcome to **Didactiq**, the next-generation workspace for educators. This guide will help you navigate the application, set up your classes, and harness the power of AI to supercharge your classroom evaluation and reporting.
 
 ## Overview
-Teach&Learn allows you to:
+Didactiq allows you to:
 - **Organize Class Resources**: Keep syllabi, assignments, and student rosters organized in dedicated, easily searchable class projects.
 - **Automate Student Evaluation**: Rate student submissions against your rubrics and track academic growth over time.
 - **Generate Instant Progress Reports**: Ask natural questions about any student's performance and receive clear, actionable summaries and insights.
@@ -69,7 +69,7 @@ Keep track of your students in the **Student Roster** section.
 
 ## 5. RAG AI Diagnostics & Chat
 
-The core of Teach&Learn is your AI teaching assistant.
+The core of Didactiq is your AI teaching assistant.
 - **Start a Session**: Click **New AI Analysis** to start a chat session.
 - **Ask Questions**: Use the chat input to ask the AI questions like:
   - *"Generate a progress report for John Doe based on his last three assignments."*
@@ -85,4 +85,4 @@ The core of Teach&Learn is your AI teaching assistant.
 - **Templates**: Have a setup you love? Click **Save Active as Template** in the sidebar to reuse your class configuration (profile, rubrics, AI guidelines) for future semesters.
 
 ---
-*Teach&Learn — Supercharge Your Classroom Evaluation & Reporting.*
+*Didactiq — Supercharge Your Classroom Evaluation & Reporting.*

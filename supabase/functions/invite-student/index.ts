@@ -43,7 +43,7 @@ function resolveAppUrl(req: Request): string {
     return origin.replace(/\/+$/, "");
   }
 
-  // 3. Fallback to production Teach&Learn domain
+  // 3. Fallback to production Didactiq domain
   return DEFAULT_APP_URL;
 }
 

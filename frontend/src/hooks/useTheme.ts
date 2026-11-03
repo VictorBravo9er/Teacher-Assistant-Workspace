@@ -2,11 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
-const THEME_STORAGE_KEY = 'edu_rag_theme';
+const THEME_STORAGE_KEY = 'didactiq_theme';
+const LEGACY_THEME_STORAGE_KEYS = ['teach_and_learn_theme', 'edu_rag_theme'];
 
 export function useTheme() {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+    let saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+    if (!saved) {
+      for (const legacyKey of LEGACY_THEME_STORAGE_KEYS) {
+        const legacyVal = localStorage.getItem(legacyKey) as ThemeMode | null;
+        if (legacyVal) {
+          saved = legacyVal;
+          break;
+        }
+      }
+    }
     return saved || 'system';
   });
 
@@ -28,6 +38,9 @@ export function useTheme() {
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    for (const legacyKey of LEGACY_THEME_STORAGE_KEYS) {
+      localStorage.removeItem(legacyKey);
+    }
     setThemeState(newTheme);
     applyTheme(newTheme);
   }, [applyTheme]);
@@ -37,14 +50,23 @@ export function useTheme() {
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleMediaChange = () => {
-      const currentSaved = (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || 'system';
-      if (currentSaved === 'system') {
+      let currentSaved = (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || null;
+      if (!currentSaved) {
+        for (const legacyKey of LEGACY_THEME_STORAGE_KEYS) {
+          const legacyVal = localStorage.getItem(legacyKey) as ThemeMode | null;
+          if (legacyVal) {
+            currentSaved = legacyVal;
+            break;
+          }
+        }
+      }
+      if ((currentSaved || 'system') === 'system') {
         applyTheme('system');
       }
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === THEME_STORAGE_KEY && e.newValue) {
+      if ((e.key === THEME_STORAGE_KEY || (e.key && LEGACY_THEME_STORAGE_KEYS.includes(e.key))) && e.newValue) {
         const nextTheme = e.newValue as ThemeMode;
         setThemeState(nextTheme);
         applyTheme(nextTheme);

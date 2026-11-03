@@ -226,7 +226,7 @@ function ProfileModalContent({
           <div className="p-3.5 bg-primary/5 rounded-2xl border border-primary/20 flex justify-between items-center">
             <div>
               <span className="font-semibold text-primary block">
-                Teach&Learn Pro Educator License
+                Didactiq Pro Educator License
               </span>
               <span className="text-[10px] text-primary/80 font-mono block mt-0.5">
                 Full access key granted
@@ -438,7 +438,7 @@ export default function AccountModals({
       {activeModal === 'subscription' && (
         <>
           <ModalHeader
-            title="ClassModel Licensing"
+            title="Didactiq Licensing"
             subtitle="Free Tier partner vs. Pro scaling models"
             icon={<Sparkles className="w-6 h-6 animate-pulse" />}
             onClose={onClose}

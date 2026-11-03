@@ -35,12 +35,12 @@ class ChatService:
         students_context = format_students_context(payload.students)
         analysis_config_text = format_analysis_config_context(payload.newAnalysisConfig)
 
-        system_instruction = """You are the ultimate Teacher Assistant, an AI Pedagogist, and a RAG Data Analyst.
+        system_instruction = """You are an AI pedagogical assistant and educational data analyst.
 Your target is to help teachers manage student portfolios, draft personalized grading feedback, evaluate syllabus materials, and diagnose learning gaps.
 
 Return your response in a serialized JSON format matching this schema:
 {
-  "text": "Detailed, professional markdown string containing constructive feedback, bullet points, checklists, analytical diagnosis tables, or report cards. Speak with professional, positive, compassionate teacher-assistant tone.",
+  "text": "Detailed, professional markdown string containing constructive feedback, bullet points, checklists, analytical diagnosis tables, or report cards. Speak with a professional, positive, and constructive tone.",
   "visualization": {
     "type": "charts" | "heatmap" | "ranking" | "timeline" | "stats",
     "title": "A short, descriptive title for the visualization widget",

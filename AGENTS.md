@@ -1,38 +1,21 @@
-# Teach&Learn — Global Workspace Rules
+# Didactiq — Workspace Rules
 
-Stack: React 19 / Vite / TypeScript / Tailwind (`frontend/`) · Python 3.13 / FastAPI / LangChain / uv (`backend/`) · PostgreSQL / Supabase / RLS (`schema/`, `supabase/functions/`).
+Stack: React 19 / Vite / TS / Tailwind (`frontend/`) · Python 3.13 / FastAPI / LangChain / uv (`backend/`) · PostgreSQL / Supabase / RLS (`supabase/`).
 
-## 1. Subsystem Rules
-- Frontend → `frontend/AGENTS.md` | Backend → `backend/AGENTS.md`
-- Schemas → `schema/AGENTS.md` | Edge Functions → `supabase/functions/AGENTS.md`
+## 1. Subsystem Boundaries & Verification
+Use root `Makefile` automation to execute standard quality gates across subsystems:
+- **Full-Suite Check**: Run `make check` (runs backend lint, frontend lint, and doc coverage).
+- **Frontend changes**: Run `make lint-frontend` / `make build-frontend` (or `pnpm run lint` / `pnpm run build` in `frontend/`). Do not run backend checks. Subsystem rules: `frontend/AGENTS.md`.
+- **Backend changes**: Run `make lint-backend` (or `uv run poe lint` in `backend/`). Do not run frontend checks. Subsystem rules: `backend/AGENTS.md`.
+- **Database / Edge Functions**: Initialize or reset database with `make db-setup` / `make db-reset`, check status with `make migrate-status`, apply migrations with `make migrate` (or `python scripts/migrate.py`), dump schemas/data via `make db-dump-schema` / `make db-dump-data` / `make db-dump`, and deploy functions via `make deploy-functions`. Subsystem rules: `supabase/AGENTS.md`.
+- **Generated Types Are Read-Only**: Never edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `supabase/migrations/` and run `make types` (or `python scripts/_generate_types.py`).
 
-## 2. Project Invariants & Pre-Completion Gates
-1. **Code Principles**: Apply SRP, DRY, and minimal complexity. Push sorting, filtering, aggregation, and pagination to PostgreSQL.
-2. **Strict Type Safety**: Backend — Python 3.13+, Pydantic v2, zero BasedPyright/Ruff warnings. Frontend — `strict: true`, no `any`. Validate at parser boundaries (Pydantic / Zod).
-3. **Generated Types Are Read-Only (`db.ts` & `db.py`)**: NEVER edit `frontend/src/types/db.ts` or `backend/src/types/db.py`. Update SQL in `schema/` and regenerate via `scripts/_generate_types.py`. Put app models in `main.ts`, `schemas.py`, or `ai.py`.
-4. **Verify Before Done**:
-   - **Build & Lint**: Frontend — `npm run build` (0 errors). Backend — `uv run poe lint` (0 Ruff/BasedPyright issues).
-   - **Documentation Sync Gate**: Before concluding any feature, workflow, or state-flow change, update all 3 documentation tiers: (1) `systems/*.md`, (2) `systems/workflows/*.md` & `systems/workflows-atomic/*.md`, and (3) `code.ARCH.md` / `code.DESC.md` in every modified directory.
+## 2. Documentation Guidelines
+- **Doc-First Discovery**: Before analyzing code or wandering through files to figure out the structure or purpose of an unfamiliar subsystem/file, search documentation first (`docs/` and module-level `code.md` files). They contain curated architectural context, schema summaries, and file responsibilities.
+- **Core Micro-Docs (`code.md`)**: Maintained only in core architectural `src/` modules. Update `code.md` when adding/removing files or changing interfaces in those directories. Audit coverage with `make lint-docs`.
+- **Macro Dossier (`docs/systems/*.md`, `docs/systems/workflows/*.md`)**: Consult as an advisory reference when exploring unfamiliar architecture. Update only when altering cross-cutting system designs, schemas, or end-to-end user workflows. Minor bug fixes, UI styling, and local refactors do not require macro-doc edits.
 
-## 3. Documentation Architecture & Docs-First Navigation
-
-### 3.1 Macro Dossier (`systems/`)
-- `systems/*.md`: Subsystem blueprints (Frontend, Backend, Database/Storage, AI/Ontology, Edge Functions, DevOps).
-- `systems/workflows/*.md` & `systems/workflows-atomic/*.md`: End-to-end user journeys, sequence diagrams, and atomic task specs.
-- **Mandatory Multi-File Update**: Any architectural, UX/state-lifecycle (e.g., optimistic UI, progress overlays, rollbacks), schema, endpoint, or edge function change MUST be updated across **all three** `systems/` layers (`systems/*.md`, `systems/workflows/*.md`, and `systems/workflows-atomic/*.md`).
-
-### 3.2 Micro Directory Docs (`code.DESC.md` & `code.ARCH.md`)
-- `code.DESC.md`: File roles and flow overview for that directory. Update when adding files or changing file roles.
-- `code.ARCH.md`: Interfaces, data lifecycles, state machines, and invariants for that directory. Update whenever a component/hook's data flow, state machine, async/optimistic behavior, or contract changes.
-- **Exemptions**: Never create in `docs/`, `plans/`, `systems/`, `public/`, `assets/`, `dist/`, `node_modules/`, `.venv/`, `.scratch/`, or namespace-only dirs (`supabase/`).
-
-### 3.3 Mandatory Docs-First Inspection Order
-Before reading or searching any raw source file (`.ts`, `.tsx`, `.py`, `.sql`), first read the Markdown documentation to get the full picture and decide which exact source files to open:
-1. **Macro Dossier First**: Read `systems/README.md`, the relevant `systems/*.md` spec, and `systems/workflows/README.md` / `systems/workflows-atomic/README.md` to identify affected directories.
-2. **Micro Docs Second**: Read `<target-dir>/code.DESC.md` and `<target-dir>/code.ARCH.md` to identify exact file roles, interfaces, and state machines.
-3. **Surgical Source Inspection Last**: Read only the specific source files identified in Step 2. Never blindly search or crawl raw source files to discover how a feature works when the Markdown docs already map it out.
-
-## 4. Workspace Conventions
+## 3. Workspace Conventions
 - **Git**: Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`).
-- **Scratch Space**: Use `./.scratch/` for temporary scripts/data (gitignored; clean up after tasks).
-- **Logs**: Inspect only the latest `./logs/*.jsonl` filtered by level (`error`, `warn`) or `X-Request-ID`. Use project loggers (`logger.info/warn/error`); never `console.log`, `print()`, or log PII/secrets.
+- **Logs**: Filter `./logs/*.jsonl` by level (`error`, `warn`) or `X-Request-ID`. Use project loggers (`logger.info/warn/error`); never `console.log` or `print()`.
+- **Scratch**: Use `./.scratch/` for temp scripts (gitignored).

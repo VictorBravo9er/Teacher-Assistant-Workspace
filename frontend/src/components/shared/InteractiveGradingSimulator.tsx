@@ -96,7 +96,7 @@ export default function InteractiveGradingSimulator({
               <div className="w-3 h-3 rounded-full bg-green-400/80" />
             </div>
             <span className="text-xs font-mono text-muted-text hidden sm:inline">
-              teach-and-learn / ap-physics-mechanics / automated-rubric-eval
+              didactiq / ap-physics-mechanics / automated-rubric-eval
             </span>
           </div>
 

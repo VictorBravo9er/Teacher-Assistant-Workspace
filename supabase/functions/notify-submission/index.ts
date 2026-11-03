@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
               <p><strong>${studentName}</strong> has turned in work for <strong>${materialName}</strong>.</p>
               <p style="font-size: 13px; color: #6B7280;">Submitted on: ${new Date().toLocaleString()}</p>
               <div style="margin-top: 24px;">
-                <p>Log in to Teach&Learn LMS to review and score this submission in your grading queue.</p>
+                <p>Log in to Didactiq to review and score this submission in your grading queue.</p>
               </div>
             </div>`,
           }),

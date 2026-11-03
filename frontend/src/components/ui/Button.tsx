@@ -38,11 +38,11 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  xs: 'px-2.5 py-1 text-[11px] font-semibold rounded-lg gap-1',
+  xs: 'px-2.5 py-1 text-xs font-semibold rounded-lg gap-1',
   sm: 'px-3 py-1.5 text-xs font-semibold rounded-xl gap-1.5',
-  md: 'px-4 py-2 text-xs font-semibold rounded-xl gap-2',
-  lg: 'px-5 py-2.5 text-sm font-bold rounded-xl gap-2',
-  icon: 'p-1.5 rounded-lg text-xs',
+  md: 'px-4 py-2 text-sm font-semibold rounded-xl gap-2',
+  lg: 'px-5 py-2.5 text-base font-semibold rounded-xl gap-2',
+  icon: 'p-2 rounded-xl text-sm',
 };
 
 export function Button({

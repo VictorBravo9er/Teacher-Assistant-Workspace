@@ -43,7 +43,7 @@ export default function BrandLogo({
     >
       <img
         src="/logo.svg"
-        alt="Teach&Learn Logo"
+        alt="Didactiq Logo"
         className={`${sizeMap.svg} shrink-0`}
       />
       {showText && (
@@ -51,7 +51,7 @@ export default function BrandLogo({
           <span
             className={`${sizeMap.title} font-bold font-display tracking-tight text-primary-text leading-none`}
           >
-            Teach<span className="text-primary">&</span>Learn
+            Didact<span className="text-primary">iq</span>
           </span>
           {subtitle && (
             <span

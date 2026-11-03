@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 
 interface MultiSelectProps {
+  id?: string;
   options: string[];
   selectedValues: string[];
   onChange: (values: string[]) => void;
@@ -10,6 +11,7 @@ interface MultiSelectProps {
 }
 
 export function MultiSelect({
+  id,
   options,
   selectedValues,
   onChange,
@@ -43,7 +45,7 @@ export function MultiSelect({
   };
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div id={id} className={`relative ${className}`} ref={containerRef}>
       <div
         className="min-h-[38px] w-full bg-primary/5 border border-primary/30 rounded-md px-3 py-1.5 flex items-center justify-between cursor-pointer focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 transition-colors"
         onClick={() => setIsOpen(!isOpen)}

@@ -1,0 +1,257 @@
+# Supabase Edge Functions Subsystem Architecture
+
+The **Edge Functions Subsystem** contains serverless TypeScript microservices running on the **Deno** runtime within Supabase Edge Infrastructure. It handles asynchronous event-driven webhooks, text extraction from uploaded storage objects, secure signed URL generation, student invitations, and AI context assembly.
+
+---
+
+## 1. Subsystem Architecture & Flow
+
+```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+flowchart TD
+    subgraph Triggers["Event Triggers & Clients"]
+        DBWebhook["Database Triggers (pg_net Webhook Dispatcher)"]
+        BrowserClient["Frontend Client (React SPA)"]
+    end
+
+    subgraph EdgeRuntime["Supabase Edge Functions Runtime (Deno)"]
+        SharedUtil["_shared Modules (cors.ts, auth.ts, env.ts, supabaseClient.ts, supabaseAdmin.ts)"]
+        
+        FnSubEval["trigger-submission-evaluation"]
+        FnMatAnalysis["trigger-material-analysis"]
+        FnExtract["extract-material-text"]
+        FnURL["get-material-url"]
+        FnContext["get-class-agent-context"]
+        FnInvite["invite-student"]
+        FnSync["batch-sync-evaluations"]
+        FnNotifyAnn["notify-announcement"]
+        FnNotifyMat["notify-material"]
+        FnNotifySub["notify-submission"]
+        FnResendWebhook["resend-webhook"]
+
+        SharedUtil --> FnSubEval
+        SharedUtil --> FnMatAnalysis
+        SharedUtil --> FnExtract
+        SharedUtil --> FnURL
+        SharedUtil --> FnContext
+        SharedUtil --> FnInvite
+        SharedUtil --> FnSync
+        SharedUtil --> FnNotifyAnn
+        SharedUtil --> FnNotifyMat
+        SharedUtil --> FnNotifySub
+        SharedUtil --> FnResendWebhook
+    end
+
+    subgraph Targets["Target Subsystems & External Gateways"]
+        BackendAPI["Backend FastAPI (/api/grade, /api/materials/analyze)"]
+        PostgresDB[("PostgreSQL Database (public & ai Schemas)")]
+        StorageBuckets[("Supabase Storage (class-materials, student-submissions)")]
+        ResendAPI["External Resend Email API (Batch & Single Sends)"]
+    end
+
+    DBWebhook -->|Webhook POST| FnSubEval
+    DBWebhook -->|Webhook POST| FnMatAnalysis
+    BrowserClient -->|Direct RPC / HTTP| FnURL
+    BrowserClient -->|Direct RPC / HTTP| FnExtract
+    BrowserClient -->|Direct RPC / HTTP| FnContext
+    BrowserClient -->|Direct RPC / HTTP| FnInvite
+    BrowserClient -->|Direct RPC / HTTP| FnSync
+    BrowserClient -->|Direct RPC / HTTP| FnNotifyAnn
+    BrowserClient -->|Direct RPC / HTTP| FnNotifyMat
+    BrowserClient -->|Direct RPC / HTTP| FnNotifySub
+    ResendAPI -->|MTA Status Webhook| FnResendWebhook
+
+    FnSubEval -->|Fetch Work File| StorageBuckets
+    FnSubEval -->|POST /api/grade| BackendAPI
+    FnSubEval -->|Update Status & Score| PostgresDB
+
+    FnMatAnalysis -->|Fetch Document Blob| StorageBuckets
+    FnMatAnalysis -->|POST /api/materials/analyze| BackendAPI
+    FnMatAnalysis -->|Update Material Insights| PostgresDB
+
+    FnURL -->|Generate Signed URL| StorageBuckets
+
+    FnNotifyAnn -->|Batch Email Dispatch| ResendAPI
+    FnNotifyAnn -->|Log Queued Audits| PostgresDB
+    FnNotifyMat -->|Batch Email Dispatch| ResendAPI
+    FnNotifyMat -->|Log Queued Audits| PostgresDB
+    FnNotifySub -->|Single Email Alert| ResendAPI
+    FnNotifySub -->|Log Queued Audits| PostgresDB
+    FnResendWebhook -->|Update Delivery/Bounce Status| PostgresDB
+    FnResendWebhook -->|Send Bounce Alert to Teacher| ResendAPI
+```
+
+---
+
+## 2. Shared Modules (`_shared/`)
+
+The `_shared/` directory provides common reusable utilities across all edge endpoints:
+
+1. **`cors.ts`**:
+   - Implements standardized Cross-Origin Resource Sharing (CORS) headers:
+     - `Access-Control-Allow-Origin: *`
+     - `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`
+     - `Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE`
+   - Handles `OPTIONS` HTTP preflight requests returning HTTP 200 immediately.
+2. **`auth.ts`**:
+   - Parses the `Authorization: Bearer <JWT>` header.
+   - Validates tokens using `supabase.auth.getUser(token)` to extract authenticated `user_id` and ensure authorization before executing sensitive queries.
+3. **`env.ts`**:
+   - Environment variable helper module supporting type-safe retrieval and parsing of environment configurations, JSON blobs, and fallback defaults.
+4. **`supabaseClient.ts`**:
+   - Creates a request-scoped `SupabaseClient` initialized with the caller's JWT bearer token, ensuring that queries run subject to the caller's Row Level Security (RLS) constraints.
+5. **`supabaseAdmin.ts`**:
+   - Instantiates a high-privilege `SupabaseClient` using `SUPABASE_SERVICE_ROLE_KEY`.
+   - Used for administrative updates (such as updating `ai.submission_evaluations` or generating signed storage download URLs for enrolled students).
+
+---
+
+## 3. Edge Functions Catalog & Dataflows
+
+### 3.1 `trigger-submission-evaluation`
+- **Trigger**: Database Webhook fired when a new submission row is inserted or set to `status = 'Submitted'` in `public.student_submissions`.
+- **Workflow**:
+  1. Parses submission ID and class rubric configuration from the webhook payload.
+  2. Downloads the submitted file from `student-submissions` bucket and extracts its text.
+  3. Inserts a record into `ai.submission_evaluations` with `status = 'processing'`.
+  4. Calls Backend `POST /api/grade` with the extracted text, material title, and rubric criteria.
+  5. Updates `public.student_submissions` with the calculated score, grade, and feedback.
+  6. Updates `ai.submission_evaluations` with full rubric criteria breakdowns and private teacher notes.
+
+---
+
+### 3.2 `trigger-material-analysis`
+- **Trigger**: Database Webhook fired when a new educational resource is inserted or updated in `public.materials`.
+- **Workflow**:
+  1. Downloads document blobs (PDFs, presentations, notes) from `class-materials`.
+  2. Extracts raw textual content.
+  3. Records entry in `ai.material_insights` with `status = 'processing'`.
+  4. Invokes Backend `POST /api/materials/analyze`.
+  5. Persists syllabus alignment mappings, prerequisite gap warnings, and sample questions into `ai.material_insights`.
+  6. Maps extracted concepts to `ai.ontology_concepts` in the knowledge graph.
+
+---
+
+### 3.3 `extract-material-text`
+- **Trigger**: Client HTTP POST request containing storage bucket path or binary upload.
+- **Workflow**:
+  - Parses binary streams (PDF, DOCX, TXT, Markdown).
+  - Returns sanitized plaintext string suitable for LLM prompt context ingestion and dense embedding vector generation.
+
+---
+
+### 3.4 `get-material-url`
+- **Trigger**: Client HTTP POST requesting access to a private curriculum file.
+- **Security Check**:
+  - Validates requester's JWT.
+  - Queries `class_students` to ensure the student is actively enrolled in a class referencing the material, OR verifies the requester is the owning teacher.
+- **Result**: Returns a short-lived (e.g., 60-minute expiry) signed download URL from Supabase Storage.
+
+---
+
+### 3.5 `get-class-agent-context`
+- **Trigger**: AI chat assistant or workflow initialization.
+- **Workflow**:
+  - Gathers all class metadata, linked curriculum materials, rubric definitions, student rosters, and running attendance averages into an aggregated JSON context bundle for the AI Assistant.
+
+---
+
+### 3.6 `invite-student`
+- **Trigger**: Teacher inviting a new student via email (`POST`) or updating an unconfirmed student's email (`PATCH`).
+- **Workflow**:
+  - Checks if student record exists in `public.students`.
+  - Dispatches the student invitation via Supabase Auth SMTP (`adminSupabase.auth.admin.inviteUserByEmail` or `adminSupabase.auth.resend`) using the project's configured Supabase Auth email template, passing `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` in `data` (`user_metadata`).
+  - Creates/updates enrollment row in `public.class_students` via `add_student_to_class` RPC.
+  - Returns `{ success: true, student_id }`.
+
+---
+
+### 3.7 `batch-sync-evaluations`
+- **Trigger**: Teacher saving bulk grade adjustments or syncing class-wide rubric updates.
+- **Workflow**:
+  - Accepts batch payload of submission IDs, criterion scores, and revised teacher feedback.
+  - Atomically updates `public.student_submissions` and `ai.submission_evaluations` in a single transaction.
+  - Triggers score re-aggregation across affected students.
+
+---
+
+### 3.8 `notify-announcement`
+- **Trigger**: Teacher posting a new class announcement with broadcast notifications enabled (`ClassDetails.tsx`).
+- **Workflow**:
+  - Fetches announcement title, body, and class instructor metadata.
+  - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
+  - Retrieves enrolled students and optional parent contact emails from `public.class_students`.
+  - Formats branded HTML notification templates and sets `reply_to` to the teacher's verified email.
+  - Dispatches batch emails via Resend Batch API (`https://api.resend.com/emails/batch`, max 100 per call).
+  - Inserts audit records with `status = 'queued'` and `resend_email_id` into `public.notification_logs`.
+
+---
+
+### 3.9 `notify-material`
+- **Trigger**: Teacher publishing or updating a course material or assignment (`handleAddMaterialInClass` in `useClassOperations.ts` once the `public.materials` record is committed).
+- **Workflow**:
+  - Retrieves material category, title, max score, and due date by `material_id`.
+  - Resolves instructor email via `auth.admin.getUserById(class.user_id)`.
+  - Fetches enrolled student emails and optional parent contact details via `public.class_students` joined with `students(id, name, email, parent_name, parent_contact)`.
+  - Dynamically customizes email copy based on `event_type` (`"published"` vs `"updated"`) with `reply_to` pointing to the teacher.
+  - Queues batch delivery through Resend and records audit entries in `public.notification_logs`.
+
+---
+
+### 3.10 `notify-submission`
+- **Trigger**: Student turning in an assignment via the Student Portal.
+- **Workflow**:
+  - Resolves submission ID, linked material title, and student name and email.
+  - Resolves class instructor's email privately via `auth.admin.getUserById(class.user_id)`.
+  - Dispatches an email notification to the instructor alerting them of new work ready for grading, with `reply_to` configured to the student's email for single-click instructor replies.
+  - Writes audit entry to `public.notification_logs` with `notification_type = 'submission_turned_in'`.
+
+---
+
+### 3.11 `resend-webhook`
+- **Trigger**: Inbound HTTP webhook from Resend for mail transport status events.
+- **Workflow**:
+  - Correlates `resend_email_id` against `public.notification_logs`.
+  - On `email.delivered`: Updates status to `'delivered'`.
+  - On `email.bounced` or `email.failed`: Updates status to `'bounced'`, captures MTA bounce reason, and immediately emails an automated dead-letter alert to the instructor's inbox with recipient contact details.
+
+---
+
+## 4. Security & Deployment Standards
+
+- **Environment Variables**:
+  - `SUPABASE_URL`: Regional Supabase API gateway URL.
+  - `SUPABASE_ANON_KEY`: Client-facing anonymous key for public operations.
+  - `SUPABASE_SERVICE_ROLE_KEY`: Secret admin key kept strictly server-side.
+  - `BACKEND_API_URL`: Address of the FastAPI service (e.g., `http://backend:8090` or production hostname).
+  - `RESEND_API_KEY`: API token for dispatching emails through the Resend gateway.
+  - `RESEND_FROM_EMAIL`: Authorized sender address for broadcast notifications (defaults to `updates@teachandlearn.edu`).
+  - `STUDENT_INVITE_FROM_EMAIL`: Authorized sender address for student invites (defaults to `signup@teach.glipse.tech`).
+  - `STUDENT_INVITE_REPLY_TO`: Explicit non-repliable address for student invites (defaults to `no-reply@teach.glipse.tech`).
+- **Zero Raw Secret Exposure**:
+  - Secrets are injected via Supabase Secrets Manager and never committed to version control.
+- **Fail-Safe Webhook Responses**:
+  - Webhook endpoints immediately acknowledge reception with HTTP 202/200 while dispatching background async tasks to prevent PostgreSQL connection timeouts.
+
+---
+
+## 5. Deployment Lifecycle & Manifest Tracking (`deployed.json`)
+
+Edge Function deployments are automated incrementally through [`scripts/deploy_edge_functions.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/deploy_edge_functions.py) and integrated into `make deploy-functions` and `make db-setup`:
+
+1. **State Manifest (`supabase/functions/deployed.json`)**:
+   - Version-controlled JSON manifest mapping each function to:
+     - `hash`: Composite SHA-256 digest of the function directory source files and `_shared/` modules.
+     - `version`: Sequential integer version reported by the Supabase Management API.
+     - `updated_at`: ISO 8601 UTC timestamp of the remote server deployment.
+2. **Out-of-Band Remote Drift Detection**:
+   - Queries `npx -y supabase functions list -o json` prior to deployment.
+   - Compares remote versions against local state. If the remote version exceeds the locally recorded version, the deployer halts with an out-of-band warning and prompts for user confirmation before overwriting (`--yes` to auto-confirm).
+3. **Internal Bounded Concurrency**:
+   - When multiple functions need deployment, they are dispatched concurrently via `ThreadPoolExecutor(max_workers=concurrency)` (default `concurrency=4`).
+   - Manifest updates are protected by a threading lock and persisted atomically (`.json.tmp` -> `.json`).
+4. **CLI Capabilities**:
+   - `python scripts/deploy_edge_functions.py --status`: Inspects deployment status, local vs. remote versions, timestamps, and hashes across all functions.
+   - `python scripts/deploy_edge_functions.py --force`: Force redeploys all functions regardless of hash matching.
+   - `python scripts/deploy_edge_functions.py --function <name>`: Deploys targeted function(s).
+   - `python scripts/deploy_edge_functions.py -y`: Non-interactively accepts overwrite of drifted functions.

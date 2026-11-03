@@ -5,7 +5,7 @@ from langgraph.store.postgres import PoolConfig, PostgresStore
 
 
 # We will use a setup function to create the tables required by the Saver and Store.
-def setup_database(db_uri: str | None = None):
+def setup_database(db_uri: str | None = None, quiet: bool = False):
     """Ensure the database tables are created for LangGraph."""
 
     # from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -27,19 +27,21 @@ def setup_database(db_uri: str | None = None):
             raise ValueError("POSTGRES_URI environment variable is not set.")
 
         with PostgresSaver.from_conn_string(db_uri) as saver:
-            print("▶️ Langgraph checkpoint tables configuring...")
-
+            if not quiet:
+                print("▶️ Langgraph checkpoint tables configuring...")
             saver.setup()
 
         with PostgresStore.from_conn_string(
             db_uri, pool_config=PoolConfig(min_size=1, max_size=3)
         ) as store:
-            print("▶️ Langgraph store tables configuring...")
+            if not quiet:
+                print("▶️ Langgraph store tables configuring...")
             store.setup()
 
-        print(
-            " ✅ Postgres checkpoint and store tables for langgraph configured successfully."
-        )
+        if not quiet:
+            print(
+                " ✅ Postgres checkpoint and store tables for langgraph configured successfully."
+            )
 
     except Exception as e:
         print(" ⚠️ Could not connect to Postgres at *****.", file=sys.stderr)

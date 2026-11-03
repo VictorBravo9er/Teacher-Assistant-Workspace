@@ -302,7 +302,7 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* ClassModel Projects section */}
+            {/* Active Classes section */}
             <div>
               <div
                 id="sidebar-classes-header"
@@ -341,7 +341,7 @@ export default function Sidebar({
                       e.stopPropagation();
                       setIsCreateClassModalOpen(true);
                     }}
-                    title="Create ClassModel Project"
+                    title="Create Class"
                     className="p-1 hover:bg-elevated rounded text-muted-text hover:text-primary-text transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />

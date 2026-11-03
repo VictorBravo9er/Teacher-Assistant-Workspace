@@ -1,0 +1,59 @@
+{
+  "iphwbwpdvngkxrvxckse": {
+    "batch-sync-evaluations": {
+      "hash": "68f5fa6f46585c196b7229300bb22bf6d8ccd1a5bfbdddf4f72c4e02a4597d4c",
+      "updated_at": "2026-10-28T06:30:35.547939+00:00",
+      "version": 10
+    },
+    "extract-material-text": {
+      "hash": "23d9d31c271136dd4207431e1299e292555ed915bf19d865dbcca2691cd90db7",
+      "updated_at": "2026-09-24T06:17:47.187000+00:00",
+      "version": 9
+    },
+    "get-class-agent-context": {
+      "hash": "c966f18173d694bab7ed71240db62b095fd23569d183eea24aae3c31ac24e9da",
+      "updated_at": "2026-09-24T06:18:00.305000+00:00",
+      "version": 9
+    },
+    "get-material-url": {
+      "hash": "594e7f772ae8dcfa11ff4a55ca3264e25c1b93654b0d1176bbcae757e2750769",
+      "updated_at": "2026-09-24T06:18:15.723000+00:00",
+      "version": 14
+    },
+    "invite-student": {
+      "hash": "83ddf74d0f1cefe5c50dc17eb45bc91eaf8a01e2f0b0aafe7e8b7a9d468260f5",
+      "updated_at": "2026-09-24T07:06:13.602000+00:00",
+      "version": 19
+    },
+    "notify-announcement": {
+      "hash": "c71fffeb41dd5c4c010c2286998c52dc5294eae514f797c4b5b45e92a74dbe4e",
+      "updated_at": "2026-10-27T05:43:42.538000+00:00",
+      "version": 9
+    },
+    "notify-material": {
+      "hash": "d8d9ab96ff6b4c9147fbc69996cb8f7b458790a260be2a7a576f4d44ffb99774",
+      "updated_at": "2026-10-27T05:43:48.212000+00:00",
+      "version": 9
+    },
+    "notify-submission": {
+      "hash": "9f8b8092ac250819d4e0b2f99f13580df35b1a95ed08a40f10ecfae65cb2f91d",
+      "updated_at": "2026-09-24T06:19:09.726000+00:00",
+      "version": 8
+    },
+    "resend-webhook": {
+      "hash": "92adc3b3c82f73d5b172410f7789cb8ef5f3aa74406a73ecc943aa2b024ade92",
+      "updated_at": "2026-09-24T06:19:21.506000+00:00",
+      "version": 6
+    },
+    "trigger-material-analysis": {
+      "hash": "5da8c82846dcf74853b80884c4d472b53fb65851fd4a88aa383ab9b8aefb1dce",
+      "updated_at": "2026-10-28T06:30:36.443417+00:00",
+      "version": 8
+    },
+    "trigger-submission-evaluation": {
+      "hash": "052fe3b6a000507398a4a020e3390b958d6b0ba49bb19c3329e894dbd540be8d",
+      "updated_at": "2026-10-28T06:30:40.416602+00:00",
+      "version": 8
+    }
+  }
+}

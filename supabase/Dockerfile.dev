@@ -1,0 +1,9 @@
+FROM docker:cli
+
+RUN apk add --no-cache nodejs npm
+
+WORKDIR /workspace
+
+COPY --chmod=0755 dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint.sh"]

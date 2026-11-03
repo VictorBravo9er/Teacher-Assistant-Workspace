@@ -183,7 +183,7 @@ export default function RAGClass({
     let md = `# ${title}\n\n**Class:** ${classItem.name} (${classItem.subject})\n**Date:** ${date}\n**Scope:** ${activeSession.scopeType.toUpperCase()}\n\n---\n\n`;
 
     activeSession.messages.forEach((m) => {
-      const sender = m.role === 'assistant' ? '🤖 Teach&Learn AI Assistant' : '👤 Educator';
+      const sender = m.role === 'assistant' ? '🤖 Didactiq AI Assistant' : '👤 Educator';
       const time = new Date(m.timestamp).toLocaleTimeString();
       md += `### ${sender} (${time})\n\n${m.text}\n\n---\n\n`;
     });
@@ -538,7 +538,7 @@ export default function RAGClass({
             <input
               id="rag-chat-input"
               type="text"
-              placeholder="Ask Teach&Learn about student submissions, class averages, or grading recommendations..."
+              placeholder="Ask Didactiq about student submissions, class averages, or grading recommendations..."
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               disabled={isGeneratingAI || !activeSession}

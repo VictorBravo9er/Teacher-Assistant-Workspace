@@ -1,4 +1,4 @@
-"""Teach&Learn Backend Exhaustive Logging Utility.
+"""Didactiq Backend Exhaustive Logging Utility.
 
 Provides namespaced loggers, async execution measurement, contextvars-based
 request ID correlation, timestamped log file cohorts, and coordinated entry-count rotation in ./logs/.

@@ -1,5 +1,5 @@
 /**
- * Teach&Learn Exhaustive Frontend Logging Utility
+ * Didactiq Exhaustive Frontend Logging Utility
  * Provides namespaced, level-filtered, contextual logging with diagnostic buffering.
  */
 
