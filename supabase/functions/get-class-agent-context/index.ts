@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
         experienceLevel: classData.experience_level || "",
         specialNotes: classData.special_notes || "",
         assessmentPreferences: classData.assessment_preferences || [],
-        instituteName: institutesObj?.name || "Teach&Learn Academic Workspace",
+        instituteName: institutesObj?.name || "Didactiq Academic Workspace",
         instituteAddress,
         instructions,
         materials,

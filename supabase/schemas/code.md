@@ -1,6 +1,6 @@
 # Database Schemas & Reset Tooling — `supabase/schemas/`
 
-This directory contains the database reset and teardown routines for the Teach&Learn platform. All canonical application Data Definition Language (DDL), storage buckets, and RLS policies reside in the unified migration sequence under [`../migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/migrations).
+This directory contains the database reset and teardown routines for the Didactiq platform. All canonical application Data Definition Language (DDL), storage buckets, and RLS policies reside in the unified migration sequence under [`../migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/migrations).
 
 ---
 
