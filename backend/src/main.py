@@ -12,7 +12,7 @@ from starlette.responses import Response
 _ = load_dotenv()
 
 app = FastAPI(
-    title="Teacher Assistant RAG API",
+    title="Didactiq RAG API",
     docs_url="/docs",
     redoc_url=None,
     openapi_url="/api/internal-data/openapi.json",

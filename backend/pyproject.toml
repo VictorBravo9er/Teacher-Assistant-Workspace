@@ -1,8 +1,8 @@
 [project]
-name = "teacher-assistant-backend"
+name = "didactiq-backend"
 version = "0.1.0"
-description = "FastAPI backend using LangChain & OpenRouter"
-readme = "code.DESC.md"
+description = "FastAPI backend using LangChain & OpenRouter for Didactiq"
+readme = "AGENTS.md"
 requires-python = ">=3.13,<3.14"
 
 dependencies = [
