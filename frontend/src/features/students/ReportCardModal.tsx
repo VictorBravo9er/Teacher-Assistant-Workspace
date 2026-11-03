@@ -170,7 +170,7 @@ export default function ReportCardModal({
         <div className="border-b-2 border-slate-900 pb-5 flex items-start justify-between">
           <div>
             <span className="text-xs font-mono uppercase tracking-widest text-slate-500 font-bold block">
-              {classItem.instituteName || 'TEACH&LEARN ACADEMIC COHORT'}
+              {classItem.instituteName || 'DIDACTIQ ACADEMIC COHORT'}
             </span>
             <h1 className="text-2xl font-black text-slate-900 font-display mt-0.5">
               Official Student Academic Report

@@ -86,7 +86,7 @@ export const secureStorage = {
     const keysToRemove: string[] = [];
     try {
       for (const key of iterStorageKeys(store)) {
-        if (key && key.startsWith('edu_rag_')) {
+        if (key && (key.startsWith('didactiq_') || key.startsWith('teach_and_learn_') || key.startsWith('edu_rag_'))) {
           const value = getItem(key, store);
           if (!value) continue;
           if (typeof value.expiresAt === 'number' && Date.now() > value.expiresAt) {
@@ -108,7 +108,7 @@ export const secureStorage = {
     const keysToRemove: string[] = [];
     try {
       for (const key of iterStorageKeys(store)) {
-        if (key && key.startsWith('edu_rag_')) {
+        if (key && (key.startsWith('didactiq_') || key.startsWith('teach_and_learn_') || key.startsWith('edu_rag_'))) {
           keysToRemove.push(key);
         }
       }

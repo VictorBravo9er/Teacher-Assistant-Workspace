@@ -1,5 +1,5 @@
 /**
- * Shared Tailwind utility style constants for consistent tokens across Teach&Learn components.
+ * Shared Tailwind utility style constants for consistent tokens across Didactiq components.
  */
 
 export const STYLES = {

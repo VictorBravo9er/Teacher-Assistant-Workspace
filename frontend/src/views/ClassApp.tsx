@@ -36,7 +36,10 @@ export default function ClassApp() {
   const { classes, templates, mutateClasses, mutateTemplates } = useWorkspaceData();
 
   const [activeClassId, setActiveClassId] = useState<string>(() => {
-    const saved = secureStorage.getCachedItemWithTTL<string>('edu_rag_active_ws');
+    const saved =
+      secureStorage.getCachedItemWithTTL<string>('didactiq_active_ws') ||
+      secureStorage.getCachedItemWithTTL<string>('teach_and_learn_active_ws') ||
+      secureStorage.getCachedItemWithTTL<string>('edu_rag_active_ws');
     if (saved && saved !== 'null') return saved;
     return '';
   });
@@ -50,7 +53,7 @@ export default function ClassApp() {
   }, [classes, activeClassId]);
 
   useEffect(() => {
-    secureStorage.setCachedItemWithTTL('edu_rag_active_ws', activeClassId, 0);
+    secureStorage.setCachedItemWithTTL('didactiq_active_ws', activeClassId, 0);
   }, [activeClassId]);
 
   const [viewMode, setViewMode] = useState<'class' | 'template'>('class');

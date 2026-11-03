@@ -8,10 +8,41 @@ import { secureStorage } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 
-const CACHE_KEY_CLASSES = 'edu_rag_classes_cache';
-const CACHE_KEY_TEMPLATES = 'edu_rag_templates_cache';
-const CACHE_KEY_CLASS_STUDENTS_PREFIX = 'edu_rag_class_students_';
+const CACHE_KEY_CLASSES = 'didactiq_classes_cache';
+const CACHE_KEY_TEMPLATES = 'didactiq_templates_cache';
+const CACHE_KEY_CLASS_STUDENTS_PREFIX = 'didactiq_class_students_';
+const LEGACY_CACHE_KEYS_CLASSES = ['teach_and_learn_classes_cache', 'edu_rag_classes_cache'];
+const LEGACY_CACHE_KEYS_TEMPLATES = ['teach_and_learn_templates_cache', 'edu_rag_templates_cache'];
+const LEGACY_CACHE_PREFIXES_STUDENTS = ['teach_and_learn_class_students_', 'edu_rag_class_students_'];
 const TTL_MS = 5 * 60 * 1000; // 5 minutes bounded TTL
+
+function getCachedWithLegacyFallback<T>(primaryKey: string, legacyKeys: string[]) {
+  const primary = secureStorage.getCachedItemDetails<T>(primaryKey);
+  if (primary?.data) return primary;
+  for (const lKey of legacyKeys) {
+    const legacy = secureStorage.getCachedItemDetails<T>(lKey);
+    if (legacy?.data) {
+      secureStorage.setCachedItemWithTTL(primaryKey, legacy.data, legacy.ttlMs || TTL_MS, legacy.lastModified);
+      return legacy;
+    }
+  }
+  return null;
+}
+
+function getStudentCacheWithFallback(classId: string) {
+  const primaryKey = `${CACHE_KEY_CLASS_STUDENTS_PREFIX}${classId}`;
+  const primary = secureStorage.getCachedItemDetails<Student[]>(primaryKey);
+  if (primary?.data) return primary;
+  for (const prefix of LEGACY_CACHE_PREFIXES_STUDENTS) {
+    const legacyKey = `${prefix}${classId}`;
+    const legacy = secureStorage.getCachedItemDetails<Student[]>(legacyKey);
+    if (legacy?.data) {
+      secureStorage.setCachedItemWithTTL(primaryKey, legacy.data, legacy.ttlMs || TTL_MS, legacy.lastModified);
+      return legacy;
+    }
+  }
+  return null;
+}
 
 interface WorkspaceModificationsResponse {
   stale_components: string[];
@@ -60,8 +91,8 @@ export function useWorkspaceData() {
     isRevalidatingRef.current = true;
 
     try {
-      const classesCache = secureStorage.getCachedItemDetails<ClassModel[]>(CACHE_KEY_CLASSES);
-      const templatesCache = secureStorage.getCachedItemDetails<Template[]>(CACHE_KEY_TEMPLATES);
+      const classesCache = getCachedWithLegacyFallback<ClassModel[]>(CACHE_KEY_CLASSES, LEGACY_CACHE_KEYS_CLASSES);
+      const templatesCache = getCachedWithLegacyFallback<Template[]>(CACHE_KEY_TEMPLATES, LEGACY_CACHE_KEYS_TEMPLATES);
 
       // If user has cached data and not forceRefresh, show cached data immediately (stale-while-revalidate)
       if (!forceRefresh && classesCache?.data && templatesCache?.data) {
@@ -88,9 +119,7 @@ export function useWorkspaceData() {
 
       if (classesCache?.data && !forceRefresh) {
         for (const c of classesCache.data) {
-          const studentCache = secureStorage.getCachedItemDetails<Student[]>(
-            `${CACHE_KEY_CLASS_STUDENTS_PREFIX}${c.id}`
-          );
+          const studentCache = getStudentCacheWithFallback(c.id);
           if (studentCache?.lastModified) {
             clientTimestamps[`class_students:${c.id}`] = studentCache.lastModified;
           }
@@ -218,8 +247,8 @@ export function useWorkspaceData() {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        const classesCache = secureStorage.getCachedItemDetails<ClassModel[]>(CACHE_KEY_CLASSES);
-        const templatesCache = secureStorage.getCachedItemDetails<Template[]>(CACHE_KEY_TEMPLATES);
+        const classesCache = getCachedWithLegacyFallback<ClassModel[]>(CACHE_KEY_CLASSES, LEGACY_CACHE_KEYS_CLASSES);
+        const templatesCache = getCachedWithLegacyFallback<Template[]>(CACHE_KEY_TEMPLATES, LEGACY_CACHE_KEYS_TEMPLATES);
         if (classesCache?.isExpired || templatesCache?.isExpired) {
           logger.info('WORKSPACE_DATA', 'Tab visible and cache expired; revalidating workspace cache');
           revalidateOrFetch();

@@ -311,7 +311,7 @@ export default function StudentApp() {
             </div>
             <div>
               <span className="text-sm font-bold tracking-tight text-primary-text font-display block leading-none">
-                Teach&Learn
+                Didactiq
               </span>
               <span className="text-[10px] text-muted-text font-mono tracking-wider uppercase">
                 Student Portal
