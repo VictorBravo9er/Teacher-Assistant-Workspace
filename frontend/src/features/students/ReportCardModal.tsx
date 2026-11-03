@@ -46,22 +46,14 @@ export default function ReportCardModal({
 
   const [customParentNote, setCustomParentNote] = useState<string>(() => {
     if (!student) return '';
-    return (
-      student.parentNotes ||
-      student.behavioralNotes ||
-      `Parent Briefing for ${student.name}: Demonstrates good classroom engagement. Recommend daily 20-min review of homework exercises and utilizing Socratic study guides before unit tests.`
-    );
+    return student.parentNotes || student.behavioralNotes || '';
   });
 
   const handleStudentSwitch = (id: string) => {
     setSelectedStudentId(id);
     const target = students.find((s) => s.id === id);
     if (target) {
-      setCustomParentNote(
-        target.parentNotes ||
-          target.behavioralNotes ||
-          `Parent Briefing for ${target.name}: Demonstrates good classroom engagement. Recommend daily 20-min review of homework exercises and utilizing Socratic study guides before unit tests.`
-      );
+      setCustomParentNote(target.parentNotes || target.behavioralNotes || '');
     }
   };
 
@@ -115,8 +107,15 @@ export default function ReportCardModal({
     (s) => s.score !== undefined && s.score !== null
   );
 
-  const averageScore = calculateAverageScore(submissions, student.currentScore);
-  const tier = student.performanceTier || getPerformanceTier(averageScore);
+  const hasEvaluations =
+    evaluatedSubmissions.length > 0 ||
+    (student.currentScore !== undefined && student.currentScore !== null);
+  const averageScore = hasEvaluations
+    ? calculateAverageScore(submissions, student.currentScore)
+    : null;
+  const tier = hasEvaluations
+    ? student.performanceTier || getPerformanceTier(averageScore!)
+    : student.performanceTier || 'Unassessed';
 
   return (
     <Modal
@@ -176,17 +175,24 @@ export default function ReportCardModal({
               Official Student Academic Report
             </h1>
             <p className="text-xs text-slate-600 mt-1 font-medium">
-              Course: <strong className="text-slate-900">{classItem.subject}</strong> • Term:{' '}
-              <strong className="text-slate-900">
-                {classItem.semester}, {classItem.academicYear}
-              </strong>
+              Course: <strong className="text-slate-900">{classItem.subject || classItem.name || 'General Course'}</strong>
+              {(classItem.semester || classItem.academicYear) ? (
+                <>
+                  {' '}• Term:{' '}
+                  <strong className="text-slate-900">
+                    {[classItem.semester, classItem.academicYear].filter(Boolean).join(', ')}
+                  </strong>
+                </>
+              ) : (
+                <> • Term: <span className="text-slate-400 italic font-normal">Unspecified</span></>
+              )}
             </p>
           </div>
 
           <div className="text-right">
             <span className="text-xs text-slate-500 font-mono block">Instructor:</span>
             <span className="text-sm font-bold text-slate-900 block">
-              {classItem.teacherName || 'Lead Educator'}
+              {classItem.teacherName || 'Instructor on Record'}
             </span>
             <span className="text-[10px] text-slate-400 font-mono mt-1 block">
               Date:{' '}
@@ -207,7 +213,7 @@ export default function ReportCardModal({
             </span>
             <span className="text-sm font-bold text-slate-900 block mt-0.5">{student.name}</span>
             <span className="text-xs text-slate-500 font-mono">
-              ID: {student.rollNumber || (student.id ? student.id.slice(0, 8).toUpperCase() : 'M10-001')}
+              ID: {student.rollNumber || (student.id ? student.id.slice(0, 8).toUpperCase() : 'Unassigned')}
             </span>
           </div>
 
@@ -216,10 +222,10 @@ export default function ReportCardModal({
               Parent / Guardian
             </span>
             <span className="text-sm font-bold text-slate-900 block mt-0.5">
-              {student.parentName || 'Guardian on Record'}
+              {student.parentName || <span className="text-slate-400 font-normal italic">Not recorded</span>}
             </span>
             <span className="text-xs text-slate-500 font-mono truncate block">
-              {student.parentContact || student.email || 'Contact on File'}
+              {student.parentContact || student.email || <span className="text-slate-400 italic">No contact on file</span>}
             </span>
           </div>
 
@@ -227,10 +233,29 @@ export default function ReportCardModal({
             <span className="text-[10px] uppercase font-mono font-bold text-slate-400 block">
               Attendance Rate
             </span>
-            <span className="text-xl font-black text-slate-900 block mt-0.5 font-mono">
-              {student.attendance ?? 100}%
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono">Regular Attendance</span>
+            {student.attendanceRecords && student.attendanceRecords.length > 0 ? (
+              <>
+                <span className="text-xl font-black text-slate-900 block mt-0.5 font-mono">
+                  {student.attendance ?? 0}%
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">
+                  {(student.attendance ?? 0) >= 90
+                    ? 'Regular Attendance'
+                    : (student.attendance ?? 0) >= 75
+                    ? 'Moderate Attendance'
+                    : 'Low Attendance'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-xl font-bold text-slate-400 block mt-0.5 font-mono">
+                  N/A
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono italic">
+                  No records logged
+                </span>
+              </>
+            )}
           </div>
 
           <div>
@@ -238,12 +263,25 @@ export default function ReportCardModal({
               Overall Grade & Standing
             </span>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-2xl font-black text-blue-600 font-display">
-                {averageScore}%
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
-                {tier}
-              </span>
+              {hasEvaluations && averageScore !== null ? (
+                <>
+                  <span className="text-2xl font-black text-blue-600 font-display">
+                    {averageScore}%
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
+                    {tier}
+                  </span>
+                </>
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-slate-400 font-mono">
+                    N/A
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500 font-mono">
+                    {tier}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -255,20 +293,19 @@ export default function ReportCardModal({
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               Demonstrated Strengths & Mastery
             </h4>
-            <ul className="text-xs text-slate-700 space-y-1.5 list-disc pl-4">
-              {(student.strengths && student.strengths.length > 0
-                ? student.strengths
-                : [
-                    'Strong logical intuition and consistent class participation.',
-                    'Accurate application of core formula definitions in individual practice.',
-                    'High collaboration in peer group workshops.',
-                  ]
-              ).map((str, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {str}
-                </li>
-              ))}
-            </ul>
+            {student.strengths && student.strengths.length > 0 ? (
+              <ul className="text-xs text-slate-700 space-y-1.5 list-disc pl-4">
+                {student.strengths.map((str, idx) => (
+                  <li key={idx} className="leading-relaxed">
+                    {str}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-400 italic py-1">
+                No specific strengths or mastery records logged for this period.
+              </p>
+            )}
           </div>
 
           <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
@@ -276,20 +313,19 @@ export default function ReportCardModal({
               <AlertTriangle className="w-4 h-4 text-amber-600" />
               Targeted Areas for Growth & Reinforcement
             </h4>
-            <ul className="text-xs text-slate-700 space-y-1.5 list-disc pl-4">
-              {(student.weaknesses && student.weaknesses.length > 0
-                ? student.weaknesses
-                : [
-                    'Multi-step algebraic verification checks prior to final response formulation.',
-                    'Time management during timed test assessments.',
-                    'Detailed scratchwork organization.',
-                  ]
-              ).map((w, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {w}
-                </li>
-              ))}
-            </ul>
+            {student.weaknesses && student.weaknesses.length > 0 ? (
+              <ul className="text-xs text-slate-700 space-y-1.5 list-disc pl-4">
+                {student.weaknesses.map((w, idx) => (
+                  <li key={idx} className="leading-relaxed">
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-400 italic py-1">
+                No targeted areas for growth logged for this period.
+              </p>
+            )}
           </div>
         </div>
 
@@ -330,8 +366,12 @@ export default function ReportCardModal({
                         {sub.score} / {maxScore}
                       </td>
                       <td className="p-2.5 text-center font-mono font-bold text-blue-700">{pct}%</td>
-                      <td className="p-2.5 text-slate-600 italic">
-                        {sub.feedback || 'Demonstrated good conceptual approach.'}
+                      <td className="p-2.5 text-slate-600">
+                        {sub.feedback ? (
+                          <span className="italic">{sub.feedback}</span>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">No feedback recorded</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -362,13 +402,19 @@ export default function ReportCardModal({
           </div>
 
           <textarea
+            id="report-card-parent-note-textarea"
             value={customParentNote}
             onChange={(e) => setCustomParentNote(e.target.value)}
+            placeholder={`Enter parent conference briefing notes and personalized action plan for ${student.name}...`}
             rows={3}
             className="w-full bg-white border border-blue-200 rounded-xl p-3 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-500 transition-all resize-none shadow-sm print:hidden"
           />
-          <div className="hidden print:block text-xs text-slate-800 leading-relaxed whitespace-pre-wrap pt-1">
-            {customParentNote}
+          <div className="hidden print:block text-xs leading-relaxed whitespace-pre-wrap pt-1">
+            {customParentNote.trim() ? (
+              <span className="text-slate-800">{customParentNote}</span>
+            ) : (
+              <span className="text-slate-400 italic">No parent briefing or action plan recorded for this period.</span>
+            )}
           </div>
         </div>
 
@@ -379,7 +425,7 @@ export default function ReportCardModal({
             <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">
               Educator Signature
             </span>
-            <span>{classItem.teacherName || 'Lead Teacher'}</span>
+            <span>{classItem.teacherName || 'Instructor on Record'}</span>
           </div>
 
           <div className="text-right flex flex-col items-end">

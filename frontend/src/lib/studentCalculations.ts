@@ -43,7 +43,7 @@ export function calculateAverageScore(
     return fallbackScore;
   }
 
-  return 80;
+  return 0;
 }
 
 /**
