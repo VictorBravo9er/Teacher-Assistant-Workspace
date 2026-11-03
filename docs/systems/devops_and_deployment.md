@@ -195,3 +195,32 @@ To prevent unnecessary serverless builds and save Vercel build minutes, [`bash-d
 3. **Targeted Diff Detection**: Compares `$VERCEL_GIT_PREVIOUS_SHA` against `HEAD` scoping `frontend/`, `backend/`, and `vercel.json`:
    - If diff is empty (e.g., changes only touch docs, root configs, or scratch files): exits `0` (deployment skipped).
    - If changes are detected in deployable code or configuration: exits `1` (deployment proceeds).
+
+---
+
+## 5. Continuous Deployment (CD) Automation (`.github/workflows/cd.yml`)
+
+The Teach&Learn workspace implements automated Continuous Deployment on merges to `main`:
+
+```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+flowchart LR
+    PushMain([Merge to main]) --> CD[CD Pipeline]
+    subgraph CD[".github/workflows/cd.yml"]
+        MigrateDB["1. Database Migration<br/>(migrate.py --yes)"]
+        DeployEdge["2. Edge Functions Deployment<br/>(deploy_edge_functions.py)"]
+        CommitManifest["3. Manifest Synchronization<br/>(git commit deployed.json)"]
+        MigrateDB --> DeployEdge --> CommitManifest
+    end
+    PushMain -.->|Managed Externally via bash-decide.sh| Vercel["Vercel Hosting<br/>(Frontend SPA + FastAPI)"]
+```
+
+1. **Database Migrations Stage**:
+   - Executes `uv run scripts/migrate.py --yes` against the Supabase database configured via the `POSTGRES_URI` repository secret.
+   - Pushes pending timestamped migrations from `supabase/migrations/` using the Supabase CLI (`db push --include-all`).
+2. **Edge Functions Deployment Stage**:
+   - Executes `uv run scripts/deploy_edge_functions.py` authenticated with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`.
+   - Utilizes `supabase/functions/deployed.json` composite hashes to deploy only changed or unregistered functions with remote-drift verification.
+   - If `supabase/functions/deployed.json` was updated by newly deployed functions, commits and pushes the updated manifest back to the repository with `[skip ci]`.
+3. **Application Hosting Stage**:
+   - Managed automatically by Vercel's Git integration using [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh) as the Ignored Build Step.
