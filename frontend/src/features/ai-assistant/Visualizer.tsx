@@ -25,11 +25,13 @@ export default function Visualizer({ visualization }: { visualization: Visualiza
                 className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-1000"
                 style={{ width: `${item.score}%` }}
               />
-              <div
-                className="absolute h-full w-[2px] bg-success top-0"
-                style={{ left: `${item.classAvg || 80}%` }}
-                title="Class Average"
-              />
+              {item.classAvg !== undefined && item.classAvg !== null && (
+                <div
+                  className="absolute h-full w-[2px] bg-success top-0"
+                  style={{ left: `${item.classAvg}%` }}
+                  title={`Class Average: ${item.classAvg}%`}
+                />
+              )}
             </div>
           </div>
         ))}
@@ -38,11 +40,14 @@ export default function Visualizer({ visualization }: { visualization: Visualiza
   }
 
   if (type === 'timeline') {
-    const points = data.map((item: any, idx: number) => ({
-      x: 50 + idx * 140,
-      y: 140 - (item.SofiaScore || item.score || 50) * 1.1,
-      label: item.period || item.date,
-    }));
+    const points = data.map((item: any, idx: number) => {
+      const score = typeof item.score === 'number' ? item.score : 0;
+      return {
+        x: 50 + idx * 140,
+        y: 140 - score * 1.1,
+        label: item.period || item.date || `P${idx + 1}`,
+      };
+    });
     const polyline = points.map((p: any) => `${p.x},${p.y}`).join(' ');
 
     return (
@@ -70,11 +75,12 @@ export default function Visualizer({ visualization }: { visualization: Visualiza
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {data.map((item: any, idx: number) => {
-          const mastery = item.mastery || 60;
-          let theme = 'border-error/30 bg-error/10 text-error';
-          let label = 'Urgent Remedial';
+          const mastery = typeof item.mastery === 'number' ? item.mastery : 0;
+          let theme = 'border-border-color bg-surface text-muted-text';
+          let label = 'Unassessed';
           if (mastery >= 85) { theme = 'border-success/30 bg-success/10 text-success'; label = 'Secure Mastery'; }
           else if (mastery >= 70) { theme = 'border-secondary/30 bg-secondary/10 text-secondary'; label = 'Developing'; }
+          else if (mastery > 0) { theme = 'border-error/30 bg-error/10 text-error'; label = 'Urgent Remedial'; }
 
           return (
             <div key={idx} className={`border rounded-xl p-3 flex flex-col gap-1 transition-colors ${theme}`}>

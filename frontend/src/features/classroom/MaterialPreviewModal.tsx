@@ -243,18 +243,20 @@ export default function MaterialPreviewModal({
                 {material.name}
               </h4>
               <p className="text-xs text-muted-text font-mono mt-1 break-all">
-                {rawPath || 'https://example.com'}
+                {rawPath || 'No web address on file'}
               </p>
             </div>
-            <a
-              href={rawPath}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold shadow-lg transition-all cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Launch Web Resource
-            </a>
+            {rawPath && (
+              <a
+                href={rawPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold shadow-lg transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Launch Web Resource
+              </a>
+            )}
           </div>
         ) : isImage && signedUrl ? (
           <div className="w-full h-full flex items-center justify-center overflow-auto">

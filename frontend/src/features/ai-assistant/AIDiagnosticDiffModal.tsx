@@ -151,7 +151,11 @@ export default function AIDiagnosticDiffModal({
               AI Diagnostic Summary
             </span>
             <p className="text-xs text-secondary-text leading-relaxed mt-2 italic">
-              "{aiSuggestion.rationale || 'Demonstrated understanding of core principles with minor formatting/algebraic omissions.'}"
+              {aiSuggestion.rationale ? (
+                `"${aiSuggestion.rationale}"`
+              ) : (
+                <span className="text-muted-text">No diagnostic rationale provided.</span>
+              )}
             </p>
           </div>
         </div>

@@ -405,7 +405,7 @@ export function useClassOperations({
             })
           : materialService.createLinkMaterial(wsId, {
               name: mat.name,
-              url: firstItem?.path || 'https://example.com',
+              url: firstItem?.path || firstItem?.value || '',
               category: mat.category,
               description: firstItem?.description,
               tags: mat.tags,

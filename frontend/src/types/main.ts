@@ -11,7 +11,7 @@ export type AssessmentPreference = Database["public"]["Enums"]["assessment_prefe
 export type ExperienceLevel = Database["public"]["Enums"]["experience_level"];
 export type InstituteType = Database["public"]["Enums"]["institute_type"];
 
-export type PerformanceTier = 'High' | 'Average' | 'At Risk';
+export type PerformanceTier = 'High' | 'Average' | 'At Risk' | 'Unassessed';
 export type PerformanceIndicator = 'excellent' | 'good' | 'average' | 'critical' | PerformanceTier;
 export type StatusIndicator = 'active' | 'inactive' | 'needs-attention';
 
@@ -192,7 +192,6 @@ export interface VisualizationItem {
   classAvg?: number;
   period?: string;
   date?: string;
-  SofiaScore?: number;
   topic?: string;
   subject?: string;
   mastery?: number;

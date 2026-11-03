@@ -126,48 +126,21 @@ export default function SubmissionGradingModal({
       const assignmentTitle = material?.name || submission.materialName || 'Student Assignment';
       const studentName = student.name;
 
-      const isSofia = studentName.toLowerCase().includes('sofia');
-      const isTop = (student.performanceTier || '').toLowerCase() === 'high';
-
-      const suggestedRubric: RubricBreakdownItem[] = defaultCriteria.map((c, i) => {
-        let ratio = 0.88;
-        let comment = 'Solid execution and accurate demonstration of core principles.';
-
-        if (isSofia) {
-          if (i === 0) {
-            ratio = 0.75;
-            comment = 'Understands the problem setup but needs reinforcement in algebraic factoring.';
-          } else if (i === 1) {
-            ratio = 0.65;
-            comment = 'Skipped multi-step validation checks. Consider targeted Socratic practice.';
-          } else {
-            ratio = 0.85;
-            comment = 'Neat step formatting and legible proof annotations.';
-          }
-        } else if (isTop) {
-          ratio = 0.96;
-          comment = 'Exemplary reasoning and clear, comprehensive logical rigor.';
-        }
-
-        const score = Math.round(c.maxScore * ratio);
+      const suggestedRubric: RubricBreakdownItem[] = defaultCriteria.map((c) => {
+        const score = Math.round(c.maxScore * 0.85);
         return {
           criterionId: c.id,
           criterionName: c.name,
           score,
           maxScore: c.maxScore,
-          comment,
+          comment: `Meets core expectations for ${c.name}.`,
         };
       });
 
       const suggestedTotal = suggestedRubric.reduce((acc, r) => acc + r.score, 0);
 
-      const generatedFeedback = isSofia
-        ? `Great effort on "${assignmentTitle}", ${studentName.split(' ')[0]}! You demonstrated strong intuitive problem setup. Focus on double-checking intermediate factoring operations before concluding multi-step equations.`
-        : `Excellent work on "${assignmentTitle}". Demonstrates high mastery of underlying concepts, thorough verification steps, and clear proof layout.`;
-
-      const generatedNotes = isSofia
-        ? `Sofia exhibited algebraic mechanics hesitance on step 3. Recommended intervention: Queue Socratic Factoring Review module before next summative exam.`
-        : `Student demonstrates top percentile understanding. Suitable for peer tutoring leadership on this topic.`;
+      const generatedFeedback = `Work reviewed for "${assignmentTitle}". Demonstrates understanding of primary rubric criteria with opportunities for further refinement.`;
+      const generatedNotes = `Draft evaluation prepared for review. Verify individual criteria scores before publishing.`;
 
       setAiSuggestion({
         score: suggestedTotal,
@@ -176,9 +149,7 @@ export default function SubmissionGradingModal({
         feedback: generatedFeedback,
         privateTeacherNotes: generatedNotes,
         rubricBreakdown: suggestedRubric,
-        rationale: isSofia
-          ? 'Diagnosed slight algebraic computation gap during intermediate factoring, though core geometric concept was correctly applied.'
-          : 'High logical coherence and complete justification on all proof milestones.',
+        rationale: 'Rubric criteria baseline drafted for educator verification.',
       });
 
       setIsAIDiffOpen(true);
@@ -278,7 +249,7 @@ export default function SubmissionGradingModal({
           badge={
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-mono text-muted-text">
-                ID: {student.rollNumber || 'M10'}
+                ID: {student.rollNumber || (student.id ? student.id.slice(0, 8).toUpperCase() : 'Unassigned')}
               </span>
               <Badge variant="primary">{status}</Badge>
             </div>
@@ -414,13 +385,13 @@ export default function SubmissionGradingModal({
                 <div>
                   <span className="text-muted-text text-[10px] block">Learning Style</span>
                   <span className="text-primary font-semibold capitalize">
-                    {student.learningStyle || 'Visual'}
+                    {student.learningStyle || 'Unspecified'}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-text text-[10px] block">Performance Tier</span>
                   <span className="text-primary font-semibold capitalize">
-                    {student.performanceTier || 'Average'}
+                    {student.performanceTier || 'Unassessed'}
                   </span>
                 </div>
               </div>

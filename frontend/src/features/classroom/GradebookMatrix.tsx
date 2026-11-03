@@ -71,7 +71,8 @@ export default function GradebookMatrix({
         const matchesSearch =
           s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (s.rollNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const effectiveTier = s.performanceTier || getPerformanceTier(calculateAverageScore(s.submissions, s.currentScore));
+        const hasEvaluations = (s.submissions || []).some((sub) => sub.score !== undefined && sub.score !== null) || (s.currentScore !== undefined && s.currentScore !== null);
+        const effectiveTier = s.performanceTier || (hasEvaluations ? getPerformanceTier(calculateAverageScore(s.submissions, s.currentScore)) : 'Unassessed');
         const matchesTier =
           tierFilter === 'all' || effectiveTier.toLowerCase() === tierFilter.toLowerCase();
         return matchesSearch && matchesTier;
@@ -87,7 +88,9 @@ export default function GradebookMatrix({
             calculateAverageScore(a.submissions, a.currentScore) -
             calculateAverageScore(b.submissions, b.currentScore);
         } else if (sortField === 'attendance') {
-          diff = (a.attendance || 100) - (b.attendance || 100);
+          const attA = (a.attendanceRecords && a.attendanceRecords.length > 0) ? (a.attendance ?? 0) : -1;
+          const attB = (b.attendanceRecords && b.attendanceRecords.length > 0) ? (b.attendance ?? 0) : -1;
+          diff = attA - attB;
         } else {
           const mat = scoredMaterials.find((m) => m.id === sortField);
           if (mat) {
@@ -128,15 +131,20 @@ export default function GradebookMatrix({
     ];
 
     const rows = students.map((stud) => {
-      const avg = calculateAverageScore(stud.submissions, stud.currentScore);
-      const tier = stud.performanceTier || getPerformanceTier(avg);
+      const hasEvals = (stud.submissions || []).some((sub) => sub.score !== undefined && sub.score !== null) || (stud.currentScore !== undefined && stud.currentScore !== null);
+      const avg = hasEvals ? calculateAverageScore(stud.submissions, stud.currentScore) : null;
+      const tier = stud.performanceTier || (hasEvals && avg !== null ? getPerformanceTier(avg) : 'Unassessed');
+      const hasAttendance = Boolean(stud.attendanceRecords && stud.attendanceRecords.length > 0);
+      const attendanceVal = hasAttendance ? (stud.attendance ?? 0) : 'N/A';
+      const avgScoreVal = avg !== null ? `${avg}%` : 'N/A';
+
       const row = [
         `"${stud.name}"`,
         `"${stud.rollNumber || ''}"`,
         `"${stud.email || ''}"`,
         `"${tier}"`,
-        stud.attendance || 100,
-        `${avg}%`,
+        attendanceVal,
+        avgScoreVal,
         ...scoredMaterials.map((m) => {
           const sub = getSubmissionForMaterial(stud, m);
           if (!sub || sub.score === undefined || sub.score === null) {
@@ -361,9 +369,11 @@ export default function GradebookMatrix({
               </tr>
             ) : (
               filteredStudents.map((stud) => {
-                const avgScore = calculateAverageScore(stud.submissions, stud.currentScore);
-                const tier = stud.performanceTier || getPerformanceTier(avgScore);
+                const hasEvals = (stud.submissions || []).some((sub) => sub.score !== undefined && sub.score !== null) || (stud.currentScore !== undefined && stud.currentScore !== null);
+                const avgScore = hasEvals ? calculateAverageScore(stud.submissions, stud.currentScore) : null;
+                const tier = stud.performanceTier || (hasEvals && avgScore !== null ? getPerformanceTier(avgScore) : 'Unassessed');
                 const perfStyles = getPerformanceStyles(tier);
+                const hasAttendance = Boolean(stud.attendanceRecords && stud.attendanceRecords.length > 0);
 
                 return (
                   <tr
@@ -389,17 +399,27 @@ export default function GradebookMatrix({
                     </td>
 
                     <td className="p-3 font-mono text-muted-text text-[11px]">
-                      {stud.rollNumber || 'M10'}
+                      {stud.rollNumber || (stud.id ? stud.id.slice(0, 8).toUpperCase() : 'Unassigned')}
                     </td>
 
                     <td className="p-3 text-center">
-                      <span className="font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg">
-                        {avgScore}%
-                      </span>
+                      {avgScore !== null ? (
+                        <span className="font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg">
+                          {avgScore}%
+                        </span>
+                      ) : (
+                        <span className="font-mono text-muted-text text-[11px] italic">
+                          —
+                        </span>
+                      )}
                     </td>
 
                     <td className="p-3 text-center font-mono text-secondary-text">
-                      {stud.attendance || 100}%
+                      {hasAttendance ? (
+                        `${stud.attendance ?? 0}%`
+                      ) : (
+                        <span className="text-muted-text text-[11px] italic">N/A</span>
+                      )}
                     </td>
 
                     {scoredMaterials.map((mat) => {

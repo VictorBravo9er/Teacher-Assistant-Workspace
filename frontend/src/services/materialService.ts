@@ -387,10 +387,10 @@ export const materialService = {
       id: itemId,
       name: item.name.trim(),
       type: item.file ? 'File' : 'URL',
-      path: item.file ? storagePath : (item.url || 'https://example.com'),
+      path: item.file ? storagePath : (item.url || ''),
       size_bytes: item.file?.size,
       mime_type: item.file?.type || (item.file ? 'application/octet-stream' : undefined),
-      description: item.file ? `Uploaded file for ${item.name}` : `Web resource: ${item.url}`,
+      description: item.file ? `Uploaded file for ${item.name}` : (item.url ? `Web resource: ${item.url}` : `Web resource for ${item.name}`),
       isPrivate: options.isClassPrivate || false,
       isShared: !options.isClassPrivate,
     };

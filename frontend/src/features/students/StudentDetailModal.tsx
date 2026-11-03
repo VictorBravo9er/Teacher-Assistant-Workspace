@@ -290,7 +290,7 @@ export default function StudentDetailModal({
                 {student.name}
               </h3>
               <span className="text-xs font-mono text-muted-text">
-                ID: {student.rollNumber || 'M10'}
+                ID: {student.rollNumber || (student.id ? student.id.slice(0, 8).toUpperCase() : 'Unassigned')}
               </span>
             </div>
 
@@ -314,7 +314,7 @@ export default function StudentDetailModal({
                 | Portfolio performance:
               </span>
               <Badge variant="primary" size="sm">
-                {student.performanceIndicator || student.performanceTier || 'Average'}
+                {student.performanceIndicator || student.performanceTier || 'Unassessed'}
               </Badge>
             </div>
           </div>

@@ -69,6 +69,15 @@ export default function StudentSubmissionUploadModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (mode === 'url' && !urlInput.trim()) {
+      if (onTriggerToast) onTriggerToast('Please enter a valid submission URL.');
+      return;
+    }
+    if (mode === 'text' && !textContent.trim()) {
+      if (onTriggerToast) onTriggerToast('Please enter text content for the submission.');
+      return;
+    }
+
     // 1. Optimistic non-blocking flow for URL or Text entries
     if (mode === 'url' || mode === 'text') {
       const itemId = crypto.randomUUID();
@@ -79,8 +88,8 @@ export default function StudentSubmissionUploadModal({
                 id: itemId,
                 name: displayTitle,
                 type: 'URL',
-                value: urlInput.trim() || 'https://docs.google.com/document/d/example',
-                path: urlInput.trim() || 'https://docs.google.com/document/d/example',
+                value: urlInput.trim(),
+                path: urlInput.trim(),
                 description: `Online link submission`,
               },
             ]
@@ -91,7 +100,7 @@ export default function StudentSubmissionUploadModal({
                 type: 'Text',
                 value: textContent.trim(),
                 path: '',
-                description: textContent.trim() || 'Student provided written answers directly.',
+                description: textContent.trim(),
               },
             ];
 
@@ -177,7 +186,7 @@ export default function StudentSubmissionUploadModal({
     <Modal isOpen={isOpen} onClose={() => !isSubmitting && onClose()} id="student-submission-upload-modal" size="md">
       <ModalHeader
         title="Log Student Submission"
-        subtitle={`Student: ${student.name} (${student.rollNumber || 'M10'})`}
+        subtitle={`Student: ${student.name} (${student.rollNumber || (student.id ? student.id.slice(0, 8).toUpperCase() : 'Unassigned')})`}
         icon={<UploadCloud className="w-5 h-5 text-success" />}
         onClose={() => !isSubmitting && onClose()}
       />

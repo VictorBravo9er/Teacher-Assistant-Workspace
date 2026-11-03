@@ -76,7 +76,7 @@ export const studentService = {
         currentScore: row.current_score !== null ? Number(row.current_score) : undefined,
         currentGrade: row.current_grade || undefined,
         generalFeedback: row.general_feedback || '',
-        performanceTier: (row.performance_tier || 'Average') as PerformanceTier,
+        performanceTier: (row.performance_tier || 'Unassessed') as PerformanceTier,
         behavioralNotes: row.behavioral_notes || '',
         
         attendance: calculatedAttendance,
@@ -117,7 +117,7 @@ export const studentService = {
         learning_style: payload.learningStyle ?? null,
         strengths: payload.strengths ?? [],
         weaknesses: payload.weaknesses ?? [],
-        performance_tier: payload.performanceTier ?? 'Average',
+        performance_tier: payload.performanceTier ?? null,
         current_score: payload.currentScore ?? null,
         current_grade: payload.currentGrade ?? null,
         general_feedback: payload.generalFeedback ?? '',

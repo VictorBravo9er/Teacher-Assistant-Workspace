@@ -78,26 +78,23 @@ export default function StudentRegister({
   const handleAddNewStudent = (payload: { name: string; email: string }) => {
     if (!payload.name.trim() || !payload.email.trim()) return;
     const currentStudents = classItemRef.current.students;
-    const roll = `M10-0${currentStudents.length + 1}`;
 
     const tempId = crypto.randomUUID();
     const newStudent: Student = {
       id: tempId,
       name: payload.name.trim(),
-      rollNumber: roll,
+      rollNumber: '',
       email: payload.email.trim(),
       phone: '',
       address: '',
       parentName: '',
       parentContact: '',
       parentNotes: '',
-      performanceIndicator: 'good',
+      performanceTier: 'Unassessed',
+      performanceIndicator: 'Unassessed',
       statusIndicator: 'active',
       submissions: [],
-      customFields: [
-        { id: `cf-${Date.now()}-1`, label: 'Tutoring Status', type: 'tag', value: 'None', visibility: true },
-        { id: `cf-${Date.now()}-2`, label: 'IEP Accommodation', type: 'boolean', value: 'false', visibility: true },
-      ],
+      customFields: [],
       avatarSeed: payload.name.trim().split(' ')[0] || 'Student',
       isPending: true,
     };
@@ -296,7 +293,9 @@ export default function StudentRegister({
                     <h4 className="text-xs font-bold font-display text-primary-text truncate group-hover:text-primary">
                       {stud.name}
                     </h4>
-                    <span className="text-[10px] font-mono text-muted-text">{stud.rollNumber}</span>
+                    <span className="text-[10px] font-mono text-muted-text">
+                      {stud.rollNumber || (stud.id && !stud.isPending ? stud.id.slice(0, 8).toUpperCase() : '')}
+                    </span>
                   </div>
                 </div>
 
@@ -305,11 +304,13 @@ export default function StudentRegister({
                     className={`text-[9px] font-semibold px-2 py-0.5 font-mono border rounded-full ${perf.bg} ${perf.text} flex items-center gap-1.5`}
                   >
                     <span className={`w-1.2 h-1.2 rounded-full ${perf.dot} inline-block`}></span>
-                    {stud.performanceIndicator}
+                    {stud.performanceIndicator || stud.performanceTier || 'Unassessed'}
                   </span>
 
                   <span className="text-[10px] font-mono text-secondary-text bg-elevated/55 px-1.5 py-0.2 rounded border border-border-color/40">
-                    {stud.attendance ?? 100}% attendance
+                    {stud.attendanceRecords && stud.attendanceRecords.length > 0
+                      ? `${stud.attendance ?? 0}% attendance`
+                      : 'No attendance recorded'}
                   </span>
                 </div>
 

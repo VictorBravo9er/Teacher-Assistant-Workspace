@@ -10,7 +10,7 @@ import {
  * Returns a number between 0 and 100.
  */
 export function calculateAttendanceRate(records?: AttendanceRecord[], lateWeight: number = 0.5): number {
-  if (!records || records.length === 0) return 100;
+  if (!records || records.length === 0) return 0;
   const score = records.reduce((acc, r) => {
     if (r.status === 'Present' || r.status === 'Excused') return acc + 1;
     if (r.status === 'Late') return acc + lateWeight;
@@ -88,6 +88,14 @@ export function getPerformanceStyles(perf?: string): {
         bg: 'bg-error/15 border-error/30',
         text: 'text-error',
         dot: 'bg-error',
+      };
+    case 'unassessed':
+    case 'unassigned':
+    case 'none':
+      return {
+        bg: 'bg-muted-text/10 border-border-color',
+        text: 'text-muted-text',
+        dot: 'bg-muted-text',
       };
     case 'average':
     default:

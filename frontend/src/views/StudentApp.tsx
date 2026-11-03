@@ -482,7 +482,7 @@ export default function StudentApp() {
                           : 'neutral'
                       }
                     >
-                      {activeClass.performanceTier || 'Average'}
+                      {activeClass.performanceTier || 'Unassessed'}
                     </Badge>
                   </div>
                 </div>
@@ -871,7 +871,7 @@ export default function StudentApp() {
                             : 'neutral'
                         }
                       >
-                        {activeClass.performanceTier || 'Average'}
+                        {activeClass.performanceTier || 'Unassessed'}
                       </Badge>
                     </div>
                   </div>
