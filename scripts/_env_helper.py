@@ -2,20 +2,24 @@ import os
 import re
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
 
 _scripts_dir = Path(__file__).resolve().parent
 _root_dir = _scripts_dir.parent
 
-for _env_file in (
-    _scripts_dir / ".env",
-    _root_dir / ".env",
-    _root_dir / "backend" / ".env",
-    _root_dir / "frontend" / ".env",
-):
-    if _env_file.exists():
-        if load_dotenv(_env_file, override=False):
-            break
+if load_dotenv is not None:
+    for _env_file in (
+        _scripts_dir / ".env",
+        _root_dir / ".env",
+        _root_dir / "backend" / ".env",
+        _root_dir / "frontend" / ".env",
+    ):
+        if _env_file.exists():
+            if load_dotenv(_env_file, override=False):
+                break
 
 
 POSTGRES_URI: str = os.getenv(

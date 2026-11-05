@@ -27,21 +27,21 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.3
-        with:
-          version: "latest"
-
       - name: Set up Python 3.13
-        run: uv python install 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install dotenv
+        run: pip install dotenv
 
       - name: Run Database Migrations
         run: |
-          uv run --project backend python scripts/migrate.py --yes --no-types
+          python scripts/migrate.py --yes --no-types
 
       - name: Deploy Modified Edge Functions
         run: |
-          uv run --project backend python scripts/deploy_edge_functions.py
+          python scripts/deploy_edge_functions.py
 
       - name: Commit Updated Deployment Manifest
         run: |
