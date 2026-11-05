@@ -9,6 +9,7 @@ schema is never polluted with custom helper tables.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -33,9 +34,12 @@ def run_migrations(
     no_types: bool = False,
     yes: bool = False,
     quiet: bool = False,
+    project_ref: str | None = None,
 ) -> int:
     root_dir = Path(__file__).resolve().parent.parent
     migrations_dir = root_dir / "supabase" / "migrations"
+    resolved_ref = project_ref or _env_helper.resolve_supabase_project_ref()
+    use_remote = bool(resolved_ref and os.getenv("SUPABASE_ACCESS_TOKEN"))
     db_url = _env_helper.POSTGRES_URI
 
     migration_files = list_migration_files(migrations_dir)
@@ -57,9 +61,12 @@ def run_migrations(
             "supabase",
             "migration",
             "list",
-            "--db-url",
-            db_url,
         ]
+        if use_remote and resolved_ref:
+            cmd_status.extend(["--remote", resolved_ref])
+        else:
+            cmd_status.extend(["--db-url", db_url])
+
         result = subprocess.run(cmd_status, cwd=str(root_dir))
         if result.returncode == 0:
             print("\n📁 Local Migration File Mapping (supabase/migrations/):")
@@ -74,8 +81,13 @@ def run_migrations(
         return result.returncode
 
     if not quiet:
+        target_desc = (
+            f"remote project '{resolved_ref}' via Management API"
+            if use_remote and resolved_ref
+            else "target database via direct connection"
+        )
         print(
-            "\n▶️  Pushing unapplied SQL migrations from supabase/migrations/ via Supabase CLI..."
+            f"\n▶️  Pushing unapplied SQL migrations to {target_desc}..."
         )
 
     cmd_push = [
@@ -86,11 +98,14 @@ def run_migrations(
         "db",
         "push",
         "--include-all",
-        "--db-url",
-        db_url,
     ]
+    if use_remote and resolved_ref:
+        cmd_push.extend(["--remote", resolved_ref])
+    else:
+        cmd_push.extend(["--db-url", db_url])
+
     if yes or quiet:
-        cmd_push.insert(6, "--yes")
+        cmd_push.append("--yes")
 
     if quiet:
         result = subprocess.run(cmd_push, cwd=str(root_dir), capture_output=True, text=True)
@@ -127,6 +142,7 @@ class _MigrateCLIArgs(argparse.Namespace):
     status: bool = False
     no_types: bool = False
     yes: bool = False
+    project_ref: str | None = None
 
 
 def main() -> None:
@@ -149,10 +165,19 @@ def main() -> None:
         action="store_true",
         help="Skip interactive confirmation prompts when pushing migrations.",
     )
+    _ = parser.add_argument(
+        "--project-ref",
+        type=str,
+        default=None,
+        help="Supabase project reference ID to target remotely via Management API token.",
+    )
     args = parser.parse_args(namespace=_MigrateCLIArgs())
 
     code = run_migrations(
-        status_only=args.status, no_types=args.no_types, yes=args.yes
+        status_only=args.status,
+        no_types=args.no_types,
+        yes=args.yes,
+        project_ref=args.project_ref,
     )
     sys.exit(code)
 

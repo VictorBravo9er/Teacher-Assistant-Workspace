@@ -10,36 +10,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  migrate-database:
-    name: Apply Database Migrations
+  deploy-supabase:
+    name: Deploy Database Migrations & Edge Functions
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js (for Supabase CLI)
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.3
-        with:
-          version: "latest"
-
-      - name: Set up Python 3.13
-        run: uv python install 3.13
-
-      - name: Run Database Migrations
-        env:
-          POSTGRES_URI: ${{ secrets.POSTGRES_URI }}
-        run: |
-          uv run scripts/migrate.py --yes
-
-  deploy-edge-functions:
-    name: Deploy Supabase Edge Functions
-    needs: [migrate-database]
-    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -59,12 +35,13 @@ jobs:
       - name: Set up Python 3.13
         run: uv python install 3.13
 
-      - name: Deploy Modified Edge Functions
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      - name: Run Database Migrations
         run: |
-          uv run scripts/deploy_edge_functions.py
+          uv run --project backend python scripts/migrate.py --yes --no-types
+
+      - name: Deploy Modified Edge Functions
+        run: |
+          uv run --project backend python scripts/deploy_edge_functions.py
 
       - name: Commit Updated Deployment Manifest
         run: |
