@@ -18,11 +18,13 @@ import { getEnumTooltip } from "@/utils/enumTooltips";
 import { materialService } from "@/services/materialService";
 import { announcementService } from "@/services/announcementService";
 import { notificationService } from "@/services/notificationService";
-import { CalendarView } from "@/features/calendar/CalendarView";
 import { ConfirmModal, PromptModal, LoadingOverlay } from "@/components/shared/CustomDialogs";
 import { MultiSelect } from '@/components/shared/MultiSelect';
-import MaterialPreviewModal from '@/features/classroom/MaterialPreviewModal';
-import RubricBuilderModal from '@/features/classroom/RubricBuilderModal';
+
+// Lazy-loaded sub-features and modals for optimized classroom payload
+const CalendarView = React.lazy(() => import("@/features/calendar/CalendarView"));
+const MaterialPreviewModal = React.lazy(() => import('@/features/classroom/MaterialPreviewModal'));
+const RubricBuilderModal = React.lazy(() => import('@/features/classroom/RubricBuilderModal'));
 import {
   Building2,
   BookMarked,
@@ -1393,12 +1395,22 @@ export default function ClassDetails({
 
         {/* Academic Calendar Tab */}
         <div className={activeSubTab === "calendar" ? "space-y-4" : "hidden"}>
-          <CalendarView
-            materials={classItem.materials}
-            attendanceRecords={classItem.attendanceRecords}
-            announcements={announcements}
-            onSelectMaterial={(m) => setPreviewMaterial(m)}
-          />
+          {activeSubTab === "calendar" && (
+            <React.Suspense
+              fallback={
+                <div className="h-64 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                </div>
+              }
+            >
+              <CalendarView
+                materials={classItem.materials}
+                attendanceRecords={classItem.attendanceRecords}
+                announcements={announcements}
+                onSelectMaterial={(m) => setPreviewMaterial(m)}
+              />
+            </React.Suspense>
+          )}
         </div>
       </div>
 
@@ -1507,25 +1519,29 @@ export default function ClassDetails({
 
       {/* Material In-App Preview Modal */}
       {previewMaterial && (
-        <MaterialPreviewModal
-          isOpen={!!previewMaterial}
-          onClose={() => setPreviewMaterial(null)}
-          material={previewMaterial}
-          classId={classItem.id}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <MaterialPreviewModal
+            isOpen={!!previewMaterial}
+            onClose={() => setPreviewMaterial(null)}
+            material={previewMaterial}
+            classId={classItem.id}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       {/* Visual Rubric Builder Modal */}
       {rubricModalMaterial && (
-        <RubricBuilderModal
-          isOpen={!!rubricModalMaterial}
-          onClose={() => setRubricModalMaterial(null)}
-          material={rubricModalMaterial}
-          classId={classItem.id}
-          onSaveRubric={handleSaveRubric}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <RubricBuilderModal
+            isOpen={!!rubricModalMaterial}
+            onClose={() => setRubricModalMaterial(null)}
+            material={rubricModalMaterial}
+            classId={classItem.id}
+            onSaveRubric={handleSaveRubric}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       <LoadingOverlay isOpen={!!isDownloadingMsg} message={isDownloadingMsg || undefined} />

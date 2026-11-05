@@ -7,14 +7,16 @@ import {
 } from '@/services/studentPortalService';
 import { announcementService } from '@/services/announcementService';
 import { Material, Instruction, StudentSubmission, Announcement } from '@/types/main';
-import { StudentTurnInModal } from '@/features/student-portal/StudentTurnInModal';
-import MaterialPreviewModal from '@/features/classroom/MaterialPreviewModal';
-import { CalendarView } from '@/features/calendar/CalendarView';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal, ModalHeader, ModalBody, Input } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+
+// Lazy-loaded student features and modals
+const StudentTurnInModal = React.lazy(() => import('@/features/student-portal/StudentTurnInModal'));
+const MaterialPreviewModal = React.lazy(() => import('@/features/classroom/MaterialPreviewModal'));
+const CalendarView = React.lazy(() => import('@/features/calendar/CalendarView'));
 import {
   BookOpen,
   Calendar,
@@ -825,11 +827,19 @@ export default function StudentApp() {
 
             {/* Tab 4: Academic Calendar */}
             {activeTab === 'calendar' && (
-              <CalendarView
-                materials={materials}
-                announcements={announcements}
-                onSelectMaterial={(material) => setSelectedMaterialForPreview(material)}
-              />
+              <React.Suspense
+                fallback={
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                  </div>
+                }
+              >
+                <CalendarView
+                  materials={materials}
+                  announcements={announcements}
+                  onSelectMaterial={(material) => setSelectedMaterialForPreview(material)}
+                />
+              </React.Suspense>
             )}
 
             {/* Tab 5: My Grades & Feedback */}
@@ -930,32 +940,36 @@ export default function StudentApp() {
 
       {/* Turn-In Modal */}
       {selectedMaterialForTurnIn && activeClass && user?.id && (
-        <StudentTurnInModal
-          isOpen={Boolean(selectedMaterialForTurnIn)}
-          onClose={() => setSelectedMaterialForTurnIn(null)}
-          material={selectedMaterialForTurnIn}
-          classId={activeClass.id}
-          studentId={user.id}
-          existingSubmission={submissionMap.get(selectedMaterialForTurnIn.id)}
-          onSubmitted={(newSub) => {
-            setSubmissions((prev) => [
-              newSub,
-              ...prev.filter((s) => s.materialId !== newSub.materialId),
-            ]);
-            showToast('Assignment turned in successfully!');
-          }}
-        />
+        <React.Suspense fallback={null}>
+          <StudentTurnInModal
+            isOpen={Boolean(selectedMaterialForTurnIn)}
+            onClose={() => setSelectedMaterialForTurnIn(null)}
+            material={selectedMaterialForTurnIn}
+            classId={activeClass.id}
+            studentId={user.id}
+            existingSubmission={submissionMap.get(selectedMaterialForTurnIn.id)}
+            onSubmitted={(newSub) => {
+              setSubmissions((prev) => [
+                newSub,
+                ...prev.filter((s) => s.materialId !== newSub.materialId),
+              ]);
+              showToast('Assignment turned in successfully!');
+            }}
+          />
+        </React.Suspense>
       )}
 
       {/* Material Preview Modal */}
       {selectedMaterialForPreview && (
-        <MaterialPreviewModal
-          isOpen={Boolean(selectedMaterialForPreview)}
-          onClose={() => setSelectedMaterialForPreview(null)}
-          material={selectedMaterialForPreview}
-          classId={activeClassId}
-          onTriggerToast={showToast}
-        />
+        <React.Suspense fallback={null}>
+          <MaterialPreviewModal
+            isOpen={Boolean(selectedMaterialForPreview)}
+            onClose={() => setSelectedMaterialForPreview(null)}
+            material={selectedMaterialForPreview}
+            classId={activeClassId}
+            onTriggerToast={showToast}
+          />
+        </React.Suspense>
       )}
 
       {/* Student Change Password Modal */}

@@ -352,3 +352,5 @@ export function CalendarView({
     </div>
   );
 }
+
+export default CalendarView;

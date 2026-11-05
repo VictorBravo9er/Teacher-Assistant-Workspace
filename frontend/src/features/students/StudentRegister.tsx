@@ -7,12 +7,14 @@ import {
 } from '@/types/main';
 import { ConfirmModal } from '@/components/shared/CustomDialogs';
 import { studentService } from '@/services/studentService';
-import SubmissionGradingModal from '@/features/students/SubmissionGradingModal';
-import StudentSubmissionUploadModal from '@/features/students/StudentSubmissionUploadModal';
-import AttendanceManagerModal from '@/features/students/AttendanceManagerModal';
-import ReportCardModal from '@/features/students/ReportCardModal';
-import StudentDetailModal from '@/features/students/StudentDetailModal';
 import { getPerformanceStyles, calculateAverageScore, getPerformanceTier } from '@/lib/studentCalculations';
+
+// Lazy-load student modals on demand
+const SubmissionGradingModal = React.lazy(() => import('@/features/students/SubmissionGradingModal'));
+const StudentSubmissionUploadModal = React.lazy(() => import('@/features/students/StudentSubmissionUploadModal'));
+const AttendanceManagerModal = React.lazy(() => import('@/features/students/AttendanceManagerModal'));
+const ReportCardModal = React.lazy(() => import('@/features/students/ReportCardModal'));
+const StudentDetailModal = React.lazy(() => import('@/features/students/StudentDetailModal'));
 import {
   Plus,
   Contact2,
@@ -333,26 +335,28 @@ export default function StudentRegister({
 
       {/* Extracted Student Dossier Modal */}
       {selectedStudent && (
-        <StudentDetailModal
-          student={selectedStudent}
-          classItem={classItem}
-          previousStudent={previousStudent}
-          nextStudent={nextStudent}
-          onClose={() => setSelectedStudentId(null)}
-          onSelectStudent={(id) => setSelectedStudentId(id)}
-          onUpdateStudentDetails={handleUpdateStudentDetails}
-          onRequestDeleteStudent={(id) => setStudentToDelete(id)}
-          onOpenGradingModal={(sub, mat) =>
-            setGradingModalState({
-              student: selectedStudent,
-              submission: sub,
-              material: mat,
-            })
-          }
-          onOpenUploadModal={() => setIsUploadModalOpen(true)}
-          onOpenReportCard={(id) => setReportCardStudentId(id)}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <StudentDetailModal
+            student={selectedStudent}
+            classItem={classItem}
+            previousStudent={previousStudent}
+            nextStudent={nextStudent}
+            onClose={() => setSelectedStudentId(null)}
+            onSelectStudent={(id) => setSelectedStudentId(id)}
+            onUpdateStudentDetails={handleUpdateStudentDetails}
+            onRequestDeleteStudent={(id) => setStudentToDelete(id)}
+            onOpenGradingModal={(sub, mat) =>
+              setGradingModalState({
+                student: selectedStudent,
+                submission: sub,
+                material: mat,
+              })
+            }
+            onOpenUploadModal={() => setIsUploadModalOpen(true)}
+            onOpenReportCard={(id) => setReportCardStudentId(id)}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       {/* Add Student Prompt Modal */}
@@ -417,52 +421,60 @@ export default function StudentRegister({
 
       {/* Submission Grading Modal */}
       {gradingModalState && (
-        <SubmissionGradingModal
-          isOpen={!!gradingModalState}
-          onClose={() => setGradingModalState(null)}
-          student={gradingModalState.student}
-          submission={gradingModalState.submission}
-          material={gradingModalState.material}
-          onSave={handleSaveGradingFromModal}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <SubmissionGradingModal
+            isOpen={!!gradingModalState}
+            onClose={() => setGradingModalState(null)}
+            student={gradingModalState.student}
+            submission={gradingModalState.submission}
+            material={gradingModalState.material}
+            onSave={handleSaveGradingFromModal}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       {/* Student Submission Upload Modal */}
       {isUploadModalOpen && (
-        <StudentSubmissionUploadModal
-          isOpen={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
-          classId={classItem.id}
-          student={selectedStudent || nonPendingStudents[0] || classItem.students[0]}
-          materials={classItem.materials || []}
-          onSubmissionCreated={handleSubmissionCreatedFromModal}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <StudentSubmissionUploadModal
+            isOpen={isUploadModalOpen}
+            onClose={() => setIsUploadModalOpen(false)}
+            classId={classItem.id}
+            student={selectedStudent || nonPendingStudents[0] || classItem.students[0]}
+            materials={classItem.materials || []}
+            onSubmissionCreated={handleSubmissionCreatedFromModal}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       {/* Attendance Manager Modal */}
       {isAttendanceModalOpen && (
-        <AttendanceManagerModal
-          isOpen={isAttendanceModalOpen}
-          onClose={() => setIsAttendanceModalOpen(false)}
-          classId={classItem.id}
-          className={classItem.name}
-          students={nonPendingStudents}
-          onAttendanceUpdated={handleAttendanceUpdatedFromModal}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <AttendanceManagerModal
+            isOpen={isAttendanceModalOpen}
+            onClose={() => setIsAttendanceModalOpen(false)}
+            classId={classItem.id}
+            className={classItem.name}
+            students={nonPendingStudents}
+            onAttendanceUpdated={handleAttendanceUpdatedFromModal}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       {/* Report Card Modal */}
       {reportCardStudentId && (
-        <ReportCardModal
-          isOpen={!!reportCardStudentId}
-          onClose={() => setReportCardStudentId(null)}
-          classItem={classItem}
-          initialStudentId={reportCardStudentId}
-          onTriggerToast={onTriggerToast}
-        />
+        <React.Suspense fallback={null}>
+          <ReportCardModal
+            isOpen={!!reportCardStudentId}
+            onClose={() => setReportCardStudentId(null)}
+            classItem={classItem}
+            initialStudentId={reportCardStudentId}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
       )}
 
       <ConfirmModal

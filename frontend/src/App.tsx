@@ -1,11 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import LandingPage from '@/views/LandingPage';
-import AuthPage from '@/views/AuthPage';
-import ClassApp from '@/views/ClassApp';
-import StudentApp from '@/views/StudentApp';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/lib/supabase';
+
+// Lazy-loaded top-level view shells for performance and code splitting
+const LandingPage = lazy(() => import('@/views/LandingPage'));
+const AuthPage = lazy(() => import('@/views/AuthPage'));
+const ClassApp = lazy(() => import('@/views/ClassApp'));
+const StudentApp = lazy(() => import('@/views/StudentApp'));
+
+function ViewFallback() {
+  return (
+    <div className="h-screen w-screen bg-background flex flex-col items-center justify-center gap-3">
+      <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+    </div>
+  );
+}
 
 type ViewMode = 'landing' | 'auth' | 'app';
 
@@ -107,12 +117,32 @@ export default function App() {
     }
   }, [session, isInitializing, currentView, navigateTo, passwordSetRequired]);
 
+  // Prefetch secondary views on idle to make subsequent navigation instantaneous
+  useEffect(() => {
+    if (currentView === 'landing') {
+      const timer = setTimeout(() => {
+        import('@/views/AuthPage');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentView]);
+
+  useEffect(() => {
+    if (session) {
+      if (role === 'student') {
+        import('@/views/StudentApp');
+      } else {
+        import('@/views/ClassApp');
+      }
+    }
+  }, [session, role]);
+
   if (isInitializing) {
     return <div className="h-screen w-screen bg-background flex items-center justify-center"></div>;
   }
 
   return (
-    <>
+    <Suspense fallback={<ViewFallback />}>
       {currentView === 'landing' && (
         <LandingPage
           onNavigate={(view) => navigateTo(view)}
@@ -126,6 +156,6 @@ export default function App() {
         />
       )}
       {currentView === 'app' && (role === 'student' ? <StudentApp /> : <ClassApp />)}
-    </>
+    </Suspense>
   );
 }

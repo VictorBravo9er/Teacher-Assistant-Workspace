@@ -411,3 +411,5 @@ export function StudentTurnInModal({
     </Modal>
   );
 }
+
+export default StudentTurnInModal;

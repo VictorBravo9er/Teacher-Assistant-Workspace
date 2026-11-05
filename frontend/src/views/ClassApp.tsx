@@ -15,10 +15,12 @@ import StudentRegister from '@/features/students/StudentRegister';
 // TODO: Uncomment when AI / RAG services are reintegrated
 // import RAGClass from '@/features/ai-assistant/RAGClass';
 import CommandPalette from '@/components/layout/CommandPalette';
-import AccountModals from '@/features/account/AccountModals';
-import GradebookMatrix from '@/features/classroom/GradebookMatrix';
-import ReportCardModal from '@/features/students/ReportCardModal';
 import { LoadingOverlay } from '@/components/shared/CustomDialogs';
+
+// Lazy-loaded heavy components for on-demand bundle splitting
+const AccountModals = React.lazy(() => import('@/features/account/AccountModals'));
+const GradebookMatrix = React.lazy(() => import('@/features/classroom/GradebookMatrix'));
+const ReportCardModal = React.lazy(() => import('@/features/students/ReportCardModal'));
 
 import {
   X,
@@ -361,11 +363,19 @@ export default function ClassApp() {
           {/* Main Content Area: Gradebook Matrix or Split Classroom View */}
           {mainViewTab === 'gradebook' && viewMode === 'class' ? (
             <div className="flex-1 min-h-0 overflow-hidden">
-              <GradebookMatrix
-                classItem={adapterClassItem}
-                onUpdateClass={handleAdapterUpdate}
-                onTriggerToast={triggerToast}
-              />
+              <React.Suspense
+                fallback={
+                  <div className="h-full w-full flex items-center justify-center bg-surface/50">
+                    <div className="w-7 h-7 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                  </div>
+                }
+              >
+                <GradebookMatrix
+                  classItem={adapterClassItem}
+                  onUpdateClass={handleAdapterUpdate}
+                  onTriggerToast={triggerToast}
+                />
+              </React.Suspense>
             </div>
           ) : (
             /* Core double split viewport */
@@ -556,22 +566,28 @@ export default function ClassApp() {
       )}
 
       {/* Account settings and utility modals */}
-      <AccountModals
-        activeModal={activeAccountModal}
-        onClose={() => setActiveAccountModal(null)}
-        onTriggerToast={triggerToast}
-      />
+      {activeAccountModal && (
+        <React.Suspense fallback={null}>
+          <AccountModals
+            activeModal={activeAccountModal}
+            onClose={() => setActiveAccountModal(null)}
+            onTriggerToast={triggerToast}
+          />
+        </React.Suspense>
+      )}
 
       {/* Top Level Student Report Cards Modal */}
       {isReportModalOpen && activeClass && activeClass.students.length > 0 && (
-        <ReportCardModal
-          isOpen={isReportModalOpen}
-          onClose={() => setIsReportModalOpen(false)}
-          classItem={activeClass}
-          initialStudentId={activeClass.students[0].id}
-          onTriggerToast={triggerToast}
-          onUpdateStudent={handleUpdateStudent}
-        />
+        <React.Suspense fallback={null}>
+          <ReportCardModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            classItem={activeClass}
+            initialStudentId={activeClass.students[0].id}
+            onTriggerToast={triggerToast}
+            onUpdateStudent={handleUpdateStudent}
+          />
+        </React.Suspense>
       )}
 
       <LoadingOverlay

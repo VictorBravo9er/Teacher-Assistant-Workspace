@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ClassModel, Template } from "@/types/main";
-import CreateClassModal from '@/features/classroom/CreateClassModal';
 import { ConfirmModal, PromptModal } from '@/components/shared/CustomDialogs';
+
+const CreateClassModal = React.lazy(() => import('@/features/classroom/CreateClassModal'));
 import BrandLogo from '@/components/shared/BrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -622,13 +623,17 @@ export default function Sidebar({
         </div>
       )}
 
-      <CreateClassModal
-        isOpen={isCreateClassModalOpen}
-        onClose={() => setIsCreateClassModalOpen(false)}
-        templates={templates}
-        onCreateClass={onCreateClass}
-        onTriggerToast={onTriggerToast}
-      />
+      {isCreateClassModalOpen && (
+        <React.Suspense fallback={null}>
+          <CreateClassModal
+            isOpen={isCreateClassModalOpen}
+            onClose={() => setIsCreateClassModalOpen(false)}
+            templates={templates}
+            onCreateClass={onCreateClass}
+            onTriggerToast={onTriggerToast}
+          />
+        </React.Suspense>
+      )}
 
       <PromptModal
         isOpen={isTemplatePromptOpen}
