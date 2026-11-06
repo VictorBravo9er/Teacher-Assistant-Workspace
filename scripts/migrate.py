@@ -39,7 +39,7 @@ def run_migrations(
     root_dir = Path(__file__).resolve().parent.parent
     migrations_dir = root_dir / "supabase" / "migrations"
     resolved_ref = project_ref or _env_helper.resolve_supabase_project_ref()
-    use_remote = bool(resolved_ref and os.getenv("SUPABASE_ACCESS_TOKEN"))
+    target_args, use_remote, target_desc = _env_helper.resolve_target_flags(project_ref)
     db_url = _env_helper.POSTGRES_URI
 
     migration_files = list_migration_files(migrations_dir)
@@ -62,10 +62,7 @@ def run_migrations(
             "migration",
             "list",
         ]
-        if use_remote and resolved_ref:
-            cmd_status.extend(["--remote", resolved_ref])
-        else:
-            cmd_status.extend(["--db-url", db_url])
+        cmd_status.extend(target_args)
 
         result = subprocess.run(cmd_status, cwd=str(root_dir))
         if result.returncode == 0:
@@ -81,11 +78,6 @@ def run_migrations(
         return result.returncode
 
     if not quiet:
-        target_desc = (
-            f"remote project '{resolved_ref}' via Management API"
-            if use_remote and resolved_ref
-            else "target database via direct connection"
-        )
         print(
             f"\n▶️  Pushing unapplied SQL migrations to {target_desc}..."
         )
@@ -99,10 +91,7 @@ def run_migrations(
         "push",
         "--include-all",
     ]
-    if use_remote and resolved_ref:
-        cmd_push.extend(["--remote", resolved_ref])
-    else:
-        cmd_push.extend(["--db-url", db_url])
+    cmd_push.extend(target_args)
 
     if yes or quiet:
         cmd_push.append("--yes")
@@ -133,7 +122,7 @@ def run_migrations(
             main as generate_types,
         )
 
-        generate_types(db_url, quiet=quiet)
+        generate_types(target_args, quiet=quiet)
 
     return 0
 

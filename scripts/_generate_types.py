@@ -16,7 +16,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _env_helper  # pyright: ignore[reportImplicitRelativeImport]
 
 
-def generate_typescript_types(db_url: str, quiet: bool = False) -> Path:
+def _normalize_target_flags(target: str | list[str] | None = None) -> list[str]:
+    """Normalizes the target specifier into Supabase CLI target flags."""
+    if isinstance(target, list):
+        return target
+    if isinstance(target, str) and target:
+        if target.startswith("postgres://") or target.startswith("postgresql://"):
+            return [f"--remote={target}"]
+        if target.startswith("--"):
+            return [target]
+        return [f"--remote={target}"]
+    flags, _, _ = _env_helper.resolve_target_flags()
+    return flags
+
+
+def generate_typescript_types(
+    target: str | list[str] | None = None, quiet: bool = False
+) -> Path:
     """Generates TypeScript definitions for the frontend from the public schema."""
     root_dir = Path(__file__).resolve().parent.parent
     ts_file = root_dir / "frontend" / "src" / "types" / "db.ts"
@@ -25,6 +41,7 @@ def generate_typescript_types(db_url: str, quiet: bool = False) -> Path:
     if not quiet:
         print("▶️  Generating TypeScript types for frontend...")
 
+    target_flags = _normalize_target_flags(target)
     cmd_ts = [
         "npx",
         "-y",
@@ -33,11 +50,10 @@ def generate_typescript_types(db_url: str, quiet: bool = False) -> Path:
         "gen",
         "types",
         "typescript",
-        "--db-url",
-        db_url,
         "--schema",
         "public",
     ]
+    cmd_ts.extend(target_flags)
     result_ts = subprocess.run(cmd_ts, capture_output=True, text=True)
 
     if result_ts.returncode == 0:
@@ -64,7 +80,9 @@ def generate_typescript_types(db_url: str, quiet: bool = False) -> Path:
     raise SystemExit(1)
 
 
-def generate_python_types(db_url: str, quiet: bool = False) -> Path:
+def generate_python_types(
+    target: str | list[str] | None = None, quiet: bool = False
+) -> Path:
     """Generates Python type models for the backend from the public schema."""
     root_dir = Path(__file__).resolve().parent.parent
     py_file = root_dir / "backend" / "src" / "types" / "db.py"
@@ -73,6 +91,7 @@ def generate_python_types(db_url: str, quiet: bool = False) -> Path:
     if not quiet:
         print("▶️  Generating Python types for backend...")
 
+    target_flags = _normalize_target_flags(target)
     cmd_py = [
         "npx",
         "-y",
@@ -81,11 +100,10 @@ def generate_python_types(db_url: str, quiet: bool = False) -> Path:
         "gen",
         "types",
         "--lang=python",
-        "--db-url",
-        db_url,
         "--schema",
         "public",
     ]
+    cmd_py.extend(target_flags)
     result_py = subprocess.run(cmd_py, capture_output=True, text=True)
 
     if result_py.returncode == 0:
@@ -112,23 +130,16 @@ def generate_python_types(db_url: str, quiet: bool = False) -> Path:
     raise SystemExit(1)
 
 
-def main(db_url: str | None = None, quiet: bool = False) -> None:
-    resolved_db_url = db_url or _env_helper.POSTGRES_URI
-    if not resolved_db_url:
-        print("Error: POSTGRES_URI environment variable is not set.", file=sys.stderr)
-        print(
-            "Please set it. Example: export POSTGRES_URI='postgresql://postgres:password@host:5432/postgres'",
-            file=sys.stderr,
-        )
-        raise ValueError("POSTGRES_URI environment variable is not set.")
+def main(target: str | list[str] | None = None, quiet: bool = False) -> None:
+    target_flags = _normalize_target_flags(target)
 
     # Execute TypeScript and Python type generation concurrently
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_ts = executor.submit(
-            generate_typescript_types, resolved_db_url, quiet
+            generate_typescript_types, target_flags, quiet
         )
         future_py = executor.submit(
-            generate_python_types, resolved_db_url, quiet
+            generate_python_types, target_flags, quiet
         )
 
         for future in as_completed([future_ts, future_py]):
