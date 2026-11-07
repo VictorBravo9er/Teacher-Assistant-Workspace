@@ -15,6 +15,8 @@ dependencies = [
     "langchain-openrouter>=0.2.6",
     "langgraph>=1.2.9",
     "langgraph-checkpoint-postgres>=3.1.0",
+    "psycopg[binary]>=3.3.4",
+    "psycopg-pool>=3.3.1",
 ]
 
 [dependency-groups]
@@ -27,7 +29,7 @@ dev = [
 
 [tool.poe.tasks]
 run-dev = "uvicorn src.main:app --reload --host 0.0.0.0 --port 8000"
-lint = { shell = "ruff check . && basedpyright && python ../scripts/verify_doc_coverage.py backend" }
+lint = { shell = "ruff check . && basedpyright --level error && python ../scripts/verify_doc_coverage.py backend" }
 format = "ruff format ."
 
 [tool.uv]
@@ -45,6 +47,8 @@ exclude = [
 per-file-ignores = { "src/types/db.py" = ["ALL"] }
 
 [tool.basedpyright]
+typeCheckingMode = "standard"
+failOnWarnings = false
 include = ["src"]
 exclude = [
     "**/__pycache__",

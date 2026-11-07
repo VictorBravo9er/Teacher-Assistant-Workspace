@@ -142,24 +142,37 @@ erDiagram
 
 1. **`ai.ontology_concepts`**:
    - Represents subject learning objectives (`subject`, `code`, `name`, `description`, `bloom_level`, `parent_concept_id`).
+   - Enhanced with **OKF v0.2 Governance Fields**:
+     - `okf_type` (e.g. `'Concept'`, `'Standard'`, `'RubricCriteria'`, `'Misconception'`).
+     - `status` (`'draft'`, `'active'`, `'deprecated'`, `'superseded'`).
+     - `verified_by` (`'unverified'`, `'machine-confirmed'`, `'human-reviewed'`).
+     - `stale_after` (`TIMESTAMPTZ` expiration timestamp).
+     - `tags` (`TEXT[]` domain tags).
    - `bloom_level` ∈ `{'Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'}`.
 2. **`ai.ontology_relationships`**:
    - Directed knowledge edges (`source_concept_id`, `target_concept_id`, `relationship_type`, `weight`).
-   - Types: `'prerequisite_of'`, `'subconcept_of'`, `'reinforces'`, `'related_to'`.
+   - Enforces a closed vocabulary (`chk_relationship_type`):
+     `'prerequisite_of'`, `'subconcept_of'`, `'reinforces'`, `'remediates_misconception'`, `'assesses'`, `'supersedes'`, `'related_to'`.
 3. **`ai.material_concept_mappings`**:
-   - Explicit bridge linking materials and hierarchical sections to ontological concepts with a confidence score and evidence excerpt:
+   - Explicit bridge linking materials and hierarchical sections to ontological concepts with leaf binding and trust tiers:
    ```sql
    CREATE TABLE IF NOT EXISTS ai.material_concept_mappings (
        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
        material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
        concept_id UUID NOT NULL REFERENCES ai.ontology_concepts(id) ON DELETE CASCADE,
-       section_path TEXT,                            -- e.g. 'Unit 2 > Section 2.1' or tree node ID
+       section_path TEXT,                            -- e.g. 'Unit 2 > Section 2.1'
+       tree_node_id TEXT,                            -- Explicit leaf binding to PageIndex tree node
+       page_number INTEGER,                          -- Physical or logical page number
        relationship TEXT NOT NULL DEFAULT 'teaches', -- 'teaches', 'assesses', 'prerequisite_for'
        relevance_score NUMERIC DEFAULT 1.0,
+       confidence FLOAT DEFAULT 1.0,                 -- Extraction confidence [0, 1]
        evidence_excerpt TEXT,
+       verified_by TEXT DEFAULT 'machine-confirmed', -- 'unverified', 'machine-confirmed', 'human-reviewed'
        created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
    );
    ```
 4. **`ai.material_insights`**:
    - Stores automated syllabus alignment scores, detected prerequisite knowledge gaps, and generated multi-choice practice questions.
+5. **`ai.staging_scratchpad`**:
+   - Fast staging buffer for high-frequency in-session notes, conversational directives, and real-time extracted insights before daily anti-drift consolidation.
 

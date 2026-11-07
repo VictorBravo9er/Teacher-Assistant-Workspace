@@ -107,8 +107,7 @@ export default function CommandPalette({
 
         {/* Command Body */}
         <div className="max-h-72 overflow-y-auto p-2 space-y-3">
-          {/* TODO: Uncomment when AI / RAG services are reintegrated */}
-          {/* Quick Actions
+          {/* Quick Actions */}
           <div className="space-y-1">
             <span className="text-[9px] font-mono font-bold text-muted-text uppercase px-2 py-1 block">
               Quick System Controls
@@ -126,7 +125,7 @@ export default function CommandPalette({
                 [{isFocusMode ? "ON" : "OFF"}]
               </span>
             </div>
-          </div> */}
+          </div>
 
           {/* Classes Result */}
           {filteredClasses.length > 0 && (

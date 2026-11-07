@@ -1,6 +1,6 @@
-# AI, Vector Search & Ontological Knowledge Subsystem
+# AI, Knowledge Store & Ontological Subsystem
 
-The **AI, Vector Search & Ontological Knowledge Subsystem** powers the intelligent capabilities of the Didactiq platform. It combines dense semantic retrieval (`pgvector`), structured pedagogical knowledge graphs (`ai` schema), autonomous grading pipelines, and interactive Retrieval-Augmented Generation (RAG) chat assistants.
+The **AI, Knowledge Store & Ontological Subsystem** powers the intelligent capabilities of the Didactiq platform. It implements a **Lean Dual-Engine Knowledge Architecture** combining hierarchical document trees (`ai.material_trees` inspired by PageIndex/RAPTOR), structured pedagogical knowledge graphs (`ai.ontology_concepts` and `ai.ontology_relationships` conforming to OKF v0.2), autonomous rubric auto-grading and misconception detection, and an interactive context-budgeted RAG assistant guarded by a pre-query soft-warning gate.
 
 ---
 
@@ -10,23 +10,29 @@ The **AI, Vector Search & Ontological Knowledge Subsystem** powers the intellige
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TB
     subgraph ClientUI["Client Frontend (React 19)"]
-        ChatUI["Interactive RAG Chat (RAGClass.tsx)"]
+        ChatUI["Interactive Assistant UI (RAGClass.tsx)"]
         DiffModal["AI Diagnostic Review (AIDiagnosticDiffModal.tsx)"]
         MatModal["Material Preview & AI Analysis (MaterialPreviewModal.tsx)"]
+        Gradebook["Teacher Gradebook Matrix (Proposed Misconception Review)"]
     end
 
     subgraph BackendGateway["Backend FastAPI Service (/api)"]
-        ChatEndpoint["POST /api/chat (ChatService)"]
+        ChatEndpoint["POST /api/chat (ChatService + Soft-Warning Gate)"]
         GradeEndpoint["POST /api/grade (EvaluatorService)"]
-        AnalyzeEndpoint["POST /api/materials/analyze (EvaluatorService)"]
-        OntologySvc["OntologyService (Graph Mapping)"]
+        AnalyzeEndpoint["POST /api/materials/analyze (TreeIndexer + EvaluatorService)"]
+        TreeEndpoint["POST /api/materials/tree (TreeIndexerService)"]
+        ConsolidateEndpoint["POST /api/consolidation/run (ConsolidationService)"]
+        OntologySvc["OntologyService (Graph Mapping & Recursive CTE Traversal)"]
     end
 
     subgraph AISchemaBoundary["PostgreSQL 'ai' Schema (Private)"]
-        VectorStore["pgvector HNSW Indexes (material_embeddings, submission_embeddings)"]
-        OntologyGraph["Ontology Graph (concepts, relationships, misconceptions)"]
-        ConceptMastery["student_concept_mastery (Dynamic Mastery Scores)"]
-        InsightsTable["material_insights & submission_evaluations"]
+        TreeStore["ai.material_trees (PageIndex Hierarchical JSONB Trees)"]
+        OntologyGraph["Ontology Graph (ai.ontology_concepts & relationships - OKF v0.2)"]
+        ConceptMastery["ai.student_concept_mastery (Dynamic Mastery Scores)"]
+        MisconceptionsTable["ai.ontology_misconceptions (Proposed / Confirmed / Dismissed)"]
+        InsightsTable["ai.material_insights & ai.submission_evaluations"]
+        ConsolidationLogs["ai.consolidation_runs & ai.knowledge_lint_reports"]
+        AnswerableGate["ai.check_answerable() Soft-Warning Stored Procedure"]
     end
 
     subgraph GatewayRPCs["Public RPC Gateways"]
@@ -42,15 +48,26 @@ flowchart TB
 
     ChatUI -->|ChatPayload| ChatEndpoint
     DiffModal -->|Review AI Breakdown| GradeEndpoint
-    MatModal -->|Fetch Syllabus Insights| AnalyzeEndpoint
+    MatModal -->|Fetch Syllabus Insights & Tree| AnalyzeEndpoint
+    Gradebook -->|Review Proposed Misconceptions| OntologySvc
 
+    ChatEndpoint --> AnswerableGate
     ChatEndpoint --> OpenRouter
     GradeEndpoint --> OpenRouter
     AnalyzeEndpoint --> OpenRouter
+    ConsolidateEndpoint --> OpenRouter
 
     GradeEndpoint --> InsightsTable
-    AnalyzeEndpoint --> InsightsTable
+    GradeEndpoint --> MisconceptionsTable
+    GradeEndpoint --> ConceptMastery
+
+    AnalyzeEndpoint --> TreeStore
     AnalyzeEndpoint --> OntologyGraph
+    AnalyzeEndpoint --> InsightsTable
+
+    ConsolidateEndpoint --> ConsolidationLogs
+    ConsolidateEndpoint --> OntologyGraph
+    ConsolidateEndpoint --> MisconceptionsTable
 
     ClientUI -->|Invoke Public RPC| GatewayRPCs
     GatewayRPCs --> AISchemaBoundary
@@ -58,49 +75,33 @@ flowchart TB
 
 ---
 
-## 2. Private `ai` Schema DDL & Vector Storage
+## 2. Private `ai` Schema DDL & Non-Vector Knowledge Storage
 
-To ensure complete data protection, the `ai` schema is kept private from public PostgREST API exposure. All frontend data access occurs through vetted public RPC gateway functions.
+To ensure complete data protection, the `ai` schema is kept private from public PostgREST API exposure. All frontend data access occurs through vetted public RPC gateway functions or authenticated backend services.
 
-### 2.1 Vector Store Embeddings (`pgvector` + HNSW)
-The schema maintains dense 1536-dimensional semantic embeddings indexed using Hierarchical Navigable Small World (HNSW) graphs with cosine distance metrics:
+### 2.1 Hierarchical Tree Store (`ai.material_trees`)
+Documents $\ge 20$ pages are indexed into a hierarchical tree of section summaries and key concepts, eliminating arbitrary chunk slicing:
 
 ```sql
--- Material Document Chunks & Embeddings
-CREATE TABLE IF NOT EXISTS ai.material_embeddings (
+CREATE TABLE IF NOT EXISTS ai.material_trees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
-    chunk_index INTEGER NOT NULL,
-    chunk_content TEXT NOT NULL,
-    token_count INTEGER,
-    embedding extensions.vector(1536),
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    root_node JSONB NOT NULL,
+    total_nodes INTEGER NOT NULL DEFAULT 1,
+    max_depth INTEGER NOT NULL DEFAULT 1,
+    page_count INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'completed',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_material_trees_material UNIQUE (material_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ai_mat_embed_hnsw 
-ON ai.material_embeddings USING hnsw (embedding extensions.vector_cosine_ops);
-
--- Student Submission Chunks & Embeddings
-CREATE TABLE IF NOT EXISTS ai.submission_embeddings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    submission_id UUID NOT NULL REFERENCES public.student_submissions(id) ON DELETE CASCADE,
-    chunk_index INTEGER NOT NULL,
-    chunk_content TEXT NOT NULL,
-    token_count INTEGER,
-    embedding extensions.vector(1536),
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_sub_embed_hnsw 
-ON ai.submission_embeddings USING hnsw (embedding extensions.vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_material_trees_material_id ON ai.material_trees(material_id);
+CREATE INDEX IF NOT EXISTS idx_material_trees_root_node_gin ON ai.material_trees USING gin (root_node);
 ```
 
----
-
-### 2.2 Ontological Knowledge Graph Tables
-The ontological graph represents academic standards, conceptual dependencies, and student misconceptions:
+### 2.2 Ontological Knowledge Graph & OKF v0.2 Envelopes
+The ontology represents academic standards, conceptual dependencies, and student misconceptions conforming to OKF v0.2:
 
 ```mermaid
 erDiagram
@@ -111,17 +112,26 @@ erDiagram
 ```
 
 1. **`ai.ontology_concepts`**:
-   - Represents subject learning objectives and concepts (`id`, `subject`, `code`, `name`, `description`, `bloom_level`, `parent_concept_id`, `metadata`).
+   - Represents subject learning objectives and concepts (`id`, `subject`, `code`, `name`, `description`, `bloom_level`, `parent_concept_id`, `okf_type`, `status`, `verified_by`, `stale_after`, `tags`, `metadata`).
 2. **`ai.ontology_relationships`**:
    - Directed knowledge graph edges connecting concepts (`source_concept_id`, `target_concept_id`, `relationship_type`, `weight`, `metadata`).
-   - `relationship_type` includes `'prerequisite_of'`, `'builds_upon'`, `'relates_to'`, `'assesses'`.
+   - `relationship_type` enforced by closed vocabulary check: `'prerequisite_of'`, `'part_of'`, `'related_to'`, `'generalization_of'`, `'derived_from'`, `'assesses'`.
 3. **`ai.ontology_misconceptions`**:
-   - Catalog of known pedagogical traps and misunderstandings (`concept_id`, `title`, `description`, `remedial_strategy`).
+   - Catalog of known pedagogical traps and misunderstandings (`id`, `class_id`, `concept_id`, `prerequisite_concept_id`, `name`, `error_pattern`, `remediation_strategy`, `severity`, `status`, `confidence`, `evidence_submission_ids`, `surfaced_in_gradebook`, `reviewed_by`, `reviewed_at`).
+   - Status transitions: `'proposed'` $\to$ `'confirmed'` or `'dismissed'`.
 4. **`ai.material_concept_mappings`**:
-   - Junction connecting material text chunks to ontological concepts with a relevance weight (`0.0` to `1.0`).
+   - Junction connecting material hierarchical tree nodes or pages to ontological concepts (`material_id`, `concept_id`, `tree_node_id`, `page_number`, `relationship`, `relevance_score`, `confidence`, `evidence_excerpt`, `verified_by`).
 5. **`ai.student_concept_mastery`**:
    - Tracks dynamic concept mastery per student per class (`student_id`, `class_id`, `concept_id`, `mastery_score`, `confidence`, `status`, `evidence_submission_ids`).
    - `status`: `'mastered'` ($\ge 0.85$), `'practicing'` ($0.65 - 0.84$), `'gap_detected'` ($< 0.65$).
+6. **`ai.consolidation_runs` & `ai.staging_scratchpad`**:
+   - Maintains audit logs for daily anti-drift verification, orphan/cycle repairs, and temporary hypothesis staging.
+
+### 2.3 Pre-Query Soft-Warning Gate (`ai.check_answerable`)
+Before querying the assistant, questions pass through `ai.check_answerable(p_class_id, p_query_terms)`:
+- If `coverage_score >= 0.4`: Green light, answers directly.
+- If `coverage_score < 0.4`: Soft warning returned with caveat: `"Processing and consolidation isn't complete so answers might not be complete. Do you still want to continue?"` Users can confirm to proceed cooperatively.
+- If class has no materials: Refusal flag.
 
 ---
 
@@ -184,7 +194,9 @@ Performs pedagogical analysis of uploaded syllabus documents and study materials
 ---
 
 ### 3.3 Interactive RAG Didactiq Assistant (`/api/chat`)
-The interactive assistant compiles classroom metadata, student rosters, running gradebook statistics, and active session configurations into the prompt context:
+The interactive assistant compiles classroom metadata, student rosters, running gradebook statistics, and active session configurations into the prompt context. It passes incoming queries through `ai.check_answerable` to ensure the curriculum coverage meets confidence thresholds:
+- When coverage $\ge 0.4$, executes dual-engine context fusion (traversing material hierarchical trees and recursive concept prerequisite chains).
+- When coverage $< 0.4$, issues a cooperative soft warning caveat to the user: *"Processing and consolidation isn't complete so answers might not be complete. Do you still want to continue?"*
 
 #### Assistant Output Format:
 The assistant produces a structured JSON payload containing rich markdown text and optional interactive visualization widgets:
@@ -212,12 +224,26 @@ Supported visualization types rendered by `Visualizer.tsx`:
 
 ---
 
-## 4. Public Gateway RPC Functions
+### 3.4 Hierarchical Document Tree Indexing (`/api/materials/tree`)
+For materials $\ge 20$ pages, the Tree Indexer extracts table-of-contents structural outlines, recurses through section hierarchies, produces section-level abstract summaries with key concepts, and persists them into `ai.material_trees`. Retrieval traverses top-down from root to targeted leaves in $<15\text{ms}$.
 
-To securely bridge the private `ai` schema to the client frontend, the database provides security-definer RPC functions:
+---
+
+### 3.5 Daily Anti-Drift Consolidation & Misconception Dreaming (`/api/consolidation/run`)
+A scheduled daily maintenance runner performs:
+1. **Graph Drift & Integrity Auditing**: Detects orphaned concept nodes and cyclic prerequisite dependencies, auto-repairing or logging them to `ai.knowledge_lint_reports`.
+2. **Autonomous Misconception Dreaming**: Synthesizes cross-submission error patterns across classes to discover emerging pedagogical misconceptions, inserting them into `ai.ontology_misconceptions` with `status = 'proposed'`.
+3. **Gradebook Surfacing**: Proposed misconceptions are surfaced directly in the Teacher's Gradebook Matrix for one-click confirmation or dismissal.
+
+---
+
+## 4. Public Gateway RPC Functions & Stored Procedures
+
+To securely bridge the private `ai` schema to the client frontend and backend services, the database provides security-definer RPC functions:
 
 | Function Name | Parameters | Output Payload |
 | :--- | :--- | :--- |
+| `check_answerable` | `p_class_id UUID, p_query_terms TEXT[]` | Soft-warning gate returning `is_answerable`, `status_flag`, `coverage_score`, `missing_terms`, `requires_confirmation`, `caveat_message`. |
 | `get_submission_ai_diagnostic` | `p_submission_id UUID` | Returns evaluation status, breakdown criteria, private notes, and rationale. |
 | `get_material_ai_insights` | `p_material_id UUID` | Returns syllabus alignment, prerequisite gap list, and sample Q&A. |
 | `get_student_concept_gaps` | `p_student_id UUID, p_class_id UUID` | Returns array of concepts with `status = 'gap_detected'` and remedial recommendations. |

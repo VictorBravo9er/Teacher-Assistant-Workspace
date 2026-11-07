@@ -29,14 +29,15 @@ gantt
 
 ## 2. Detailed Phase Breakdown
 
-### Phase 1: Database DDL & Schema Enhancements (`supabase/schemas/schema-ai.sql`)
-- [ ] Add `ai.material_trees` table with recursive JSONB node definitions and B-Tree indexes.
-- [ ] Update `ai.student_concept_mastery` trigger routines for exponential moving average updates.
-- [ ] Verify recursive CTE query performance for prerequisite graph traversal on `ai.ontology_relationships`.
-- [ ] Implement secure public RPC gateways:
-  - `get_material_tree(p_material_id UUID)`
-  - `get_student_concept_mastery_matrix(p_class_id UUID)`
-  - `get_concept_prerequisite_tree(p_concept_id UUID)`
+### Phase 1: Database DDL & Schema Enhancements (`supabase/migrations/20261107100000_knowledge_store_enhancements.sql`)
+- [x] Add `ai.material_trees` table with recursive JSONB node definitions and B-Tree indexes.
+- [x] Enhance `ai.ontology_concepts` with OKF v0.2 governance fields (`okf_type`, `status`, `verified_by`, `stale_after`, `tags`).
+- [x] Enforce closed vocabulary check constraint on `ai.ontology_relationships` (`prerequisite_of`, `subconcept_of`, `reinforces`, `remediates_misconception`, `assesses`, `supersedes`, `related_to`).
+- [x] Enhance `ai.material_concept_mappings` with `tree_node_id`, `page_number`, `confidence`, and `verified_by`.
+- [x] Enhance `ai.ontology_misconceptions` with `class_id`, `prerequisite_concept_id`, `name`, `status` (`proposed`, `confirmed`, `dismissed`), `confidence`, and `surfaced_in_gradebook` for direct Gradebook Matrix visibility.
+- [x] Add `ai.consolidation_runs`, `ai.staging_scratchpad`, and `ai.knowledge_lint_reports` for tracking the daily anti-drift consolidation and linting cycle.
+- [x] Implement pre-query coverage checker RPC `ai.check_answerable` with cooperative soft-warning UX.
+- [x] Apply migration via Supabase CLI and synchronize TypeScript (`frontend/src/types/db.ts`) and Python (`backend/src/types/db.py`) contracts.
 
 ### Phase 2: Ingestion, Normalization & Tree Indexing
 - [ ] Enhance Deno Edge Function `extract-material-text` with `markitdown` text normalization.

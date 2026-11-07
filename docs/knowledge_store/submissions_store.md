@@ -104,20 +104,30 @@ sequenceDiagram
 
 ## 4. Misconception & Error Taxonomy (`ai.ontology_misconceptions`)
 
-To prevent generic feedback, the Knowledge Store matches student errors against a formal pedagogical misconception taxonomy:
+To prevent generic feedback, the Knowledge Store matches student errors against a formal pedagogical misconception taxonomy. The daily anti-drift / consolidation pass also runs autonomous "Misconception Dreaming" to hypothesize new error patterns, which are surfaced directly in the teacher's **Gradebook Matrix**:
 
 ```sql
 CREATE TABLE IF NOT EXISTS ai.ontology_misconceptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID REFERENCES public.classes(id) ON DELETE CASCADE,
     concept_id UUID NOT NULL REFERENCES ai.ontology_concepts(id) ON DELETE CASCADE,
-    error_pattern TEXT NOT NULL,          -- e.g. 'Treats (a+b)^2 as a^2 + b^2 (Freshman's Dream)'
+    prerequisite_concept_id UUID REFERENCES ai.ontology_concepts(id) ON DELETE SET NULL,
+    name TEXT NOT NULL DEFAULT 'Pedagogical Misconception',
+    error_pattern TEXT NOT NULL,          -- e.g. 'Treats (a+b)^2 as a^2 + b^2 (Freshman''s Dream)'
     remediation_strategy TEXT NOT NULL,   -- e.g. 'Guide with geometric 2x2 area model'
     severity TEXT DEFAULT 'Moderate',     -- 'Minor', 'Moderate', 'Critical'
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    status TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'confirmed', 'dismissed')),
+    confidence FLOAT DEFAULT 1.0,         -- Statistical confidence [0, 1]
+    evidence_submission_ids UUID[] DEFAULT '{}',
+    surfaced_in_gradebook BOOLEAN NOT NULL DEFAULT TRUE,
+    teacher_reviewed_at TIMESTAMPTZ,
+    teacher_reviewer_id UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 ```
 
-When the evaluator detects an error matching `error_pattern`, it automatically attaches the corresponding `remediation_strategy` to the private teacher notes and student feedback.
+When candidate misconceptions are generated during the nightly consolidation pass, they appear directly in the **Gradebook Matrix (`GradebookMatrix.tsx`)** with an amber `status: 'proposed'` badge. Teachers can review the underlying evidence submission IDs and click **[Accept]** (promoting to `'confirmed'`) or **[Dismiss]** in one click.
 
 ---
 

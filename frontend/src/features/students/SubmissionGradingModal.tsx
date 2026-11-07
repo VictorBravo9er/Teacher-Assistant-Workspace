@@ -266,8 +266,7 @@ export default function SubmissionGradingModal({
           }
           onClose={onClose}
         >
-          {/* TODO: Uncomment when AI / RAG services are reintegrated */}
-          {/* <Button
+          <Button
             variant="secondary"
             size="xs"
             onClick={handleDiagnoseWithAI}
@@ -276,7 +275,7 @@ export default function SubmissionGradingModal({
             title="Generate AI Evaluation Breakdown and Constructive Feedback"
           >
             {isDiagnosingAI ? 'Analyzing...' : 'Diagnose with AI'}
-          </Button> */}
+          </Button>
         </ModalHeader>
 
         {/* Body: Split View */}
@@ -574,8 +573,7 @@ export default function SubmissionGradingModal({
         </ModalFooter>
       </Modal>
 
-      {/* TODO: Uncomment when AI / RAG services are reintegrated */}
-      {/* {aiSuggestion && (
+      {aiSuggestion && (
         <AIDiagnosticDiffModal
           isOpen={isAIDiffOpen}
           onClose={() => setIsAIDiffOpen(false)}
@@ -589,7 +587,7 @@ export default function SubmissionGradingModal({
           aiSuggestion={aiSuggestion}
           onApply={handleApplyAISuggestion}
         />
-      )} */}
+      )}
     </>
   );
 }

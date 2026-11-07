@@ -1,21 +1,35 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager
 import time
 import uuid
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from src.lib.db import close_db_pool, init_db_pool
 from src.lib.logger import http_logger, request_id_ctx
 from src.server.router import router
 from starlette.responses import Response
 
 _ = load_dotenv()
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+    try:
+        _ = await init_db_pool()
+    except Exception as exc:
+        http_logger.warning("DB pool initialization deferred: %s", exc)
+    yield
+    await close_db_pool()
+
+
 app = FastAPI(
     title="Didactiq RAG API",
     docs_url="/docs",
     redoc_url=None,
     openapi_url="/api/internal-data/openapi.json",
+    lifespan=lifespan,
 )
 
 # Configure CORS

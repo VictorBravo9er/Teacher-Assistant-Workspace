@@ -6,14 +6,16 @@ The **Unified Retrieval, Reasoning & RAG Engine** coordinates multi-modal search
 
 ## 1. Dual-Engine Pedagogical Retrieval & Context Assembly
 
-To answer diverse pedagogical queries (ranging from specific textbook unit breakdowns to multi-student longitudinal gap analyses), the retrieval engine executes a **Dual-Engine Search & Context Strategy** that completely bypasses vector database latency and token bloat:
+To answer diverse pedagogical queries (ranging from specific textbook unit breakdowns to multi-student longitudinal gap analyses), the retrieval engine executes a **Dual-Engine Search & Context Strategy** governed by a pre-query **Soft-Warning Coverage Gate (`ai.check_answerable`)** that completely bypasses vector database latency and token bloat:
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
     UserQuery["Teacher / Student Query in /api/chat"]
 
-    subgraph QueryClassifier["1. Query Intent Classification & Scope Filter"]
+    subgraph QueryClassifier["1. Pre-Query Gate & Scope Filter"]
+        Gate{"ai.check_answerable Gate"}
+        SoftWarn["Soft Warning Caveat:\n'Consolidation incomplete; continue?'"]
         IntentRouter{"Analyze Scope & Intent"}
     end
 
@@ -34,7 +36,11 @@ flowchart TD
         UI["Render Markdown Text + Interactive Visualizer Widget"]
     end
 
-    UserQuery --> IntentRouter
+    UserQuery --> Gate
+    Gate -->|Coverage < 0.4 / Pending| SoftWarn
+    SoftWarn -->|User Confirms Continue| IntentRouter
+    Gate -->|Coverage >= 0.4 Verified| IntentRouter
+    
     IntentRouter -->|Long Document / Unit Deep-Dive| TreeSearch
     IntentRouter -->|Curriculum Prerequisite / Learning Gap| GraphSearch
     IntentRouter -->|Student Gradebook / Assignment Review| RosterContext

@@ -1,6 +1,6 @@
 # Didactiq Knowledge Store Subsystem
 
-The **Didactiq Knowledge Store Subsystem** is an educational knowledge compilation, indexing, and diagnostic engine designed specifically for classroom workflows. It draws architectural inspiration from **OpenKB** (compiled LLM wikis & persistent knowledge graphs), **PageIndex / RAPTOR** (hierarchical tree indexing for long educational documents), and **GraphRAG / LightRAG** (dual-level concept & prerequisite graphs), tailoring them directly to the needs of educators managing curriculum materials and student assignment submissions.
+The **Didactiq Knowledge Store Subsystem** is an educational knowledge compilation, indexing, and diagnostic engine designed specifically for classroom workflows. It draws architectural inspiration from **OpenKB** (compiled LLM wikis & persistent knowledge graphs), **Open Knowledge Foundation (OKF v0.2)** (standardized artifact envelopes and closed vocabularies), **PageIndex / RAPTOR** (hierarchical tree indexing for long educational documents), and **GraphRAG / LightRAG** (dual-level concept & prerequisite graphs), tailoring them directly to the needs of educators managing curriculum materials and student assignment submissions.
 
 ---
 
@@ -16,16 +16,17 @@ The **Didactiq Knowledge Store** bridges this gap using a **Lean Dual-Plane Know
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TB
-    subgraph Ingestion["1. Multi-Modal Ingestion Pipeline"]
+    subgraph Ingestion["1. Dual Ingestion & Ingest Harness Pipeline"]
         MatFiles["Course Materials (Syllabi, PDFs, Notes, Rubrics)"]
         SubFiles["Student Submissions (PDFs, DOCX, Code, Essay Work)"]
         Parser["markitdown / Deno Edge Parser"]
+        PrimaryHarness["Backend AI Agent Harness (Real-Time per Upload/Submit)"]
     end
 
     subgraph Plane1["Plane 1: Curriculum & Materials Knowledge Store"]
         TreeIndex["Hierarchical Tree Index (ai.material_trees / PageIndex)"]
         FullText["Direct Text & Section Store (public.materials.content)"]
-        OntologyGraph["Ontological Knowledge Graph (ai.ontology_concepts & relationships)"]
+        OntologyGraph["Ontological Knowledge Graph (ai.ontology_concepts & relationships - OKF v0.2)"]
     end
 
     subgraph Plane2["Plane 2: Student Submissions & Mastery Portfolio Store"]
@@ -35,30 +36,43 @@ flowchart TB
         Misconceptions["Error & Misconception Taxonomy (ai.ontology_misconceptions)"]
     end
 
-    subgraph RuntimeSurfaces["3. Runtime AI Assistants & Frontends"]
-        ChatRAG["Interactive Assistant (/api/chat + In-Prompt RAG)"]
+    subgraph ConsolidationPlane["3. Background Integrity & Consolidation"]
+        CronPass["Daily Cron Job Runner (/api/consolidation/run)"]
+        DriftAudit["Anti-Drift Graph Linkage Audit & Repair"]
+        DreamingCycle["Autonomous Misconception Dreaming"]
+    end
+
+    subgraph RuntimeSurfaces["4. Runtime AI Assistants & Frontends"]
+        SoftGate["Pre-Query Soft-Warning Gate (ai.check_answerable)"]
+        ChatRAG["Interactive Assistant (/api/chat + Dual-Engine RAG)"]
         DiffModal["AI Diagnostic Review Modal (AIDiagnosticDiffModal.tsx)"]
-        MatrixView["Gradebook & Mastery Matrix (GradebookMatrix.tsx)"]
+        MatrixView["Teacher Gradebook Matrix (Proposed Misconception Review)"]
         ReportCards["Parent Briefing & Report Cards (ReportCardModal.tsx)"]
     end
 
     MatFiles --> Parser
     SubFiles --> Parser
-    Parser --> TreeIndex
-    Parser --> FullText
-    Parser --> SubText
+    Parser --> PrimaryHarness
+    PrimaryHarness --> TreeIndex
+    PrimaryHarness --> FullText
+    PrimaryHarness --> SubText
 
-    TreeIndex --> OntologyGraph
-    FullText --> OntologyGraph
-
-    SubText --> AutoEval
+    PrimaryHarness --> OntologyGraph
+    PrimaryHarness --> AutoEval
     AutoEval --> MasteryMatrix
     AutoEval --> Misconceptions
 
-    OntologyGraph --> ChatRAG
-    TreeIndex --> ChatRAG
+    CronPass --> DriftAudit
+    DriftAudit --> OntologyGraph
+    CronPass --> DreamingCycle
+    DreamingCycle --> Misconceptions
+
+    OntologyGraph --> SoftGate
+    TreeIndex --> SoftGate
+    SoftGate --> ChatRAG
     MasteryMatrix --> ChatRAG
     AutoEval --> DiffModal
+    Misconceptions --> MatrixView
     MasteryMatrix --> MatrixView
     MasteryMatrix --> ReportCards
 ```
@@ -69,11 +83,12 @@ flowchart TB
 
 | Dimension | Standard Chunk-Based RAG | OpenKB (Compiled LLM Wiki) | PageIndex / RAPTOR | **Didactiq Knowledge Store (Our Implementation)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Data Structure** | Flat vector index (`vector(1536)`) | Interlinked Markdown files (`[[wikilinks]]`) | Recursive Tree of Abstracts / TOC Trees | **Lean Dual-Engine: PostgreSQL Private `ai` Schema + Hierarchical Tree JSONB + Relational Graph (Zero Vector DB Overhead)** |
+| **Primary Data Structure** | Flat vector index (`vector(1536)`) | Interlinked Markdown files (`[[wikilinks]]`) | Recursive Tree of Abstracts / TOC Trees | **Lean Dual-Engine: PostgreSQL Private `ai` Schema + Hierarchical Tree JSONB + Relational Graph with OKF v0.2 Envelopes (Zero Vector DB Overhead)** |
 | **Long Document Handling** | Fixed-size chunking with overlaps | PageIndex tree index + LLM reading | Multi-layer summarization tree | **Dual-route: Direct full-text (<20 pages) vs. Hierarchical Tree Index (≥20 pages) in `ai.material_trees`** |
-| **Knowledge Evolution** | Static chunks; no cross-doc synthesis | Incremental wiki compilation on `add` | Re-clustering on corpus changes | **Trigger-based incremental compilation: `trg_material_ai_analysis` & `trg_submission_ai_eval`** |
+| **Knowledge Evolution** | Static chunks; no cross-doc synthesis | Incremental wiki compilation on `add` | Re-clustering on corpus changes | **Dual-tier compilation: Real-time agent ingestion on submit/upload + Daily anti-drift consolidation & Misconception Dreaming cron pass** |
 | **Student Longitudinal Modeling** | Not supported (treats submissions as text) | Not supported (general-purpose KB) | Not supported | **Dedicated `ai.student_concept_mastery` tracking scores, confidence, and Bloom levels over time** |
-| **Error & Misconception Tracking** | None | Contradiction alerts in wiki | None | **Structured pedagogical error taxonomy in `ai.ontology_misconceptions` with remediation strategies** |
+| **Error & Misconception Tracking** | None | Contradiction alerts in wiki | None | **Structured pedagogical error taxonomy in `ai.ontology_misconceptions` with remediation strategies surfaced directly in Teacher's Gradebook Matrix** |
+| **Pre-Query Verification** | None (always retrieves) | File existence check | None | **`ai.check_answerable` gate returning soft warnings with caveats when processing/consolidation is incomplete** |
 | **Security & Multi-Tenancy** | Custom metadata filters | Local-first file system | In-memory / library | **Strict PostgreSQL Row Level Security (RLS) + Private `ai` schema isolated from public PostgREST API** |
 
 ---
