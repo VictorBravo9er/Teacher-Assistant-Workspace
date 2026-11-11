@@ -97,21 +97,21 @@ flowchart TB
 
 The Knowledge Store is organized across 4 detailed design documents:
 
-1. **[`materials_store.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/materials_store.md)**:
+1. **[`materials_store.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/knowledge_store/materials_store.md)**:
    - File normalization & multi-modal parsing (`markitdown` + Edge Functions).
    - Hierarchical Tree Indexing algorithm (TOC extraction $\to$ node summarization $\to$ leaf binding).
    - Ontological concept extraction and prerequisite relationship generation.
    - Direct text ingestion, token budgeting, and section breadcrumb mapping (no vector chunks).
-2. **[`submissions_store.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/submissions_store.md)**:
+2. **[`submissions_store.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/knowledge_store/submissions_store.md)**:
    - Student work ingestion from `student-submissions` storage bucket.
    - Autonomous rubric auto-grading pipeline and structured JSON scoring contracts.
    - Error detection matching against `ai.ontology_misconceptions`.
    - Longitudinal student concept mastery updates and gradebook synchronization.
-3. **[`retrieval_and_rag.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/retrieval_and_rag.md)**:
+3. **[`retrieval_and_rag.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/knowledge_store/retrieval_and_rag.md)**:
    - Dual-Engine Retrieval Algorithm (Reasoning-based tree traversal + Recursive graph expansion).
    - Context packaging and token density optimizations for `/api/chat`.
    - Interactive visualizer widget generation (heatmaps, distributions, rankings).
-4. **[`implementation_roadmap.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/knowledge_store/implementation_roadmap.md)**:
+4. **[`implementation_roadmap.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/knowledge_store/implementation_roadmap.md)**:
    - Incremental execution phases for tree indexing, graph ontology, and prompt assembly.
    - Database schema DDL additions and SQL trigger definitions.
    - Backend FastAPI endpoints and Deno Edge Function implementations.
@@ -125,7 +125,7 @@ The Knowledge Store seamlessly integrates with the existing system architecture:
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart LR
-    Frontend["Frontend (React 18 / Tailwind)"]
+    Frontend["Frontend (React 19 / Tailwind)"]
     EdgeFns["Supabase Edge Functions (Deno)"]
     Backend["Backend Service (FastAPI / uv)"]
     DB[("PostgreSQL 15+ (Supabase)")]
@@ -142,5 +142,5 @@ flowchart LR
 
 - **Database & Storage Subsystem** ([`docs/systems/database_and_storage.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/database_and_storage.md)): Stores raw entities in `public`, hierarchical trees and knowledge graphs in `ai`, and checkpoints in `langgraph`.
 - **AI & Ontology Subsystem** ([`docs/systems/ai_and_ontology_subsystem.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/ai_and_ontology_subsystem.md)): Houses the evaluation engines and prompt serialization logic.
-- **Backend Service Subsystem** ([`docs/systems/backend_service.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/backend_service.md)): Exposes `/api/chat`, `/api/grade`, and `/api/materials/analyze`.
+- **Backend Service Subsystem** ([`docs/systems/backend_service.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/backend_service.md)): Exposes `/api/chat`, `/api/grade`, `/api/materials/analyze`, `/api/materials/tree`, `/api/consolidation/run`, `GET /api/misconceptions/proposed`, and `POST /api/misconceptions/{id}/review`.
 - **Edge Functions Subsystem** ([`docs/systems/edge_functions.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/edge_functions.md)): Manages file parsing, signed URLs, and async webhook relays.

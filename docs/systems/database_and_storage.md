@@ -272,3 +272,71 @@ flowchart LR
 - **File Size Limit**: Strict 50MB per file boundary configured in `20260915110000_storage_buckets.sql`.
 - **MIME Type Allowlist**: Restricted to `.pdf`, `.docx`, `.pptx`, `.txt`, `.csv`, `.png`, `.jpg`, `.jpeg`.
 - **Private Access Control**: Direct public URLs are disabled. Students access private curriculum files via short-lived signed URLs generated through the `get-material-url` Edge Function upon verifying active enrollment in `class_students`.
+
+---
+
+## 7. AI, Knowledge Store & Ontological Schema (`ai` Schema)
+
+The private `ai` schema encapsulates the **Lean Dual-Engine Knowledge Architecture**, replacing dense vector embeddings with hierarchical structural trees, relational knowledge graphs conforming to OKF v0.2, dynamic student mastery tracking, and background consolidation auditing:
+
+```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+erDiagram
+    materials ||--o| material_trees : "indexes (>=20 pages)"
+    materials ||--o{ material_concept_mappings : "binds_to"
+    materials ||--o{ material_insights : "produces"
+    ontology_concepts ||--o{ ontology_relationships : "source_or_target"
+    ontology_concepts ||--o{ ontology_misconceptions : "associated_with"
+    ontology_concepts ||--o{ material_concept_mappings : "referenced_in"
+    ontology_concepts ||--o{ student_concept_mastery : "evaluated_in"
+    student_submissions ||--o| submission_evaluations : "evaluates"
+    classes ||--o{ student_concept_mastery : "tracks"
+    classes ||--o{ ontology_misconceptions : "scopes"
+    consolidation_runs ||--o{ knowledge_lint_reports : "logs"
+```
+
+### 7.1 Schema Isolation & Access Boundaries
+- **Private Schema**: The `ai` schema is deliberately unexposed to public PostgREST endpoints to protect proprietary pedagogical models, raw AI evaluation reasoning, and diagnostic mastery records.
+- **Access Channels**: Client access is mediated via vetted security-definer public RPC functions (`get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, `get_class_concept_matrix`) or authenticated backend services via `src/lib/db.py`.
+
+### 7.2 Tables Specification (`supabase/migrations/20261107100000_knowledge_store_enhancements.sql`)
+
+1. **`ai.material_trees`**:
+   - Stores PageIndex-inspired hierarchical section outline and summary JSONB trees for documents $\ge 20$ pages ($\ge 15,000$ characters).
+   - Columns: `id` (UUID PK), `material_id` (UUID FK to `public.materials`, UNIQUE), `root_node` (JSONB recursive tree structure), `total_nodes` (INTEGER), `max_depth` (INTEGER), `page_count` (INTEGER), `status` (TEXT), `created_at`, `updated_at`.
+   - Indexes: B-Tree on `material_id`, GIN index on `root_node` (`idx_material_trees_root_node_gin`).
+
+2. **`ai.ontology_concepts`**:
+   - Represents subject learning objectives and concepts conforming to OKF v0.2.
+   - Columns: `id` (UUID PK), `subject` (TEXT), `code` (TEXT), `name` (TEXT), `description` (TEXT), `bloom_level` (TEXT: `'Remember'`, `'Understand'`, `'Apply'`, `'Analyze'`, `'Evaluate'`, `'Create'`), `parent_concept_id` (UUID self-FK), `okf_type` (TEXT), `status` (TEXT: `'draft'`, `'active'`, `'deprecated'`, `'superseded'`), `verified_by` (TEXT: `'unverified'`, `'machine-confirmed'`, `'human-reviewed'`), `stale_after` (TIMESTAMPTZ), `tags` (TEXT[]), `metadata` (JSONB).
+
+3. **`ai.ontology_relationships`**:
+   - Directed knowledge graph edges connecting concepts with a strict closed vocabulary.
+   - Columns: `id` (UUID PK), `source_concept_id` (UUID FK), `target_concept_id` (UUID FK), `relationship_type` (TEXT), `weight` (NUMERIC), `metadata` (JSONB).
+   - Constraint `chk_relationship_type`: Enforces values in `('prerequisite_of', 'part_of', 'related_to', 'generalization_of', 'derived_from', 'assesses', 'subconcept_of', 'reinforces', 'remediates_misconception', 'supersedes')`.
+
+4. **`ai.material_concept_mappings`**:
+   - Links material sections and hierarchical tree leaf nodes to ontological concepts.
+   - Columns: `id` (UUID PK), `material_id` (UUID FK), `concept_id` (UUID FK), `section_path` (TEXT), `tree_node_id` (TEXT), `page_number` (INTEGER), `relationship` (TEXT), `relevance_score` (NUMERIC), `confidence` (FLOAT), `evidence_excerpt` (TEXT), `verified_by` (TEXT).
+
+5. **`ai.ontology_misconceptions`**:
+   - Catalog of known pedagogical traps and misunderstandings with teacher Gradebook Matrix integration.
+   - Columns: `id` (UUID PK), `class_id` (UUID FK to `public.classes`), `concept_id` (UUID FK), `prerequisite_concept_id` (UUID FK), `name` (TEXT), `error_pattern` (TEXT), `remediation_strategy` (TEXT), `severity` (TEXT: `'Minor'`, `'Moderate'`, `'Critical'`), `status` (TEXT: `'proposed'`, `'confirmed'`, `'dismissed'`), `confidence` (FLOAT), `evidence_submission_ids` (UUID[]), `surfaced_in_gradebook` (BOOLEAN DEFAULT TRUE), `teacher_reviewed_at` (TIMESTAMPTZ), `teacher_reviewer_id` (UUID FK to `auth.users`).
+
+6. **`ai.student_concept_mastery`**:
+   - Tracks longitudinal concept mastery per student per class.
+   - Columns: `id` (UUID PK), `student_id` (UUID FK), `class_id` (UUID FK), `concept_id` (UUID FK), `mastery_score` (NUMERIC [0.00, 1.00]), `confidence` (NUMERIC), `status` (TEXT: `'mastered'`, `'practicing'`, `'gap_detected'`), `evidence_submission_ids` (UUID[]), `last_evaluated_at` (TIMESTAMPTZ).
+   - Unique Constraint: `(student_id, class_id, concept_id)`.
+
+7. **`ai.consolidation_runs` & `ai.knowledge_lint_reports`**:
+   - Records execution telemetry and diagnostic findings from the daily anti-drift maintenance runner (`ConsolidationService`).
+   - Tracks orphaned nodes, cyclic prerequisite loops, and repair actions.
+
+8. **`ai.staging_scratchpad`**:
+   - Temporary buffer for in-session conversational directives and draft concepts prior to nightly consolidation.
+
+### 7.3 Database Functions & Pre-Query Gate (`ai.check_answerable`)
+- **`ai.check_answerable(p_class_id UUID, p_query_terms TEXT[])`**:
+  - Pre-query soft-warning gate evaluating whether the active class has indexed materials matching incoming query concepts.
+  - Returns: `is_answerable` (BOOLEAN), `status_flag` (TEXT), `coverage_score` (NUMERIC), `missing_terms` (TEXT[]), `requires_confirmation` (BOOLEAN), `caveat_message` (TEXT).
+  - When `coverage_score < 0.4`, signals the frontend to surface a cooperative warning caveat asking if the educator wants to continue.

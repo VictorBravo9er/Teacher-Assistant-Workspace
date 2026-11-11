@@ -54,7 +54,7 @@ flowchart TD
     ResendAPI -.->|"Delivery Status Webhook (resend-webhook)"| EdgeFunctions
 
     %% Backend & LLM Connections
-    FastAPIService -->|"Vector Search & Checkpoints"| PostgresDB
+    FastAPIService -->|"Tree Indexing, Graph Traversal & Checkpoints"| PostgresDB
     FastAPIService -->|"Inference Prompts & Structured JSON"| OpenRouterLLM
 ```
 
@@ -67,7 +67,7 @@ Explore detailed subsystem specifications, data contracts, and architectural des
 | Subsystem Document | Primary Technologies | Key Responsibilities |
 | :--- | :--- | :--- |
 | [**`database_and_storage.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/database_and_storage.md) | PostgreSQL 15+, Supabase RLS, Storage Buckets, `pg_trgm`, `pgcrypto` | Relational multi-tenancy, Row Level Security (RLS) policies, atomic RPC helper functions (`delete_material`, `unlink_material_from_class`, `delete_submission_atomic`), score recalculation triggers (`trg_sync_student_scores`), announcements and notification logs tracking. |
-| [**`ai_and_ontology_subsystem.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/ai_and_ontology_subsystem.md) | `pgvector` (HNSW), LangChain Core, OpenRouter, Ontological Graph | Autonomous student submission grading (`/api/grade`), material syllabus analysis & prerequisite gap detection (`/api/materials/analyze`), interactive RAG chat with dynamic data visualizations (`/api/chat`), and pedagogical concept mastery tracking. |
+| [**`ai_and_ontology_subsystem.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/ai_and_ontology_subsystem.md) | Dual-Engine Knowledge Store (PageIndex Trees & Relational OKF v0.2 Graph), LangChain Core, OpenRouter | Autonomous student submission grading (`/api/grade`), material syllabus analysis & prerequisite gap detection (`/api/materials/analyze`), PageIndex hierarchical tree indexing (`/api/materials/tree`), background integrity consolidation & Misconception Dreaming (`/api/consolidation/run`), proposed misconception review in Gradebook Matrix, and interactive RAG chat with soft-warning pre-query gate (`/api/chat`). |
 | [**`backend_service.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/backend_service.md) | Python 3.13, FastAPI, Uvicorn, Pydantic v2, LangGraph, uv | REST API routing, structured LLM prompt formatting, JSON response parsing and validation, LangGraph state persistence, and BasedPyright-verified type safety. |
 | [**`edge_functions.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/edge_functions.md) | Deno, TypeScript, Supabase Edge Runtime, Resend Batch API, PDF/Doc Parsers | Event-driven webhook processing (`trigger-submission-evaluation`, `trigger-material-analysis`), serverless document OCR text extraction, secure short-lived signed URL generation, student invitation tokens, batch email notifications via Resend, and delivery tracking webhooks. |
 | [**`frontend_architecture.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/frontend_architecture.md) | React 19, Vite, TypeScript, Tailwind CSS, Lucide Icons | Single-Page Application (SPA) architecture, custom state hooks (`useClassOperations`, `useWorkspaceData`, `useAIChat`), feature modularity (`classroom`, `students`, `ai-assistant`, `calendar`), and interactive rubric/diagnostic modals. |

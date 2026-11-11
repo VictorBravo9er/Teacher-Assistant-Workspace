@@ -51,3 +51,9 @@ flowchart LR
 - **Coordinated Cohort Rotation**: Synchronizes file rotation across human-readable `.log`, dedicated `-error.log`, and structured `.jsonl` streams every 5,000 primary entries.
 - **Structured JSON Lines Formatting**: Serializes log level, timestamp, logger name, message, request ID, duration, and exception tracebacks into ndjson format for automated log analysis.
 - **Execution Telemetry**: `measure_async` context helper measures async execution durations in milliseconds and logs performance metrics.
+
+### 4. `db.py` Asynchronous Database Pool & Lifecycle:
+- **`init_db_pool(dsn, min_size, max_size)`**: Initializes global `psycopg_pool.AsyncConnectionPool` configured with `row_factory=dict_row` during FastAPI lifespan startup.
+- **`close_db_pool()`**: Closes active database connections gracefully during server shutdown.
+- **`get_db_pool()`**: Returns the active connection pool instance; handles graceful degradation when testing in environments without database connectivity.
+- **Query Helpers**: `fetch_all`, `fetch_one`, and `execute` acquire connections asynchronously from the pool, execute parameterized SQL queries, and release connections automatically back to the pool.

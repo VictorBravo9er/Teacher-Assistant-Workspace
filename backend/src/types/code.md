@@ -80,9 +80,68 @@ classDiagram
     ChatPayload *-- AnalysisConfig
 ```
 
+### 2. Knowledge Store & AI Domain Models (`src/types/ai.py`)
+
+```mermaid
+classDiagram
+    class TreeNode {
+        +str id
+        +str title
+        +int level
+        +str summary
+        +list[str] key_concepts
+        +int token_count
+        +list[TreeNode] children
+    }
+
+    class MaterialTree {
+        +str material_id
+        +TreeNode root_node
+        +int total_nodes
+        +int max_depth
+        +str status
+    }
+
+    class OntologyConcept {
+        +str id
+        +str name
+        +str subject
+        +str bloom_level
+        +str okf_type
+        +str status
+        +str verified_by
+        +list[str] tags
+    }
+
+    class OntologyMisconception {
+        +str id
+        +str concept_id
+        +str name
+        +str error_pattern
+        +str remediation_strategy
+        +str severity
+        +str status
+        +float confidence
+        +list[str] evidence_submission_ids
+        +bool surfaced_in_gradebook
+    }
+
+    class StudentConceptMastery {
+        +str student_id
+        +str class_id
+        +str concept_id
+        +float mastery_score
+        +float confidence
+        +str status
+        +list[str] evidence_submission_ids
+    }
+
+    MaterialTree *-- TreeNode
+```
+
 ---
 
-### 2. Key Architectural Invariants
+### 3. Key Architectural Invariants
 
 1. **Pydantic v2 Contract Boundaries (`schemas.py`, `ai.py`)**:
    - Uses strict field definitions (`BaseModel`) with default empty collections (`= []`) and optional string defaults (`= ""`), eliminating `NoneType` attribute errors during downstream string formatting.

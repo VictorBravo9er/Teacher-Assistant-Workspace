@@ -51,6 +51,11 @@ sequenceDiagram
 
 ### 2. Interface Contracts & Design Principles
 
-1. **Schema-First Validation**: All request bodies are strictly bound to Pydantic v2 models (`ChatPayload`, `GradeRequest`, `MaterialAnalyzeRequest`). FastAPI automatically generates OpenAPI schema documentation and rejects invalid payloads before code execution.
+1. **Schema-First Validation**: All request bodies are strictly bound to Pydantic v2 models (`ChatPayload`, `GradeRequest`, `MaterialAnalyzeRequest`, `MaterialTreeRequest`, `ConsolidationRequest`, `MisconceptionReviewRequest`). FastAPI automatically generates OpenAPI schema documentation and rejects invalid payloads before code execution.
 2. **Environment Configuration**: Default model resolution leverages `os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")`, ensuring model selection can be swapped without code redeployments.
-3. **Clean Layer Separation**: Route handlers contain zero business logic or direct LLM prompt manipulation, strictly delegating domain workflows to `src.service.chat.ChatService` and `src.service.evaluator.EvaluatorService`.
+3. **Clean Layer Separation**: Route handlers contain zero business logic or direct LLM prompt manipulation, strictly delegating domain workflows to specialized services:
+   - `ChatService`: Manages `/api/chat` with pre-query answerability verification and dual-engine RAG.
+   - `EvaluatorService`: Manages `/api/grade` and `/api/materials/analyze`.
+   - `TreeIndexerService`: Manages `/api/materials/tree` hierarchical JSONB tree generation and branch retrieval.
+   - `ConsolidationService`: Manages `/api/consolidation/run` daily graph integrity audits and Misconception Dreaming.
+   - `OntologyService`: Manages `/api/misconceptions/proposed` retrieval and `/api/misconceptions/{id}/review` actions.

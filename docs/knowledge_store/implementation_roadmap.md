@@ -41,21 +41,24 @@ gantt
 
 ### Phase 2: Ingestion, Normalization & Tree Indexing
 - [ ] Enhance Deno Edge Function `extract-material-text` with `markitdown` text normalization.
-- [ ] Implement backend Python service module `src/service/tree_indexer.py`:
+- [x] Implement backend Python service module `src/service/tree_indexer.py`:
   - Parses Markdown headers into hierarchical $N$-ary tree.
-  - Generates recursive summary abstracts for chapters and sections.
+  - Generates recursive summary abstracts for chapters and sections for materials $\ge 20$ pages ($\ge 15,000$ chars).
   - Persists JSONB tree to `ai.material_trees`.
+  - Exposes `POST /api/materials/tree` with $<15\text{ms}$ top-down branch retrieval.
 - [ ] Connect database trigger `trg_material_ai_analysis` to invoke tree compilation on new material uploads.
 
 ### Phase 3: Autonomous Rubric Evaluator & Error Taxonomy
-- [ ] Update `EvaluatorService.grade_submission()` to query `ai.ontology_misconceptions`.
-- [ ] Implement automated misconception tagging in `GradeResponse.private_teacher_notes`.
-- [ ] Update `ai.student_concept_mastery` records upon teacher approval in `AIDiagnosticDiffModal.tsx`.
+- [x] Update `EvaluatorService.grade_submission()` to query `ai.ontology_misconceptions` and detect error patterns.
+- [x] Implement automated misconception tagging in `GradeResponse.private_teacher_notes`.
+- [x] Update `ai.student_concept_mastery` dynamic mastery scoring records and confidence levels.
+- [x] Implement `ConsolidationService` for nightly graph integrity auditing (`ai.knowledge_lint_reports`) and autonomous Misconception Dreaming.
 - [ ] Synchronize running class GPA and performance tiers in `public.class_students`.
 
 ### Phase 4: Dual-Engine Pedagogical Assistant & Frontend Widgets
-- [ ] Refactor `ChatService` to coordinate dual-engine retrieval (Tree Traversal + Recursive Graph Expansion + Scoped Context Injection).
-- [ ] Implement deterministic prompt context budget allocator (~4,300 token ceiling).
+- [x] Refactor `ChatService` to coordinate dual-engine retrieval (Tree Traversal via `TreeIndexerService` + Recursive Graph Expansion via `OntologyService` + Scoped Context Injection).
+- [x] Implement pre-query soft-warning gate (`ai.check_answerable`) with cooperative caveat confirmation UX.
+- [x] Implement deterministic prompt context budget allocator (~4,300 token ceiling).
 - [ ] Upgrade `Visualizer.tsx` in frontend to render interactive concept mastery heatmaps and student gap leaderboards.
 - [ ] Implement SSE (Server-Sent Events) streaming for real-time token-by-token chat responses.
 

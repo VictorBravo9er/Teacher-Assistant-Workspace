@@ -148,3 +148,70 @@ sequenceDiagram
      - `current_grade`: Standard letter grade (`A`, `B`, `C`, `D`).
      - `performance_tier`: Tier category (`Advanced`, `Proficient`, `Developing`, `Critical Support`).
    - All student cards, gradebook cells, and report card metrics update automatically.
+
+---
+
+## 4. Workflow: Dynamic Concept Mastery Tracking & Proposed Misconception Review
+
+In addition to letter grades, student comprehension is tracked longitudinally at the granular concept level, and pedagogical misconceptions are surfaced directly in the Gradebook Matrix:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Teacher as Teacher
+    participant Matrix as GradebookMatrix.tsx
+    participant BE as Backend FastAPI
+    participant OntoSvc as OntologyService
+    participant DB as PostgreSQL ai Schema
+
+    Note over BE,DB: 1. Dynamic Mastery Updates (during /api/grade)
+    BE->>DB: UPSERT INTO ai.student_concept_mastery (student_id, class_id, concept_id, mastery_score, status)
+
+    Note over Teacher,Matrix: 2. Reviewing Proposed Misconceptions in Gradebook
+    Matrix->>BE: GET /api/misconceptions/proposed?class_id={class_id}
+    BE->>OntoSvc: get_proposed_misconceptions(class_id)
+    OntoSvc->>DB: SELECT * FROM ai.ontology_misconceptions WHERE status = 'proposed'
+    DB-->>OntoSvc: List of proposed misconceptions
+    OntoSvc-->>BE-->>Matrix: Render proposed badges with evidence submission count
+    
+    Teacher->>Matrix: Clicks [Confirm] or [Dismiss] on misconception badge
+    Matrix->>BE: POST /api/misconceptions/{id}/review ({ action: 'confirm'|'dismiss', reviewer_id })
+    BE->>OntoSvc: review_misconception(id, action, reviewer_id)
+    OntoSvc->>DB: UPDATE ai.ontology_misconceptions SET status = action, teacher_reviewed_at = now()
+    DB-->>Matrix: Badge updates to Confirmed or is removed
+```
+
+### Key Highlights:
+1. **Exponential Moving Average Mastery Formula**:
+   $$\text{Mastery}_{new} = 0.35 \cdot M_{s_k} + 0.65 \cdot \text{Mastery}_{prev}$$
+   Categorizes proficiency into `'mastered'` ($\ge 0.85$), `'practicing'` ($0.65 - 0.84$), and `'gap_detected'` ($< 0.65$).
+2. **One-Click Human-in-the-Loop Governance**:
+   Educators inspect evidence submissions before accepting AI-discovered misconceptions into the institutional knowledge graph.
+
+---
+
+## 5. Workflow: Daily Background Consolidation & Misconception Dreaming (`POST /api/consolidation/run`)
+
+A daily cron runner executes comprehensive background health audits across the knowledge base:
+
+```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+flowchart TD
+    Cron["Daily Maintenance Trigger (Cron / API POST /api/consolidation/run)"] --> Svc["ConsolidationService.run_daily_consolidation()"]
+    
+    subgraph AntiDrift["1. Graph Drift & Integrity Audit"]
+        Svc --> CheckOrphans["Detect & Prune Orphaned Concepts"]
+        Svc --> CheckCycles["Traverse & Break Cyclic Prerequisites (A -> B -> A)"]
+        Svc --> CheckVocabulary["Validate Relationship Enums against chk_relationship_type"]
+        CheckOrphans & CheckCycles & CheckVocabulary --> LintLog["Record Findings in ai.knowledge_lint_reports"]
+    end
+
+    subgraph MisconceptionDreaming["2. Autonomous Misconception Dreaming"]
+        Svc --> PullSubmissions["Fetch Evaluated Submissions across Classes"]
+        PullSubmissions --> ClusterErrors["Synthesize Cross-Student Error Signatures"]
+        ClusterErrors --> Synthesize["Draft New Pedagogical Misconceptions"]
+        Synthesize --> InsertProposed["INSERT into ai.ontology_misconceptions (status='proposed')"]
+    end
+
+    LintLog & InsertProposed --> RunLog["Log Execution Metrics in ai.consolidation_runs"]
+```

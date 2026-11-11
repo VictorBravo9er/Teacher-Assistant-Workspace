@@ -56,7 +56,28 @@ If no visualization applies, `"visualization"` is returned as `null`.
 ### Error Handling & Fallbacks:
 `ChatService` and `EvaluatorService` follow the **EAFP** (Easier to Ask for Forgiveness than Permission) principle for accessing environment variables, logging critical parameter states before delegating execution to the LLM client, and catching parsing anomalies to prevent silent model hallucinatory formatting bugs.
 
-### 3. `EvaluatorService` Autonomous Grading & Ingestion Flow
-- **Auto-Grading (`grade_submission`)**: Evaluates raw submission text against `rubric_criteria`, generates structured item-by-item `RubricBreakdownItem` scores, creates encouraging student feedback, and isolates private pedagogical notes for teacher review.
-- **Material Analysis (`analyze_material`)**: Inspects material content, generates syllabus standards alignments, diagnoses prerequisite concept gaps, and constructs sample comprehension questions with answer keys.
-- **Ontology Operations (`OntologyService`)**: Converts domain entities into formatted knowledge graph records for the private `ai` PostgreSQL schema.
+### 3. Service Invariants & Ingestion Flows
+
+#### 1. `ChatService` Dual-Engine Pipeline & Soft-Warning Gate:
+- **Pre-Query Answerability (`check_answerable`)**: Queries `ai.check_answerable` stored procedure. If curriculum coverage is $<0.4$ and the request has not confirmed the soft warning, halts early with a cooperative caveat message.
+- **Dual-Engine Retrieval**: Combines leaf section breadcrumbs from `ai.material_trees` (traversed via `TreeIndexerService.search_tree()`) with multi-hop prerequisite dependencies from `ai.ontology_relationships` (via `OntologyService.traverse_prerequisites()`).
+- **Prompt Token Allocator**: Bounds prompt size to a deterministic ~4,300 tokens (Persona ~500, Classroom Profile ~300, Tree Leaf ~1,500, Mastery Stats ~800, History ~1,200).
+
+#### 2. `EvaluatorService` Autonomous Grading & Ingestion:
+- **Auto-Grading (`grade_submission`)**: Evaluates raw submission text against `rubric_criteria`, generates structured item-by-item `RubricBreakdownItem` scores, identifies matching error patterns from `ai.ontology_misconceptions`, creates encouraging student feedback, and isolates private pedagogical notes for teacher review.
+- **Dynamic Mastery Sync**: Updates `ai.student_concept_mastery` via exponential moving average ($\alpha = 0.35$).
+- **Material Analysis (`analyze_material`)**: Inspects material content, generates syllabus standards alignments, diagnoses prerequisite concept gaps, and constructs sample comprehension questions with answer keys. For materials $\ge 15,000$ characters or $\ge 20$ pages, automatically initiates hierarchical tree indexing via `TreeIndexerService`.
+
+#### 3. `TreeIndexerService` Hierarchical Indexing:
+- **Outline & Segment Parser**: Converts markdown heading tags (`#`, `##`, `###`) into recursive $N$-ary tree structures.
+- **Pedagogical Summarization**: Produces unit and section summaries with key concepts and token tallies.
+- **Top-Down Search**: Searches candidate branches matching user queries in $<15\text{ms}$.
+
+#### 4. `ConsolidationService` Daily Health & Dreaming:
+- **Anti-Drift Auditing**: Identifies orphaned concept nodes lacking parent links and resolves cyclic prerequisite relationships ($A \to B \to A$), logging findings to `ai.knowledge_lint_reports` and `ai.consolidation_runs`.
+- **Misconception Dreaming**: Synthesizes student errors across evaluated submissions to detect recurrent pedagogical traps, inserting them into `ai.ontology_misconceptions` with `status = 'proposed'`.
+
+#### 5. `OntologyService` Graph Management & Review:
+- **OKF v0.2 Governance**: Enforces ontology concept metadata envelopes (`okf_type`, `status`, `verified_by`, `stale_after`, `tags`).
+- **Recursive CTE Prerequisite Queries**: Executes native PostgreSQL `WITH RECURSIVE` queries in $<10\text{ms}$ for deep dependency traversal.
+- **Misconception Review**: Updates `ai.ontology_misconceptions` status to `'confirmed'` or `'dismissed'` upon teacher review in the Gradebook Matrix.
