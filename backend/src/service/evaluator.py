@@ -186,7 +186,7 @@ STUDENT SUBMISSION CONTENT:
         ) VALUES (
             %s, %s, %s, %s,
             %s, %s, %s::jsonb,
-            %s, 'completed', %s, NOW(), NOW()
+            %s, %s, %s, NOW(), NOW()
         )
         ON CONFLICT (submission_id) DO UPDATE SET
             suggested_score = EXCLUDED.suggested_score,
@@ -196,7 +196,7 @@ STUDENT SUBMISSION CONTENT:
             suggested_teacher_notes = EXCLUDED.suggested_teacher_notes,
             suggested_rubric_breakdown = EXCLUDED.suggested_rubric_breakdown,
             rationale = EXCLUDED.rationale,
-            status = 'completed',
+            status = EXCLUDED.status,
             model_used = EXCLUDED.model_used,
             updated_at = NOW();
         """

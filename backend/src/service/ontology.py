@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Literal
 
 from src.lib.db import execute, fetch_all, fetch_one
 from src.lib.logger import eval_logger
@@ -83,7 +83,7 @@ class OntologyService:
         if not row:
             return CheckAnswerableResult(
                 is_answerable=True,
-                status_flag="READY",
+                status_flag="VERIFIED",
                 coverage_score=1.0,
                 matched_concept_count=1,
                 missing_terms=[],
@@ -91,9 +91,14 @@ class OntologyService:
                 caveat_message=None,
             )
 
+        raw_flag = str(row.get("status_flag") or "VERIFIED")
+        status_flag: Literal["VERIFIED", "INCOMPLETE_WARNING"] = (
+            "INCOMPLETE_WARNING" if raw_flag == "INCOMPLETE_WARNING" else "VERIFIED"
+        )
+
         return CheckAnswerableResult(
             is_answerable=bool(row.get("is_answerable", True)),
-            status_flag=row.get("status_flag", "READY"),
+            status_flag=status_flag,
             coverage_score=float(row.get("coverage_score", 1.0)),
             matched_concept_count=int(row.get("matched_concept_count", 0)),
             missing_terms=list(row.get("missing_terms", [])),
@@ -336,10 +341,14 @@ class OntologyService:
                     severity=r.get("severity", "Moderate"),
                     status=r.get("status", "proposed"),
                     confidence=float(r.get("confidence", 0.8)),
-                    evidence_submission_ids=list(r.get("evidence_submission_ids", [])),
+                    evidence_submission_ids=[
+                        str(eid) for eid in (r.get("evidence_submission_ids") or [])
+                    ],
                     surfaced_in_gradebook=bool(r.get("surfaced_in_gradebook", True)),
-                    reviewed_by=r.get("reviewed_by"),
-                    reviewed_at=r.get("reviewed_at"),
+                    teacher_reviewer_id=str(r["teacher_reviewer_id"])
+                    if r.get("teacher_reviewer_id")
+                    else None,
+                    teacher_reviewed_at=r.get("teacher_reviewed_at"),
                     created_at=r.get("created_at"),
                 )
             )
@@ -359,8 +368,9 @@ class OntologyService:
         sql = """
         UPDATE ai.ontology_misconceptions
         SET status = %s,
-            reviewed_by = %s,
-            reviewed_at = NOW()
+            teacher_reviewer_id = %s,
+            teacher_reviewed_at = NOW(),
+            updated_at = NOW()
         WHERE id = %s
         """
         _ = await execute(sql, (status, reviewer_id, misconception_id))

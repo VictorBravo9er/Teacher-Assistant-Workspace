@@ -178,11 +178,12 @@ class OntologyRelationship(BaseModel):
     target_concept_id: str
     relationship_type: Literal[
         "prerequisite_of",
-        "part_of",
-        "related_to",
-        "generalization_of",
-        "derived_from",
+        "subconcept_of",
+        "reinforces",
+        "remediates_misconception",
         "assesses",
+        "supersedes",
+        "related_to",
     ] = "prerequisite_of"
     weight: float = 1.0
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -225,8 +226,8 @@ class OntologyMisconception(BaseModel):
     confidence: float = 0.8
     evidence_submission_ids: list[str] = Field(default_factory=list)
     surfaced_in_gradebook: bool = True
-    reviewed_by: str | None = None
-    reviewed_at: datetime | None = None
+    teacher_reviewer_id: str | None = None
+    teacher_reviewed_at: datetime | None = None
     created_at: datetime | None = None
 
 
@@ -242,7 +243,7 @@ class MisconceptionReviewRequest(BaseModel):
 
 class CheckAnswerableResult(BaseModel):
     is_answerable: bool
-    status_flag: Literal["READY", "INCOMPLETE_WARNING", "NOT_ANSWERABLE"]
+    status_flag: Literal["VERIFIED", "INCOMPLETE_WARNING"]
     coverage_score: float
     matched_concept_count: int
     missing_terms: list[str] = Field(default_factory=list)
