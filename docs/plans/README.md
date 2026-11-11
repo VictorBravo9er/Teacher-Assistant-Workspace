@@ -2,7 +2,7 @@
 
 Welcome to the modular implementation planning and execution directory for **Didactiq LMS**. 
 
-Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory divides all identified bugs, schema discrepancies, unpersisted forms, and architectural gaps into discrete, reviewable engineering plans and tracks their live implementation progress.
+Following the historical LMS-only decoupling milestone (tag `ui/lms-only-development`), this directory divides all LMS remediation bugs, schema discrepancies, unpersisted forms, and architectural gaps into discrete, reviewable engineering plans and tracks their live implementation progress. *(For subsequent Lean Dual-Engine Knowledge Store architecture and backend AI reactivation on `ai/enable-backend-ai-services`, see [`../knowledge_store/README.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/knowledge_store/README.md).)*
 
 ---
 
@@ -14,8 +14,8 @@ Following the AI/RAG decoupling (tag `ui/lms-only-development`), this directory 
 | **Plans Completed** | **17 / 17** (`100%`) |
 | **Plans In Progress** | **0 / 17** (`0%`) |
 | **Plans Pending Execution** | **0 / 17** (`0%`) |
-| **Current Execution Target** | **All Remediation & Verification Plans Successfully Implemented** |
-| **System Readiness** | Pure LMS mode active; AI decoupled; Phase 0–8 100% complete; role routing, student portal, announcements, calendar, notification engine, containerization, optimistic mutations, blocking progress bars, and two-tier concurrent pipeline fully operational. |
+| **Current Execution Target** | **All LMS Remediation & Verification Plans Successfully Implemented** |
+| **Historical Milestone Snapshot** | Phases 0–9 LMS core complete (role routing, student portal, announcements, calendar, notification engine, containerization, optimistic mutations, blocking progress bars, and two-tier concurrent pipeline). |
 
 ---
 
@@ -159,8 +159,8 @@ flowchart TD
 
 - ⏳ **Pending**: Design approved, awaiting scheduled execution.
 - 🚧 **In Progress**: Code changes actively being implemented.
-- 🔍 **In Review / Verification**: Code written; undergoing automated linting (`npm run build`, `basedpyright`), test suites, and manual verification.
-- ✅ **Completed**: Implemented, verified, and documented with updated `code.DESC.md` and `code.ARCH.md`.
+- 🔍 **In Review / Verification**: Code written; undergoing automated linting (`pnpm run build`, `basedpyright`), test suites, and manual verification.
+- ✅ **Completed**: Implemented, verified, and documented with updated module `code.md` files.
 
 ---
 
@@ -171,5 +171,5 @@ flowchart TD
 3. Every step adheres strictly to the repository's universal rules:
    - Zero modifications to generated `db.ts` or `db.py` (Rule 2.5).
    - Simplification and elimination of redundant tables or states (Rule 3).
-   - Build verification (`npm run build`, `uv run poe lint`) before marking any step complete (Rule 2.7).
-   - Directory-level documentation maintenance (`code.DESC.md` / `code.ARCH.md`) on file additions/edits (Rule 5).
+   - Build verification (`pnpm run build`, `uv run poe lint`) before marking any step complete (Rule 2.7).
+   - Directory-level documentation maintenance (`code.md`) on file additions/edits (Rule 5).

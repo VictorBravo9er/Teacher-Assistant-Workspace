@@ -6,10 +6,11 @@ This directory provides modal dialogs and settings forms for managing educator a
 
 ## 📁 Directory Files
 
-- [`AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx): Implements three dedicated settings dialogs:
-  - **Preferences Modal**: Configures default teaching styles, assessment formats, and grading parameters across all classes.
-  - **Account Settings Modal**: Allows users to inspect and update their educator name, email address, phone number, and password.
-  - **Subscription Modal**: Displays current subscription plans, usage quotas, and PRO upgrade triggers.
+- [`AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx): Implements four modal views via `activeModal: 'profile' | 'preferences' | 'settings' | 'subscription' | null`:
+  - **Profile Modal (`ProfileModalContent`)**: Updates educator `full_name`, `title`, `affiliation`, and `phone` via `AuthContext.updateUserMetadata()` (email is disabled/read-only), with an expandable `"Change Login Password"` section invoking `supabase.auth.updateUser({ password, data: { has_password: true } })`.
+  - **Preferences Modal (`PreferencesModalContent`)**: Configures `remedialThreshold`, `socraticVerbosity`, `feedbackTone`, and `lateAttendanceWeight`, persisted to `auth.users.user_metadata.preferences` via `updateUserMetadata()`.
+  - **Settings Modal (`settings`)**: Displays read-only local persistence (`Autosaved`) and backend connection status summaries.
+  - **Subscription Modal (`subscription`)**: Displays Didactiq Pro licensing overview with an enterprise teaser toast action.
 
 ---
 
@@ -20,24 +21,25 @@ This directory provides modal dialogs and settings forms for managing educator a
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
-    SidebarTrigger["Sidebar Action Click"] --> SelectModal{"Target Modal"}
+    SidebarTrigger["Sidebar Action Click"] --> SelectModal{"activeModal"}
     
-    SelectModal -- "Preferences" --> Prefs["Preferences Modal"]
-    SelectModal -- "Account Settings" --> AccSettings["Account Settings Modal"]
-    SelectModal -- "Subscription" --> SubModal["Subscription Modal"]
+    SelectModal -- "'profile'" --> Profile["ProfileModalContent"]
+    SelectModal -- "'preferences'" --> Prefs["PreferencesModalContent"]
+    SelectModal -- "'settings'" --> Settings["System Configurations View"]
+    SelectModal -- "'subscription'" --> SubModal["Didactiq Licensing View"]
     
-    Prefs --> SavePrefs["Update local state & emit onSavePreferences()"]
-    AccSettings --> SupabaseAuth["supabase.auth.updateUser()"]
-    SubModal --> CheckoutAction["Simulate PRO Tier Activation"]
+    Profile --> MetadataAuth["updateUserMetadata() & optional supabase.auth.updateUser()"]
+    Prefs --> SavePrefs["updateUserMetadata({ preferences })"]
+    SubModal --> Toast["onTriggerToast('Subscription management coming soon...')"]
 ```
 
 ---
 
 ### 2. Component Design & State Handling
 
-1. **Controlled State**:
-   Modal forms maintain isolated local form state (`name`, `email`, `phone`, `currentPassword`, `newPassword`) while open, resetting when dismissed to prevent unsaved state pollution.
-2. **Accessible Modals**:
-   Uses `<Modal>` primitives with explicit `id` bindings (`account-settings-modal`, `preferences-modal`, `subscription-modal`) for UI testability.
-3. **Blocking Security Progress Bar (`AccountModals.tsx`)**:
-   During password updates (`isSavingPassword`), form inputs and modal dismissal are locked (`!isSavingPassword`) and an indeterminate security progress bar (`"Encrypting credentials and refreshing session tokens — please wait..."`) is rendered until Supabase Auth finishes rotating session tokens.
+1. **Controlled Form & Error Feedback**:
+   - `ProfileModalContent` and `PreferencesModalContent` initialize local form state from `useAuth().user.user_metadata`, surface validation/auth errors via `onTriggerToast`, and close on save.
+2. **UI Testability & Modal Shell**:
+   - Uses shared `<Modal size="md">` (note: `<Modal>` does not assign DOM `id` attributes for each account view).
+3. **Inline Security Progress Bar (`ProfileModalContent`)**:
+   - When `showPasswordChange && isSaving`, renders an inline progress indicator (`"Encrypting & updating credentials... Please wait"`) and disables password inputs and `"Save Profile"` while Supabase Auth rotates session credentials.

@@ -11,7 +11,7 @@ Traditional RAG systems suffer from three major shortcomings in educational envi
 2. **Ephemerality & Rediscovery**: Standard RAG rediscovers context from scratch on every question instead of maintaining a compounding understanding of a student's learning trajectory.
 3. **Absence of Pedagogical Grounding**: Without an explicit ontology (Bloom's Taxonomy levels, concept prerequisite trees, error taxonomies), generic vector search cannot detect whether a student is missing foundational prerequisite concepts.
 
-The **Didactiq Knowledge Store** bridges this gap using a **Lean Dual-Plane Knowledge Architecture** (Hierarchical Tree Index + Relational Ontological Graph, completely eliminating vector database overhead):
+The **Didactiq Knowledge Store** bridges this gap using a **Lean Dual-Plane Knowledge Architecture** (Hierarchical Tree Index + Relational Ontological Graph, eliminating runtime vector database dependency; Phase 1–4 SQL schema and backend services implemented, while DB webhook auto-triggers, binary `markitdown`/OCR parsing, and Gradebook/Chat UI wiring remain pending):
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -132,7 +132,7 @@ flowchart LR
     Storage[("Supabase Storage (50MB Limit)")]
 
     Frontend -->|Signed Uploads| Storage
-    Frontend -->|WebSocket / HTTP| Backend
+    Frontend -->|HTTP (/api/*)| Backend
     Frontend -->|RPC Calls| DB
 
     Storage -->|Blob Webhook| EdgeFns

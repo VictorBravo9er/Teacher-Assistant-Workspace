@@ -30,21 +30,21 @@ sequenceDiagram
 
     Note over Svc,DB: 2. Insert into public.materials & class_materials
     Svc->>DB: INSERT INTO public.materials (id, user_id, name, category, content JSONB, rubric_criteria)
-    Svc->>DB: INSERT INTO public.class_materials (class_id, material_id, order_index)
+    Svc->>DB: INSERT INTO public.class_materials (class_id, material_id)
     DB-->>Svc: Material record confirmed
 
-    Note over DB,Edge: 3. Async DB Webhook Triggers AI Analysis
-    DB->>Edge: pg_net sends webhook to trigger-material-analysis
-    Edge->>Storage: Downloads document blob & extracts text
-    Edge->>DB: INSERT INTO ai.material_insights (material_id, status='processing')
+    Note over DB,Edge: 3. Planned Async DB Webhook -> AI Analysis (Trigger Currently Commented Out)
+    DB-.->Edge: Planned pg_net webhook (`trg_material_ai_analysis` commented out in SQL)
+    Edge->>Storage: Downloads document blob / fetches URL (UTF-8 text)
+    Edge->>DB: UPSERT INTO ai.material_insights (material_id, status='processing')
     Edge->>BE: POST /api/materials/analyze (extracted_text, category, name)
     BE->>LLM: Analyzes syllabus topics, prerequisite gaps, sample Q&A
     LLM-->>BE: Returns MaterialAnalyzeResponse JSON
+    BE->>DB: Persists ai.material_insights, ontology concepts & optional ai.material_trees
     BE-->>Edge: Returns structured analysis
-    Edge->>DB: UPDATE ai.material_insights (status='completed', syllabus_alignment, prerequisite_gaps, sample_questions)
 
     Svc-->>UI: Resolves Material object & appends to class state
-    UI-->>Teacher: Material appears in list; AI analysis badge indicates readiness
+    UI-->>Teacher: Material appears in list
 ```
 
 ### Step-by-Step Execution Details:
@@ -63,10 +63,9 @@ sequenceDiagram
 3. **Database Relational Linking**:
    - The material is inserted into `public.materials` with its `content` JSONB array conforming to `valid_content_shape` (`validate_content_array`).
    - A junction entry is inserted into `public.class_materials` linking the material to the active `class_id`.
-4. **Asynchronous AI Curriculum Analysis**:
-   - A database trigger dispatches an asynchronous HTTP webhook via `pg_net` to the [`trigger-material-analysis`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-material-analysis) Edge Function.
-   - For file materials, the Edge Function retrieves the document blob and extracts its text. For text materials, it uses the inline `value`. It then calls Backend `POST /api/materials/analyze`.
-   - The Backend's `EvaluatorService` analyzes syllabus alignment and prerequisite gaps, storing findings in `ai.material_insights`.
+4. **Asynchronous AI Curriculum Analysis *(Decoupled / Trigger Commented Out)***:
+   - `20260915120100_ai_functions_and_triggers.sql` defines `trg_material_ai_analysis` / `trg_class_material_ai_analysis` (currently commented out) to dispatch `pg_net` webhooks to [`trigger-material-analysis`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-material-analysis).
+   - When invoked, the Edge Function extracts UTF-8 text from `"File"` blobs or `"URL"` links (native `"Text"` `item.value` extraction is not yet implemented in the Edge Function), writes `status = 'processing'` to `ai.material_insights`, and invokes Backend `POST /api/materials/analyze` (`EvaluatorService` persists `ai.material_insights`, ontology mappings, and optional `ai.material_trees`).
 
 ---
 
@@ -94,10 +93,8 @@ sequenceDiagram
     Storage-->>Edge: Returns signed URL with 60-minute token
     Edge-->>Svc: { signedUrl: "https://...supabase.co/storage/v1/object/sign/..." }
     
-    UI->>DB: Calls RPC get_material_ai_insights(material_id)
-    DB-->>UI: Returns syllabus topics, prerequisite gaps, and sample questions
-    
-    UI-->>User: Renders inline PDF/text preview with interactive AI syllabus insights panel
+    UI-.->DB: Planned: RPC get_material_ai_insights(material_id)
+    UI-->>User: Renders inline PDF/image/text/URL preview (AI insights panel pending UI wiring)
 ```
 
 ### Step-by-Step Execution Details:
@@ -108,9 +105,8 @@ sequenceDiagram
    - The client invokes the [`get-material-url`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/get-material-url) Edge Function.
    - The function verifies that the requester owns the class or is enrolled in a class that references this material.
    - Generates a 60-minute signed URL from Supabase Storage.
-3. **Retrieving AI Insights**:
-   - The modal queries the public gateway RPC `get_material_ai_insights(p_material_id)`.
-   - Renders syllabus topic coverage, prerequisite gap warnings, and self-assessment practice questions alongside the document reader.
+3. **AI Insights Panel *(Pending UI Wiring)***:
+   - The database exposes `get_material_ai_insights(p_material_id)` for retrieving syllabus coverage, prerequisite gap warnings, and practice questions; displaying that panel inside `MaterialPreviewModal.tsx` is pending frontend integration.
 
 ---
 
@@ -150,43 +146,47 @@ flowchart TD
 
 ## 4. Workflow: Hierarchical Document Tree Indexing (`POST /api/materials/tree`)
 
-For educational materials exceeding standard length ($\ge 20$ pages or $\ge 15,000$ characters, such as full-term syllabi, textbooks, and extensive lecture compilations), the platform executes PageIndex-inspired hierarchical tree indexing:
+For on-demand hierarchical indexing—or automatically during `/api/materials/analyze` when educational materials reach $\ge 20$ pages or $\ge 15,000$ characters—the platform builds a PageIndex-inspired section tree:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Teacher as Teacher / Edge Worker
+    actor Client as Educator / Edge Worker
     participant BE as Backend FastAPI (/api/materials/tree)
     participant Svc as TreeIndexerService
     participant LLM as OpenRouter Model
-    participant DB as PostgreSQL ai.material_trees
+    participant DB as PostgreSQL (public & ai.material_trees)
 
-    Teacher->>BE: POST /api/materials/tree (material_id, markdown_text, force_reindex)
-    BE->>Svc: get_or_build_tree(material_id, markdown_text, force_reindex)
+    Client->>BE: POST /api/materials/tree (material_id, force_rebuild=false)
+    BE->>Svc: get_tree(material_id)
     
-    alt Tree already exists in DB and !force_reindex
+    alt Tree exists in ai.material_trees and !force_rebuild
         Svc->>DB: SELECT root_node, total_nodes, max_depth FROM ai.material_trees
         DB-->>Svc: Returns existing JSONB tree
-        Svc-->>BE: MaterialTreeResponse(tree, indexed=False, reason="already_indexed")
-    else Document < 15,000 chars and < 20 pages
-        Svc-->>BE: MaterialTreeResponse(tree=None, indexed=False, reason="below_threshold")
-    else Document >= 15,000 chars or >= 20 pages
+        Svc-->>BE: MaterialTree
+        BE-->>Client: MaterialTreeResponse(material_id, tree, cached=true, status="completed")
+    else Cache miss or force_rebuild=true
+        BE->>DB: SELECT name, content FROM public.materials WHERE id = material_id
+        DB-->>BE: Material name & content (or 404 if missing)
         Note over Svc: 1. Structural Segmentation
-        Svc->>Svc: Parse Markdown headings (#, ##, ###) into N-ary node hierarchy
-        Note over Svc,LLM: 2. Bottom-Up Section Summarization
-        Svc->>LLM: Generate pedagogical abstracts and key concepts per section
-        LLM-->>Svc: Section summaries & concept tags
-        Note over Svc,DB: 3. JSONB Tree Persistence
+        BE->>Svc: build_tree_from_text(material_id, name, content, model, api_key)
+        Svc->>Svc: Parse Markdown headings (#, ##, ###) or 3,500-char fallback chunks
+        Note over Svc,LLM: 2. Single-Pass Section Summarization (<= 15 excerpts)
+        Svc->>LLM: Generate 2-sentence abstracts & 3-5 key concepts per section
+        LLM-->>Svc: Section summaries & concept tags (heuristic slice fallback on error)
+        Note over BE,DB: 3. JSONB Tree Persistence (depth 1-2)
+        BE->>Svc: persist_tree(tree)
         Svc->>DB: UPSERT INTO ai.material_trees (material_id, root_node, total_nodes, max_depth)
-        DB-->>Svc: Persisted with GIN indexing
-        Svc-->>BE: MaterialTreeResponse(tree, indexed=True, reason="indexed_successfully")
+        DB-->>Svc: Persisted (B-tree indexed on material_id via idx_ai_mat_trees_material_id)
+        BE-->>Client: MaterialTreeResponse(material_id, tree, cached=false, status="completed")
     end
-
-    BE-->>Teacher: Returns MaterialTreeResponse
 ```
 
 ### Key Execution Highlights:
-1. **Sub-15ms Top-Down Branch Retrieval**:
-   - When answering targeted questions in `/api/chat`, `TreeIndexerService.search_tree()` navigates from document root $\to$ target unit $\to$ target leaf section in under $15\text{ms}$.
-2. **Pedagogical Breadcrumb Citations**:
-   - Injected prompt context includes exact hierarchical breadcrumbs (e.g. `Physics I > Unit 2: Kinematics > Section 2.3: Projectile Motion`), providing the model with structural orientation without loading tens of thousands of tokens.
+1. **Threshold Gate vs. On-Demand Endpoint**:
+   - Automatic tree generation during `POST /api/materials/analyze` triggers when `page_count >= 20` or `len(extracted_text) >= 15,000`.
+   - Direct calls to `POST /api/materials/tree` bypass that size threshold and build/return a tree for any `public.materials` record with non-empty `content`.
+2. **Top-Down Branch Retrieval (`traverse_tree`)**:
+   - During `/api/chat`, `TreeIndexerService.traverse_tree(material_id, query_terms)` scores child section nodes against query terms (`title`, `summary`, `key_concepts`) and selects up to 3 top matching sections.
+3. **Structured Section Citations**:
+   - Selected excerpts are formatted as `[Section Title] (pp. X-Y): Summary`, giving the model bounded document orientation without loading full raw texts.

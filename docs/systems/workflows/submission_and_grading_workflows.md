@@ -24,7 +24,7 @@ sequenceDiagram
         UI->>Svc: Background submitAssignment(...)
         Svc->>DB: UPSERT public.student_submissions (status='Submitted')
     else Binary File Attached (file !== null)
-        UI->>UI: Locks modal dismissal (!isSubmitting) & renders animated progress bar (15% -> 92% -> 100%) with file size
+        UI->>UI: Locks modal dismissal (!isSubmitting) & renders animated progress bar (15% → 92% → 100%) with file size
         UI->>Svc: submitAssignment(classId, studentId, materialId, file, textContent)
         Svc->>Storage: upload("/{material_id}/{content_item_id}", fileBlob)
         Storage-->>Svc: Upload confirmed (storagePath saved)
@@ -64,39 +64,36 @@ sequenceDiagram
     participant BE as Backend FastAPI (/api/grade)
     participant LLM as OpenRouter LLM
 
-    DB->>Edge: pg_net fires webhook upon INSERT/UPDATE in public.student_submissions
-    Edge->>Storage: Downloads submission document & extracts text
-    Edge->>DB: INSERT INTO ai.submission_evaluations (submission_id, status='processing')
+    DB-.->Edge: Planned pg_net webhook (`trg_submission_ai_eval` commented out in SQL)
+    Edge->>Storage: Downloads submission document & UTF-8 decodes text
+    Edge->>DB: UPSERT INTO ai.submission_evaluations (submission_id, status='processing')
     
     Edge->>BE: POST /api/grade (submission_id, material_name, submission_text, rubric_criteria, max_score)
     BE->>LLM: Evaluates work per criterion, drafts feedback & private teacher notes
     LLM-->>BE: Returns structured GradeResponse JSON
     
-    BE->>DB: Stores full evaluation in ai.submission_evaluations (rubric_breakdown, private_teacher_notes, rationale, status='completed')
+    BE->>DB: Stores full evaluation in ai.submission_evaluations, updates mastery & proposed misconceptions
     BE-->>Edge: Returns GradeResponse
-    
-    Edge->>DB: UPDATE public.student_submissions SET status='Evaluated', score=?, feedback=?, evaluated_at=now()
-    DB-->>DB: Triggers trg_sync_student_scores (atomic grade average recalculation)
 ```
 
 ### Step-by-Step Execution Details:
 
-1. **Webhook Event Dispatch**:
-   - PostgreSQL's `trg_submission_ai_eval` fires on submission insert/update, invoking the `net.http_post` asynchronous dispatcher to [`trigger-submission-evaluation`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-submission-evaluation).
+1. **Webhook Event Dispatch *(Currently Commented Out in SQL)***:
+   - `20260915120100_ai_functions_and_triggers.sql` defines `trg_submission_ai_eval` (currently commented out) to invoke [`trigger-submission-evaluation`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-submission-evaluation) via `net.http_post`.
 2. **Text Extraction & State Recording**:
-   - The Edge Function retrieves the document from the `student-submissions` bucket, extracts its plaintext, and records `status = 'processing'` in `ai.submission_evaluations`.
+   - When invoked, the Edge Function retrieves `"File"` blobs from `student-submissions` (UTF-8 `TextDecoder`) or legacy `"text://"` paths (native `"Text"` `item.value` extraction is not yet implemented here), and records `status = 'processing'` in `ai.submission_evaluations`.
 3. **Backend Evaluator Invocation**:
    - The Edge Function invokes Backend `POST /api/grade`.
    - The Backend's [`EvaluatorService`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/service/evaluator.py) constructs a rubric-aligned prompt for OpenRouter (e.g. Gemini 2.5 Flash).
-4. **Evaluation Ingestion & Score Sync**:
-   - The LLM parses criterion-level scores, student feedback, and private teacher notes.
-   - The submission status in `public.student_submissions` transitions to `'Evaluated'`.
+4. **Evaluation Ingestion**:
+   - The LLM produces criterion-level scores, student feedback, private teacher notes, and detected misconceptions.
+   - `EvaluatorService` persists the completed record into `ai.submission_evaluations` (`status = 'completed'`); `public.student_submissions` awaits teacher review/publishing rather than being overwritten automatically.
 
 ---
 
 ## 3. Workflow: Teacher Grade Review, AI Diagnostic Diff & Final Publication
 
-Teachers retain full pedagogical authority. They can inspect the AI evaluation, review differences, adjust criterion scores, and publish the final grade.
+Teachers retain full pedagogical authority. They can inspect submission content, run the diagnostic diff modal, adjust criterion scores, and publish the final grade.
 
 ```mermaid
 sequenceDiagram
@@ -108,58 +105,55 @@ sequenceDiagram
     participant Svc as studentService
     participant DB as PostgreSQL (public & ai)
 
-    Teacher->>UI: Clicks "Evaluated" badge in Gradebook Matrix
-    UI->>DB: Calls RPC get_submission_ai_diagnostic(submission_id)
-    DB-->>UI: Returns AI rubric breakdown, feedback draft, and private diagnostic notes
+    Teacher->>UI: Opens SubmissionGradingModal & clicks "Diagnose with AI"
+    Note over UI,DB: Currently runs local heuristic stub (get_submission_ai_diagnostic RPC wiring pending)
     
-    Teacher->>DiffModal: Opens AI Diagnostic Diff Modal
-    DiffModal-->>Teacher: Displays side-by-side comparison: Current Grade vs. AI Proposed Breakdown
+    UI->>DiffModal: Opens AI Diagnostic Diff Modal
+    DiffModal-->>Teacher: Displays side-by-side comparison: Current Score vs. Proposed Breakdown
     
-    Teacher->>DiffModal: Adjusts criterion scores, edits feedback, approves diagnostic
-    Teacher->>UI: Clicks "Publish Final Grade"
+    Teacher->>DiffModal: Adjusts criterion scores, toggles acceptance, applies recommendations
+    Teacher->>UI: Reviews feedback/score & clicks "Save & Grade"
     
-    UI->>Svc: gradeSubmission(submissionId, { score, feedback, status: 'Graded' })
-    Svc->>DB: UPDATE public.student_submissions SET score = ?, feedback = ?, status = 'Graded', updated_at = now()
+    UI->>Svc: saveGrade(...) / studentService.saveSubmissionReview(...)
+    Svc->>DB: UPDATE public.student_submissions SET score = ?, feedback = ?, status = 'Graded', reviewed_at = now()
     
     Note over DB: Trigger trg_sync_student_scores fires atomically!
     DB->>DB: Recomputes class_students.current_score, current_grade, and performance_tier
     
     Svc-->>Hook: Resolves updated submission & refreshed student records
-    Hook->>UI: Gradebook Matrix updates in realtime (badge becomes "Graded")
+    Hook->>UI: Gradebook Matrix updates locally & in PostgreSQL
     UI-->>Teacher: Displays success confirmation toast
 ```
 
 ### Step-by-Step Execution Details:
 
-1. **Gradebook Review**:
-   - In [`GradebookMatrix.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/GradebookMatrix.tsx), items with pending AI evaluations display an **"Evaluated"** chip.
+1. **Gradebook & Submission Review**:
+   - In [`GradebookMatrix.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/GradebookMatrix.tsx) and [`SubmissionGradingModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/SubmissionGradingModal.tsx), teachers open a student submission cell to review work and click **"Diagnose with AI"**. *(Wiring **"Diagnose with AI"** / Gradebook chips to `get_submission_ai_diagnostic()` or live `POST /api/grade` is pending; it currently synthesizes a local heuristic preview.)*
 2. **Side-by-Side Diagnostic Diff**:
    - Opening [`AIDiagnosticDiffModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/AIDiagnosticDiffModal.tsx) presents the teacher with:
-     - Student's raw submission text.
-     - Per-criterion point allocations generated by the AI vs. maximum possible points.
-     - Editable constructive feedback for the student.
-     - Private diagnostic notes (misconceptions identified, remedial recommendations).
-3. **Teacher Adjustments & Publishing**:
+     - Per-criterion point allocations suggested vs. current scores with +/- delta sliders.
+     - Editable constructive feedback and private diagnostic notes.
+3. **Teacher Adjustments & Saving**:
    - The teacher can override any score or edit the commentary.
-   - Clicking **"Publish Grade"** transitions `status` to `'Graded'`.
+   - Saving persists `score`, `grade`, `rubric_breakdown`, `feedback`, `private_teacher_notes`, `reviewed_at`, and `status` to `public.student_submissions`.
 4. **Atomic Grade Recalculation**:
    - The PostgreSQL trigger `trg_sync_student_scores` recalculates:
-     - `current_score`: Running weighted percentage across all graded assignments.
-     - `current_grade`: Standard letter grade (`A`, `B`, `C`, `D`).
-     - `performance_tier`: Tier category (`Advanced`, `Proficient`, `Developing`, `Critical Support`).
+     - `current_score`: Running average percentage across scored submissions (`ROUND(AVG((score / max_score) * 100), 2)`).
+     - `current_grade`: Letter grade (`A` >=88, `B` >=75, `C` >=60, `D` <60).
+     - `performance_tier`: Database tier category (`High`, `Average`, `At Risk`; client-side in-memory recalculation in `studentCalculations.ts` uses `High` >=90 / `Average` >=65 / `At Risk` <65).
    - All student cards, gradebook cells, and report card metrics update automatically.
 
 ---
 
 ## 4. Workflow: Dynamic Concept Mastery Tracking & Proposed Misconception Review
 
-In addition to letter grades, student comprehension is tracked longitudinally at the granular concept level, and pedagogical misconceptions are surfaced directly in the Gradebook Matrix:
+In addition to letter grades, student comprehension is tracked per concept in PostgreSQL, and proposed misconceptions are exposed via FastAPI endpoints (with [`GradebookMatrix.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/GradebookMatrix.tsx) UI badge wiring currently pending):
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Teacher as Teacher
-    participant Matrix as GradebookMatrix.tsx
+    participant Matrix as GradebookMatrix.tsx (Planned UI)
     participant BE as Backend FastAPI
     participant OntoSvc as OntologyService
     participant DB as PostgreSQL ai Schema
@@ -167,26 +161,27 @@ sequenceDiagram
     Note over BE,DB: 1. Dynamic Mastery Updates (during /api/grade)
     BE->>DB: UPSERT INTO ai.student_concept_mastery (student_id, class_id, concept_id, mastery_score, status)
 
-    Note over Teacher,Matrix: 2. Reviewing Proposed Misconceptions in Gradebook
+    Note over Teacher,Matrix: 2. Reviewing Proposed Misconceptions (Backend Ready, UI Pending)
     Matrix->>BE: GET /api/misconceptions/proposed?class_id={class_id}
     BE->>OntoSvc: get_proposed_misconceptions(class_id)
     OntoSvc->>DB: SELECT * FROM ai.ontology_misconceptions WHERE status = 'proposed'
     DB-->>OntoSvc: List of proposed misconceptions
-    OntoSvc-->>BE-->>Matrix: Render proposed badges with evidence submission count
+    OntoSvc-->>BE: list[OntologyMisconception]
+    BE-->>Matrix: Proposed misconceptions payload
     
     Teacher->>Matrix: Clicks [Confirm] or [Dismiss] on misconception badge
-    Matrix->>BE: POST /api/misconceptions/{id}/review ({ action: 'confirm'|'dismiss', reviewer_id })
-    BE->>OntoSvc: review_misconception(id, action, reviewer_id)
-    OntoSvc->>DB: UPDATE ai.ontology_misconceptions SET status = action, teacher_reviewed_at = now()
-    DB-->>Matrix: Badge updates to Confirmed or is removed
+    Matrix->>BE: POST /api/misconceptions/{misconception_id}/review ({ status: 'confirmed'|'dismissed', reviewer_id })
+    BE->>OntoSvc: review_misconception(misconception_id, req.status, req.reviewer_id)
+    OntoSvc->>DB: UPDATE ai.ontology_misconceptions SET status = req.status, ...
+    DB-->>Matrix: Returns { status: "ok", misconception_id, new_status }
 ```
 
 ### Key Highlights:
-1. **Exponential Moving Average Mastery Formula**:
-   $$\text{Mastery}_{new} = 0.35 \cdot M_{s_k} + 0.65 \cdot \text{Mastery}_{prev}$$
-   Categorizes proficiency into `'mastered'` ($\ge 0.85$), `'practicing'` ($0.65 - 0.84$), and `'gap_detected'` ($< 0.65$).
-2. **One-Click Human-in-the-Loop Governance**:
-   Educators inspect evidence submissions before accepting AI-discovered misconceptions into the institutional knowledge graph.
+1. **Concept Mastery Classification & EMA Target**:
+   - `EvaluatorService.grade_submission()` maps proficiency into `'mastered'` ($\ge 0.85$), `'practicing'` ($0.65 - 0.84$), and `'gap_detected'` ($< 0.65$).
+   - **Current vs. Target**: `OntologyService.update_student_mastery()` currently overwrites `mastery_score` on conflict; smoothed Exponential Moving Average calibration ($\text{Mastery}_{new} = 0.35 \cdot M_{s_k} + 0.65 \cdot \text{Mastery}_{prev}$) is the target calibration formula.
+2. **Human-in-the-Loop Governance**:
+   - Backend API endpoints (`GET /api/misconceptions/proposed`, `POST /api/misconceptions/{misconception_id}/review`) are live; educator badge review inside `GradebookMatrix.tsx` awaits frontend integration.
 
 ---
 

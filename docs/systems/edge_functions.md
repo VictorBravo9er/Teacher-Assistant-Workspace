@@ -15,7 +15,7 @@ flowchart TD
     end
 
     subgraph EdgeRuntime["Supabase Edge Functions Runtime (Deno)"]
-        SharedUtil["_shared Modules (cors.ts, auth.ts, env.ts, supabaseClient.ts, supabaseAdmin.ts)"]
+        SharedUtil["_shared Modules (cors.ts, auth.ts, env.ts, documentExtractor.ts, assetPersistence.ts, supabaseClient.ts, supabaseAdmin.ts)"]
         
         FnSubEval["trigger-submission-evaluation"]
         FnMatAnalysis["trigger-material-analysis"]
@@ -63,11 +63,12 @@ flowchart TD
 
     FnSubEval -->|Fetch Work File| StorageBuckets
     FnSubEval -->|POST /api/grade| BackendAPI
-    FnSubEval -->|Update Status & Score| PostgresDB
+    FnSubEval -->|Record 'processing' state| PostgresDB
+    BackendAPI -->|Persist evaluation & mastery| PostgresDB
 
     FnMatAnalysis -->|Fetch Document Blob| StorageBuckets
     FnMatAnalysis -->|POST /api/materials/analyze| BackendAPI
-    FnMatAnalysis -->|Update Material Insights| PostgresDB
+    FnMatAnalysis -->|Record 'processing' state| PostgresDB
 
     FnURL -->|Generate Signed URL| StorageBuckets
 
@@ -97,46 +98,48 @@ The `_shared/` directory provides common reusable utilities across all edge endp
    - Parses the `Authorization: Bearer <JWT>` header.
    - Validates tokens using `supabase.auth.getUser(token)` to extract authenticated `user_id` and ensure authorization before executing sensitive queries.
 3. **`env.ts`**:
-   - Environment variable helper module supporting type-safe retrieval and parsing of environment configurations, JSON blobs, and fallback defaults.
+   - Environment variable helper module supporting type-safe retrieval and parsing of environment configurations, JSON blobs, and fallback defaults (resolving `SUPABASE_ANON_KEY`/`SUPABASE_PUBLISHABLE_KEYS` and `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_SECRET_KEYS`).
 4. **`supabaseClient.ts`**:
    - Creates a request-scoped `SupabaseClient` initialized with the caller's JWT bearer token, ensuring that queries run subject to the caller's Row Level Security (RLS) constraints.
 5. **`supabaseAdmin.ts`**:
    - Instantiates a high-privilege `SupabaseClient` using `SUPABASE_SERVICE_ROLE_KEY`.
-   - Used for administrative updates (such as updating `ai.submission_evaluations` or generating signed storage download URLs for enrolled students).
+   - Used for administrative updates (such as updating `ai.submission_evaluations`, `ai.document_assets`, or generating signed storage download URLs for enrolled students).
+6. **`documentExtractor.ts`**:
+   - Pure-Deno multi-format extraction and Markdown normalizer (`extractContentItems`, `parseDocumentBytes`) supporting native `Text` (`item.value` and legacy `text://`), `.txt`, `.md`, `.csv`, `.html`, `.svg`, binary `.pdf` (`npm:unpdf@2.1.0` per-page text + PNG image extraction + scan detection), OOXML `.docx`/`.pptx`/`.xlsx` (`npm:fflate@0.8.3`), legacy OLE2 fallback, external URL fetches, and optional OpenRouter Vision classification/OCR (`OPENROUTER_API_KEY`) that discerns whether raw pixels must be preserved (`diagram`, `chart`, `illustration`, `equation`, `photo`) or omitted (`table_image`, `text_scan` captured as Markdown).
+7. **`assetPersistence.ts`**:
+   - Persists extracted illustrations/scans directly into self-contained `ai.document_assets` (with SHA-256 deduplication, descriptive text, discernment fields `retain_image_data` / `retention_reason`, and bounded inline `image_base64` up to 3 MB with zero Storage bucket dependencies), and links assets back to `ai.material_trees`, `ai.material_insights`, `ai.ontology_concepts`, and `ai.asset_concept_mappings` via `syncAssetsToMaterialKnowledge()`.
 
 ---
 
 ## 3. Edge Functions Catalog & Dataflows
 
 ### 3.1 `trigger-submission-evaluation`
-- **Trigger**: Database Webhook fired when a new submission row is inserted or set to `status = 'Submitted'` in `public.student_submissions`.
+- **Trigger**: HTTP webhook payload (intended for database trigger `trg_submission_ai_eval`, currently commented out in `20260915120100_ai_functions_and_triggers.sql` while AI webhooks remain decoupled).
 - **Workflow**:
-  1. Parses submission ID and class rubric configuration from the webhook payload.
-  2. Downloads the submitted file from `student-submissions` bucket and extracts its text.
-  3. Inserts a record into `ai.submission_evaluations` with `status = 'processing'`.
-  4. Calls Backend `POST /api/grade` with the extracted text, material title, and rubric criteria.
-  5. Updates `public.student_submissions` with the calculated score, grade, and feedback.
-  6. Updates `ai.submission_evaluations` with full rubric criteria breakdowns and private teacher notes.
+  1. Verifies caller authorization (`service_role` from pg_net or RLS-visible `student_submissions` caller) and resolves the submission, parent material (`rubric_criteria`, `max_score`), and class-private `class_materials.custom_rubric_criteria`.
+  2. Extracts Markdown text & embedded visual scans/diagrams across `File`, `URL`, and native `Text` (`value` / `text://`) items via `_shared/documentExtractor.ts`.
+  3. Upserts `ai.submission_evaluations` (`status = 'processing'`) first so intra-`ai` FK `submission_evaluation_id` exists, persists visual assets directly into `ai.document_assets`, optionally links concepts against `submission.material_id` (`linkMaterialHierarchy: false`), and refreshes `raw_extracted_text` with `[asset://<id>]` references.
+  4. Calls Backend `POST /api/grade` (default `BACKEND_API_URL` fallback `http://127.0.0.1:8000`) with `submission_id`, `class_id`, `student_id`, `material_id`, `material_name`, `submission_text`, `rubric_criteria`, and `max_score`.
+  5. `POST /api/grade` (`EvaluatorService`) persists the completed rubric breakdown and private teacher notes into `ai.submission_evaluations`; neither `trigger-submission-evaluation` nor `/api/grade` writes directly to `public.student_submissions`.
 
 ---
 
 ### 3.2 `trigger-material-analysis`
-- **Trigger**: Database Webhook fired when a new educational resource is inserted or updated in `public.materials`.
+- **Trigger**: HTTP webhook payload (intended for `trg_material_ai_analysis` / `trg_class_material_ai_analysis`, currently commented out in `20260915120100_ai_functions_and_triggers.sql`).
 - **Workflow**:
-  1. Downloads document blobs (PDFs, presentations, notes) from `class-materials`.
-  2. Extracts raw textual content.
-  3. Records entry in `ai.material_insights` with `status = 'processing'`.
-  4. Invokes Backend `POST /api/materials/analyze`.
-  5. Persists syllabus alignment mappings, prerequisite gap warnings, and sample questions into `ai.material_insights`.
-  6. Maps extracted concepts to `ai.ontology_concepts` in the knowledge graph.
+  1. Enforces `service_role` or owning teacher authorization (`material.user_id === authCtx.userId`) and inspects both canonical `materials.content` and optional `class_materials.custom_content` (`File`, `URL`, and `Text`).
+  2. Extracts normalized Markdown, accurate `page_count`, and embedded diagrams/figures via `_shared/documentExtractor.ts` with Vision discernment (`asset_storage_policy`).
+  3. Upserts `ai.material_insights` (`status = 'processing'`) first so intra-`ai` FK `material_insight_id` exists, persists visual assets directly into `ai.document_assets` via `_shared/assetPersistence.ts`, and appends `[asset://<id>]` Markdown links.
+  4. Invokes Backend `POST /api/materials/analyze` (`EvaluatorService`) passing `extracted_text`, `page_count`, `class_id`, and `rubric_criteria`, then runs `syncAssetsToMaterialKnowledge()` to link extracted visual assets to `ai.material_trees`, `ai.ontology_concepts`, and `ai.asset_concept_mappings`.
 
 ---
 
 ### 3.3 `extract-material-text`
-- **Trigger**: Client HTTP POST request containing storage bucket path or binary upload.
+- **Trigger**: Authenticated HTTP POST request containing `{ material_id }` (with optional `class_id`), `{ submission_id }`, or `{ bucket, storage_path }` (plus optional `asset_storage_policy`: `'auto' | 'always_base64' | 'description_only'`).
 - **Workflow**:
-  - Parses binary streams (PDF, DOCX, TXT, Markdown).
-  - Returns sanitized plaintext string suitable for LLM prompt context ingestion and dense embedding vector generation.
+  - Verifies RLS access via request-scoped `authClient` unless called with `service_role` (or delegates direct `storage_path` downloads to Storage RLS).
+  - Extracts normalized Markdown, `page_count`, `format`, `ocr_used`, `warnings`, and embedded illustrations across all targeted content items (`File`, `URL`, `Text`) via `_shared/documentExtractor.ts`, optionally persisting visual assets to `ai.document_assets`.
+  - Returns concatenated Markdown text (`text`) and structured `items` / `assets` metadata (including `representation_mode`, `retain_image_data`, `retention_reason`, `has_inline_data`) suitable for LLM prompts and Dual-Engine tree/ontology compilation.
 
 ---
 
@@ -145,14 +148,14 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 - **Security Check**:
   - Validates requester's JWT.
   - Queries `class_students` to ensure the student is actively enrolled in a class referencing the material, OR verifies the requester is the owning teacher.
-- **Result**: Returns a short-lived (e.g., 60-minute expiry) signed download URL from Supabase Storage.
+- **Result**: Returns a short-lived (60-minute expiry) signed download URL from Supabase Storage.
 
 ---
 
 ### 3.5 `get-class-agent-context`
-- **Trigger**: AI chat assistant or workflow initialization.
+- **Trigger**: AI chat assistant or external agent workflow initialization (note: `useAIChat.ts` currently compiles `ChatPayload` directly on the client rather than invoking this endpoint).
 - **Workflow**:
-  - Gathers all class metadata, linked curriculum materials, rubric definitions, student rosters, and running attendance averages into an aggregated JSON context bundle for the AI Assistant.
+  - Gathers class metadata, linked curriculum materials, rubric definitions, AI material insights, student rosters, and evaluated submission diagnostics into an aggregated JSON context bundle.
 
 ---
 
@@ -160,7 +163,7 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 - **Trigger**: Teacher inviting a new student via email (`POST`) or updating an unconfirmed student's email (`PATCH`).
 - **Workflow**:
   - Checks if student record exists in `public.students`.
-  - Dispatches the student invitation via Supabase Auth SMTP (`adminSupabase.auth.admin.inviteUserByEmail` or `adminSupabase.auth.resend`) using the project's configured Supabase Auth email template, passing `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` in `data` (`user_metadata`).
+  - Resolves `redirectTo` using `APP_URL` / `SITE_URL` (`https://teach.glipse.tech` fallback) and dispatches the student invitation via Supabase Auth SMTP (`adminSupabase.auth.admin.inviteUserByEmail` or `adminSupabase.auth.resend`) passing `role: "student"`, `full_name`, `class_name`, `teacher_name`, and `teacher_email` in `data` (`user_metadata`).
   - Creates/updates enrollment row in `public.class_students` via `add_student_to_class` RPC.
   - Returns `{ success: true, student_id }`.
 
@@ -169,9 +172,8 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 ### 3.7 `batch-sync-evaluations`
 - **Trigger**: Teacher saving bulk grade adjustments or syncing class-wide rubric updates.
 - **Workflow**:
-  - Accepts batch payload of submission IDs, criterion scores, and revised teacher feedback.
-  - Atomically updates `public.student_submissions` and `ai.submission_evaluations` in a single transaction.
-  - Triggers score re-aggregation across affected students.
+  - Accepts batch payload of `{ submissions: [{ id, status, score, grade, feedback, rubric_breakdown, private_teacher_notes }] }`.
+  - Updates `public.student_submissions` (does not directly write `ai.submission_evaluations`) and recomputes `public.class_students` aggregate metrics (`>=88` -> `A`/`High`, `>=75` -> `B`/`Average`, `>=60` -> `C`/`Average`, `<60` -> `D`/`At Risk`).
 
 ---
 
@@ -221,17 +223,17 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 
 - **Environment Variables**:
   - `SUPABASE_URL`: Regional Supabase API gateway URL.
-  - `SUPABASE_ANON_KEY`: Client-facing anonymous key for public operations.
-  - `SUPABASE_SERVICE_ROLE_KEY`: Secret admin key kept strictly server-side.
-  - `BACKEND_API_URL`: Address of the FastAPI service (e.g., `http://backend:8090` or production hostname).
+  - `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLISHABLE_KEYS`): Client-facing anonymous/publishable key.
+  - `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEYS`): Secret admin key kept strictly server-side.
+  - `BACKEND_API_URL`: Address of the FastAPI service (defaults to `http://127.0.0.1:8000` in the Edge Functions when unset).
+  - `OPENROUTER_API_KEY`: Optional OpenRouter key in Edge secrets enabling Vision OCR/captioning for scanned PDFs and image uploads (`OPENROUTER_VISION_MODEL` / `OPENROUTER_MODEL`, default `google/gemini-2.5-flash`).
+  - `APP_URL` / `SITE_URL`: Frontend base URL used for `invite-student` `redirectTo` links (defaults to `https://teach.glipse.tech`).
   - `RESEND_API_KEY`: API token for dispatching emails through the Resend gateway.
-  - `RESEND_FROM_EMAIL`: Authorized sender address for broadcast notifications (defaults to `updates@teachandlearn.edu`).
-  - `STUDENT_INVITE_FROM_EMAIL`: Authorized sender address for student invites (defaults to `signup@teach.glipse.tech`).
-  - `STUDENT_INVITE_REPLY_TO`: Explicit non-repliable address for student invites (defaults to `no-reply@teach.glipse.tech`).
+  - `RESEND_FROM_EMAIL`: Authorized sender address for outbound emails (defaults to `updates@teachandlearn.edu` in `notify-*` functions and `alerts@teachandlearn.edu` in `resend-webhook`).
 - **Zero Raw Secret Exposure**:
   - Secrets are injected via Supabase Secrets Manager and never committed to version control.
 - **Fail-Safe Webhook Responses**:
-  - Webhook endpoints immediately acknowledge reception with HTTP 202/200 while dispatching background async tasks to prevent PostgreSQL connection timeouts.
+  - HTTP handlers validate inputs and isolate failures cleanly per record without exposing secret keys.
 
 ---
 

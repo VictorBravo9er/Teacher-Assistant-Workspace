@@ -21,6 +21,9 @@ classDiagram
     class ChatPayload {
         +list[Message] messages
         +str workspaceName
+        +str? classItemName
+        +str? class_id
+        +bool confirmed_soft_warning
         +str subject
         +str academicYear
         +str semester
@@ -85,38 +88,43 @@ classDiagram
 ```mermaid
 classDiagram
     class TreeNode {
-        +str id
+        +str node_id
         +str title
-        +int level
+        +int page_start
+        +int page_end
         +str summary
         +list[str] key_concepts
-        +int token_count
         +list[TreeNode] children
     }
 
     class MaterialTree {
+        +str? id
         +str material_id
         +TreeNode root_node
         +int total_nodes
         +int max_depth
+        +int page_count
         +str status
     }
 
     class OntologyConcept {
-        +str id
-        +str name
+        +str? id
         +str subject
+        +str? code
+        +str name
+        +str description
         +str bloom_level
         +str okf_type
         +str status
-        +str verified_by
+        +str? verified_by
         +list[str] tags
     }
 
     class OntologyMisconception {
-        +str id
+        +str? id
+        +str? class_id
         +str concept_id
-        +str name
+        +str? name
         +str error_pattern
         +str remediation_strategy
         +str severity
@@ -127,13 +135,33 @@ classDiagram
     }
 
     class StudentConceptMastery {
-        +str student_id
         +str class_id
+        +str student_id
         +str concept_id
         +float mastery_score
         +float confidence
         +str status
         +list[str] evidence_submission_ids
+    }
+
+    class CheckAnswerableResult {
+        +bool is_answerable
+        +str status_flag
+        +float coverage_score
+        +int matched_concept_count
+        +list[str] missing_terms
+        +bool requires_confirmation
+        +str? caveat_message
+    }
+
+    class ConsolidationResponse {
+        +str run_id
+        +str status
+        +bool drift_detected
+        +int orphaned_nodes_found
+        +int cycles_resolved
+        +int misconceptions_synthesized
+        +str summary
     }
 
     MaterialTree *-- TreeNode

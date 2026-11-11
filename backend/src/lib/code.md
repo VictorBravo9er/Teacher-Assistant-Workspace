@@ -53,7 +53,9 @@ flowchart LR
 - **Execution Telemetry**: `measure_async` context helper measures async execution durations in milliseconds and logs performance metrics.
 
 ### 4. `db.py` Asynchronous Database Pool & Lifecycle:
-- **`init_db_pool(dsn, min_size, max_size)`**: Initializes global `psycopg_pool.AsyncConnectionPool` configured with `row_factory=dict_row` during FastAPI lifespan startup.
+- **`init_db_pool()`**: Initializes and opens global `psycopg_pool.AsyncConnectionPool` configured with `row_factory=dict_row`, reading `POSTGRES_URI` from the environment during FastAPI lifespan startup.
 - **`close_db_pool()`**: Closes active database connections gracefully during server shutdown.
-- **`get_db_pool()`**: Returns the active connection pool instance; handles graceful degradation when testing in environments without database connectivity.
+- **`get_postgres_uri()`**: Retrieves `POSTGRES_URI` from environment variables.
+- **`get_db_pool()`**: Returns the active connection pool instance, calling `init_db_pool()` on demand if uninitialized or closed.
+- **`get_connection()`**: Async context manager acquiring a dictionary-row connection from the pool.
 - **Query Helpers**: `fetch_all`, `fetch_one`, and `execute` acquire connections asynchronously from the pool, execute parameterized SQL queries, and release connections automatically back to the pool.

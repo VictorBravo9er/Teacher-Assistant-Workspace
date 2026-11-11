@@ -61,7 +61,7 @@ sequenceDiagram
     Student->>UI: Selects mode: File Upload, Web URL, or Written Text
     alt File Upload
         Student->>UI: Chooses document / image (PDF, DOCX, PNG)
-        UI->>UI: Shows asymptotic upload progress bar (15% -> 92% -> 100%)
+        UI->>UI: Shows asymptotic upload progress bar (15% → 92% → 100%)
         UI->>Storage: Uploads to student-submissions/{material_id}/{content_id}
     else Web URL / Text
         Student->>UI: Pastes link or enters plaintext answer
@@ -124,7 +124,7 @@ sequenceDiagram
 
     Student->>UI: Clicks "Change Password" in student profile dropdown
     Student->>UI: Enters new password & confirmation
-    Student->>UI: Clicks "Update Password"
+    Student->>UI: Clicks "Save Password"
     UI->>UI: Shows indeterminate encryption progress bar & disables inputs
     UI->>Supa: supabase.auth.updateUser({ password: newPassword })
     alt Success
@@ -154,7 +154,7 @@ sequenceDiagram
     Portal->>Portal: Reads activeClass state (currentScore, currentGrade, generalFeedback)
     Portal->>Portal: Reads submissions state (scores, rubric feedback, status)
     Portal-->>Student: Renders Cumulative Score metric card (e.g., "88%")
-    Portal-->>Student: Renders Letter Grade metric card (e.g., "B+") & attendance stat
+    Portal-->>Student: Renders Letter Grade metric card (e.g., "B+") & Performance Standing badge
     Portal-->>Student: Displays Instructor Remarks & Portfolio Feedback
     Portal-->>Student: Displays Graded Work scoreboard (itemized scores & rubric comments)
 ```

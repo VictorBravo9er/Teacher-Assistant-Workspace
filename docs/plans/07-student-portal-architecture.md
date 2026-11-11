@@ -5,7 +5,7 @@
 ## 1. Problem Statement & Architecture Gap
 In the current application:
 - **Sign-Up Allows Role Selection**: [`frontend/src/views/AuthPage.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/AuthPage.tsx#L28) provides a toggle allowing users to register as either **Educator** or **Student**.
-- **Missing Student Destination**: Regardless of role, [`frontend/src/App.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/App.tsx) unconditionally renders [`ClassApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/ClassApp.tsx) (the Educator Cockpit).
+- **Missing Student Destination**: Regardless of role, [`frontend/src/App.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/App.tsx) unconditionally renders [`ClassApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/ClassApp.tsx) (the Educator Cockpit).
 - **Broken User Experience**:
   - `ClassApp` queries `classes` where `user_id = auth.uid()`.
   - Because students are enrolled via `public.class_students` and do not own classes, they see an empty dashboard with 0 classes and an erroneous prompt to "Create a Class".
@@ -47,10 +47,10 @@ const isStudent =
 
 ## 3. Implementation Steps
 
-### Step 3.0: Update PostgreSQL RLS Policies for Enrolled Students ([`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql))
-In [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql), existing RLS policies restrict `classes`, `materials`, and `instructions` strictly to `user_id = auth.uid()`. Because teachers own classes, enrolled students (`public.class_students`) are completely blocked from reading class metadata, syllabus materials, and assignment prompts.
+### Step 3.0: Update PostgreSQL RLS Policies for Enrolled Students ([`supabase/schemas/schema.public.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.public.sql))
+In [`supabase/schemas/schema.public.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.public.sql), existing RLS policies restrict `classes`, `materials`, and `instructions` strictly to `user_id = auth.uid()`. Because teachers own classes, enrolled students (`public.class_students`) are completely blocked from reading class metadata, syllabus materials, and assignment prompts.
 
-Update the RLS policies in `supabase/schemas/schema-db.sql` and staging migrations:
+Update the RLS policies in `supabase/schemas/schema.public.sql` and staging migrations:
 1. **`public.classes`**:
    ```sql
    DROP POLICY IF EXISTS "Users can only view their own classes" ON public.classes;
@@ -187,7 +187,7 @@ if (role === 'student') {
 return <ClassApp />;
 ```
 
-### Step 3.3: Build Student Portal Shell ([`frontend/src/StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/StudentApp.tsx))
+### Step 3.3: Build Student Portal Shell ([`frontend/src/views/StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx))
 A clean, student-centric UI shell featuring:
 - Top bar with enrolled class dropdown / selector, notification bell, and student avatar.
 - 3 Primary Tabs:
@@ -205,7 +205,7 @@ Create `StudentTurnInModal.tsx`:
 ---
 
 ## 4. PostgreSQL RLS Security Verification
-Verify that Row Level Security policies in [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql) permit students to:
+Verify that Row Level Security policies in [`supabase/schemas/schema.public.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.public.sql) permit students to:
 1. `SELECT` from `public.classes` where `user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.class_students cs WHERE cs.class_id = classes.id AND cs.student_id = auth.uid())`.
 2. `SELECT` from `public.class_materials` and `public.materials` for enrolled classes.
 3. `SELECT` from `public.class_instructions` and `public.instructions` for enrolled classes.

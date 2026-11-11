@@ -1,12 +1,12 @@
 # Didactiq — Master Project Roadmap & Milestone Tracker
 
-## 🎯 Primary Goal: Document-Aware Vector RAG, Automated Rubric Grading & Student Submission Pipeline
+## 🎯 Primary Goal: Lean Dual-Engine Knowledge Store (Trees + Concept Ontology), Automated Rubric Grading & LMS Pipeline
 
-This master tracker combines the completed **Frontend Teacher Experience & Submissions Suite** with the upcoming **Backend Vector RAG, Autonomous Evaluation & Streaming Infrastructure**.
+This master tracker combines the completed **Frontend LMS Experience & Submissions Suite** and **FastAPI Dual-Engine Knowledge Backend** with the remaining **Rich File Extraction, UI Diagnostic Wiring, Schema Snapshots & Streaming Infrastructure**.
 
 ---
 
-## 🎨 Part I: Frontend Teacher Suite & Interactive Workflow (Completed)
+## 🎨 Part I: Frontend Teacher & Student Suite (Completed Core LMS)
 
 ### 📋 Phase 1: Interactive Student Submission & Grading Suite
 - [x] **1.1 Submission Review & Rubric Grading Suite (`SubmissionGradingModal.tsx`, `AIDiagnosticDiffModal.tsx`)**
@@ -29,14 +29,13 @@ This master tracker combines the completed **Frontend Teacher Experience & Submi
 
 ---
 
-### 🤖 Phase 3: AI Pedagogical Diagnostics & Chat Experience
-- [x] **3.1 AI Auto-Grading & Diagnostic Review UI (`AIDiagnosticDiffModal.tsx`)**
-  - "Diagnose with AI" action in submission grading modal generating suggested rubric scores, gap analyses, and feedback drafts.
-  - Interactive "AI Review Diff" modal with checkboxes to selectively accept, tweak via sliders, or reject AI recommendations before saving.
-- [x] **3.2 Chat UI Enhancements & Session Export (`RAGClass.tsx`)**
+### 🤖 Phase 3: AI Diagnostic Diff & Chat UI Foundation
+- [x] **3.1 AI Diagnostic Review Modal (`AIDiagnosticDiffModal.tsx`)**
+  - "Diagnose with AI" button in `SubmissionGradingModal.tsx` opening the interactive "AI Review Diff" modal with checkboxes and sliders before saving. *(Currently backed by a local heuristic baseline stub in `SubmissionGradingModal.tsx` pending live `POST /api/grade` / `get_submission_ai_diagnostic()` wiring.)*
+- [x] **3.2 Chat UI & Session Management (`RAGClass.tsx`)**
   - Copy individual assistant messages to clipboard with confirmation indicators.
   - Export chat sessions as formatted Markdown files.
-  - Quick pedagogical prompt chips and multi-type session initialization modal.
+  - Quick pedagogical prompt chips, session CRUD via `chatService`, and synchronous `/api/chat` JSON integration via `useAIChat`.
 
 ---
 
@@ -44,43 +43,49 @@ This master tracker combines the completed **Frontend Teacher Experience & Submi
 - [x] **4.1 Class Gradebook Matrix (`GradebookMatrix.tsx`)**
   - Full tabular grid of all enrolled students vs. scored materials/assignments.
   - Interactive cells opening direct submission review modals.
-  - Real-time search, performance tier filtering (`High`, `Average`, `At Risk`), multi-column sorting (Name, Roll, Score, Attendance), and one-click CSV export.
+  - Real-time search, performance tier filtering (`High`, `Average`, `At Risk`, `Unassessed`), multi-column sorting (Name, Roll, Score, Attendance), and one-click CSV export.
 - [x] **4.2 One-Click Parent Briefing & Report Card Generator (`ReportCardModal.tsx`)**
   - Printable and exportable student progress report cards with performance badges, submission summaries, and attendance records.
   - Editable personalized parent briefing notes with browser print formatting.
 
 ---
 
-## ⚡ Part II: Backend Vector RAG, Agentic Evaluation & Streaming (Upcoming)
+## ⚡ Part II: Lean Dual-Engine AI Backend, Integrations & Streaming
 
-> **Architectural Standard**: The Python FastAPI backend will **not** include the `supabase-py` SDK. All database queries, file downloads, and agent tooling will communicate with Supabase strictly via **PostgREST REST API**, **Storage REST API**, and **dedicated Deno Edge Functions** using async HTTP (`httpx`).
+> **Architectural Standard**: Direct Postgres access (`psycopg_pool` in `backend/src/lib/db.py`) powers the Dual-Engine Knowledge Store (`ai.material_trees` JSONB trees + `ai.ontology_*` relational concept graph, avoiding vector index bloat) alongside OpenRouter LLM orchestration (`ChatOpenAI`), while Supabase Auth, Storage, PostgREST, and Deno Edge Functions manage LMS state and event workers.
 
-### 🧠 Phase 5: Document Ingestion, Chunking & Vector RAG (`pgvector`)
-- [ ] **5.1 Backend Document Extraction & Embedding Pipeline (via Edge Function & REST)**
-  - Dedicated Deno Edge Function (`extract-material-text`) to extract text from stored PDFs/docs in Supabase Storage.
-  - Python backend fetches clean text chunks via REST, generates vector embeddings, and stores them in PostgreSQL `pgvector`.
-- [ ] **5.2 Contextual Material Retrieval in `/api/chat`**
-  - Update `ChatService` to perform similarity searches against vectorized class materials based on active scope.
-  - Ground LLM prompts in relevant syllabus excerpts, student portfolios, and rubric criteria fetched via REST / Edge Functions.
-
----
-
-### 🤖 Phase 6: Autonomous Rubric Evaluation Backend Endpoint & Event Triggers
-- [x] **6.1 Dedicated Auto-Grading Endpoint (`/api/grade`)**
-  - FastAPI endpoint (`/api/grade`) to autonomously evaluate raw student submission text against `materials.rubric_criteria`.
-  - Return structured rubric breakdowns (`RubricBreakdownItem`), scores, strength summaries, and pedagogical notes directly to the frontend diff review modal.
-  - Implemented `EvaluatorService` and `OntologyService` in backend with strict Pydantic v2 schemas.
-- [x] **6.2 Automated AI Evaluation Triggers for Materials & Submissions Pipeline & Hybrid AI Schema**
-  - **Hybrid AI Schema & Storage (`supabase/schemas/schema-ai.sql`)**: Dedicated non-exposed `ai` schema holding material/submission vector embeddings (`pgvector`), ontological knowledge graph (`ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`), material-concept bridges, and student mastery state tracking.
-  - **Material Ingestion/Update Trigger**: `trg_material_ai_analysis` automatically dispatches webhooks to `trigger-material-analysis` Edge Function to execute syllabus alignment, prerequisite gap checks, and sample question generation.
-  - **Submission Ingestion/Update Trigger**: `trg_submission_ai_eval` automatically dispatches webhooks to `trigger-submission-evaluation` Edge Function to pre-compute rubric evaluations in `ai.submission_evaluations`.
-  - **Public Gateway RPCs**: `get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, and `get_class_concept_matrix` provide authorized, sanitized UI access with strict `auth.uid()` checks.
+### 🧠 Phase 5: Hierarchical Trees, Concept Ontology & Document Extraction
+- [x] **5.1 Dual-Engine Knowledge Schema & Services (`TreeIndexerService`, `OntologyService`, `ChatService`, `ConsolidationService`)**
+  - `ai.material_trees` JSONB hierarchical section index + `POST /api/materials/tree` + `TreeIndexerService.traverse_tree()`.
+  - `ai.ontology_concepts` (OKF v0.2), `ai.ontology_relationships` (`chk_relationship_type`), `ai.material_concept_mappings`, `ai.ontology_misconceptions`, `ai.student_concept_mastery`, `ai.consolidation_runs`, `ai.knowledge_lint_reports`, `ai.staging_scratchpad`, and `ai.check_answerable()`.
+  - Dual-Engine retrieval in `POST /api/chat` + daily graph integrity & Misconception Dreaming in `POST /api/consolidation/run`.
+- [x] **5.2 Rich Binary & Scanned Material Extraction (`_shared/documentExtractor.ts`, `_shared/assetPersistence.ts`)**
+  - Upgraded `extract-material-text`, `trigger-material-analysis`, and `trigger-submission-evaluation` with pure-Deno binary PDF (`unpdf`), OOXML (`fflate` DOCX/PPTX/XLSX), HTML/CSV/SVG Markdown normalization, native `Text` `value`, `page_count`/`class_id` forwarding, OpenRouter Vision discernment/OCR, and self-contained `ai.document_assets` knowledge graph visual storage (textual description and/or inline `image_base64` with zero Storage bucket dependencies; *(deployed automatically via `.github/workflows/cd.yml` when merged to `main`)*).
+- [ ] **5.3 Frontend Soft-Warning & `class_id` Copilot Wiring**
+  - Pass explicit `class_id` and surface the interactive `ai.check_answerable` confirmation retry (`confirmed_soft_warning: true`) inside `useAIChat.ts` / `RAGClass.tsx`.
 
 ---
 
-### 🚀 Phase 7: Real-Time Streaming & LangGraph Persistence
-- [ ] **7.1 Server-Sent Events (SSE) Streaming**
-  - Refactor `/api/chat` from blocking JSON to SSE streaming for instant token-by-token streaming in the chat UI.
-- [ ] **7.2 LangGraph PostgreSQL Checkpointing**
-  - Connect LangGraph conversation checkpoints (`supabase/schemas/schema-langgraph.sql`) for robust multi-turn thread persistence.
+### 🤖 Phase 6: Autonomous Evaluation Triggers, Schema Alignment & Frontend AI Wiring
+- [x] **6.1 Dedicated FastAPI AI Endpoints & Public Gateway RPCs**
+  - FastAPI endpoints live: `/api/chat`, `/api/grade`, `/api/materials/analyze`, `/api/materials/tree`, `/api/consolidation/run`, `/api/misconceptions/proposed`, `/api/misconceptions/{misconception_id}/review`.
+  - Public Gateway RPCs deployed: `get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, `get_class_concept_matrix`.
+- [ ] **6.2 Frontend AI Component Integrations**
+  - Wire `"Diagnose with AI"` in `SubmissionGradingModal.tsx` to `POST /api/grade` / `get_submission_ai_diagnostic()`.
+  - Surface `GET /api/misconceptions/proposed` & `POST /api/misconceptions/{id}/review` badges inside `GradebookMatrix.tsx`.
+  - Surface `get_student_concept_gaps()` in `StudentDetailModal.tsx` and `get_material_ai_insights()` in `MaterialPreviewModal.tsx`.
+- [x] **6.3 Backend/SQL Alignment & Schema Snapshot Refresh**
+  - Aligned `evaluator.py` `eval_sql` placeholder/parameter count, `ontology.py`/`ai.py` column names (`teacher_reviewer_id`, `teacher_reviewed_at`) and enums (`chk_relationship_type`, `check_answerable` `'VERIFIED' | 'INCOMPLETE_WARNING'`).
+  - Regenerated `supabase/schemas/schema.ai.sql` (`make db-dump-schema`) and verified generated DB types (`make types`).
+- [ ] **6.4 Remaining Calibration, DB Triggers & Token Enforcement**
+  - Upgrade `OntologyService.update_student_mastery()` to smoothed EMA ($\alpha = 0.35$) calibration and add dynamic token budget enforcement.
+  - Re-enable commented-out `trg_material_ai_analysis` / `trg_submission_ai_eval` triggers once edge/backend secrets are active.
+
+---
+
+### 🚀 Phase 7: Real-Time Streaming, LangGraph Persistence & Test Suite
+- [ ] **7.1 Server-Sent Events (SSE) Streaming & Turn Persistence**
+  - Refactor `/api/chat` from blocking JSON to SSE streaming for live token delivery in `RAGClass.tsx`, and persist every message turn via `chatService.updateSession()`.
+- [ ] **7.2 LangGraph PostgreSQL Checkpointing & Automated Backend Tests**
+  - Wire `langgraph` schema checkpoints (`supabase/schemas/schema.langgraph.sql`) into `/api/chat` multi-turn execution and implement backend pytest suites (`backend/tests/`).
 

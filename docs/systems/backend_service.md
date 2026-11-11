@@ -67,7 +67,7 @@ flowchart TD
     ChatRoute --> ChatSvc["ChatService.process_chat_message()"]
     GradeRoute --> EvalSvcGrade["EvaluatorService.grade_submission()"]
     AnalyzeRoute --> EvalSvcMat["EvaluatorService.analyze_material()"]
-    TreeRoute --> TreeSvc["TreeIndexerService.get_or_build_tree()"]
+    TreeRoute --> TreeSvc["TreeIndexerService.get_tree() / build_tree_from_text()"]
     ConsolidateRoute --> ConsolidateSvc["ConsolidationService.run_daily_consolidation()"]
     MisconceptionsRoute --> OntoSvcList["OntologyService.get_proposed_misconceptions()"]
     ReviewMisconceptionRoute --> OntoSvcRev["OntologyService.review_misconception()"]
@@ -85,24 +85,30 @@ flowchart TD
   - `students`: Array of `StudentData` portfolios (scores, grades, submissions, attendance rates).
   - `classroom`: Classroom metadata (subject, grade level, teaching style, assessment preferences).
   - `newAnalysisConfig`: Active teacher directives (focus areas, tone, output preferences).
-  - `class_id`: Optional UUID of classroom for pre-query answerability check.
+  - `class_id`: Optional UUID of classroom for pre-query answerability check and Dual-Engine retrieval.
+  - `classItemName`: Optional class display name fallback resolved to `class_id` by `ChatService._resolve_class_id()` when `class_id` is omitted.
   - `confirmed_soft_warning`: Boolean flag confirming user intent to proceed despite low coverage caveat.
-- **Response**: `dict` containing `"text"` (markdown summary), optional `"visualization"` (JSON chart/ranking/heatmap/timeline model), or soft-warning caveat structure (`"is_answerable": false`, `"requires_confirmation": true`, `"caveat_message": "..."`).
+- **Response**: `dict` containing `"text"` (markdown summary) and optional `"visualization"` (JSON chart/ranking/heatmap/timeline/stats model), OR when `coverage_score < 0.4` and `confirmed_soft_warning` is false, a non-blocking soft-warning caveat payload (`"text"`, `"visualization": null`, `"is_soft_warning": true`, `"status_flag"`, `"coverage_score"`, `"missing_terms"`, `"requires_confirmation": true`, `"caveat_message": "..."`).
 
 #### 3. `POST /api/grade`
 - **Request Body**: `GradeRequest`
   - `submission_id`: UUID of student submission.
+  - `class_id`: Optional UUID of the class for misconception lookup and mastery tracking.
+  - `student_id`: Optional UUID of the student for longitudinal mastery updates in `ai.student_concept_mastery`.
+  - `material_id`: Optional UUID of the assignment material for concept mapping lookup.
   - `material_name`: Title of assignment material.
   - `submission_text`: Raw extracted text of student's submitted document.
   - `rubric_criteria`: List of rubric items (`name`, `maxScore`, `description`).
   - `max_score`: Total maximum score.
 - **Response**: `GradeResponse`
+  - `submission_id`: UUID of graded submission.
   - `score`: Total score awarded.
   - `max_score`: Maximum possible score.
   - `grade`: Formatted letter grade and percentage (e.g., `"A (92%)"`).
   - `feedback`: Student-facing constructive commentary.
   - `private_teacher_notes`: Internal teacher diagnostics and detected misconceptions.
   - `rubric_breakdown`: Per-criterion score allocations and notes.
+  - `detected_misconceptions`: Array of identified pedagogical misconceptions linked during evaluation.
   - `rationale`: Analytical explanation of evaluation decision.
   - `status`: `"completed"` | `"failed"`.
   - `model_used`: LLM identifier (e.g. `"google/gemini-2.5-flash"`).
@@ -111,35 +117,47 @@ flowchart TD
 - **Request Body**: `MaterialAnalyzeRequest`
   - `material_id`: UUID of material.
   - `name`: Material title.
-  - `category`: `public.content_category` enum.
+  - `category`: `public.content_category` enum (default `'Study Material'`).
   - `extracted_text`: Full document textual content.
+  - `rubric_criteria`: Optional list of grading criteria dictionaries attached to the material.
+  - `page_count`: Optional integer page count used with character length ($\ge 20$ pages or $\ge 15,000$ chars) to trigger tree indexing.
+  - `class_id`: Optional UUID of the owning class.
 - **Response**: `MaterialAnalyzeResponse`
+  - `material_id`: UUID of analyzed material.
   - `summary`: Executive pedagogical overview.
   - `difficulty_level`: `"Beginner"` | `"Intermediate"` | `"Advanced"`.
   - `syllabus_alignment`: Array of curriculum topics, standard codes, and alignment confidence.
   - `prerequisite_gaps`: Array of detected prerequisite knowledge gaps and recommended remedial actions.
   - `sample_questions`: Array of synthesized practice questions with options, explanations, and answers.
-  - `status`: `"completed"`.
+  - `status`: `"completed"` | `"failed"`.
+  - `model_used`: LLM identifier used for analysis.
+  - `tree_indexed`: Boolean indicating whether hierarchical tree indexing was built.
+  - `tree_total_nodes`: Integer count of generated nodes in `ai.material_trees`.
 
 #### 5. `POST /api/materials/tree`
 - **Request Body**: `MaterialTreeRequest`
   - `material_id`: UUID of material.
-  - `markdown_text`: Extracted markdown text of the document.
-  - `force_reindex`: Boolean flag to force rebuilding the tree even if already present.
+  - `force_rebuild`: Optional boolean flag (default `false`) to force rebuilding the tree even if already cached.
 - **Response**: `MaterialTreeResponse`
+  - `material_id`: UUID of material.
   - `tree`: `MaterialTree` model containing `root_node` (hierarchical sections, summaries, concepts, token counts), `total_nodes`, and `max_depth`.
-  - `indexed`: Boolean indicating whether a new tree index was constructed.
-  - `reason`: `"indexed_successfully"` | `"already_indexed"` | `"below_threshold"`.
+  - `cached`: Boolean indicating whether the tree was retrieved from cache.
+  - `status`: `"completed"`.
 
 #### 6. `POST /api/consolidation/run`
 - **Request Body**: `ConsolidationRequest` (optional)
   - `class_id`: Optional UUID to scope consolidation to a single class.
-  - `force_full_audit`: Boolean flag to force a complete re-audit of the entire ontology graph.
+  - `run_type`: Execution mode (`"daily"`).
+  - `force_dreaming`: Optional boolean flag to force Misconception Dreaming.
 - **Response**: `ConsolidationResponse`
   - `run_id`: UUID of the executed consolidation audit run in `ai.consolidation_runs`.
   - `status`: `"completed"` | `"failed"`.
-  - `lint_report`: Structural summary of graph health (orphaned nodes removed, cycles resolved, invalid relationships flagged).
-  - `proposed_misconceptions_count`: Number of newly synthesized pedagogical misconceptions surfaced for teacher review.
+  - `drift_detected`: Boolean indicating if graph anomalies were identified.
+  - `orphaned_nodes_found`: Count of orphaned concepts detected.
+  - `cycles_resolved`: Count of cyclic prerequisite dependencies resolved.
+  - `misconceptions_synthesized`: Number of newly synthesized pedagogical misconceptions surfaced for teacher review.
+  - `summary`: Text summary of consolidation results.
+  - `lint_report`: Structural summary of graph health.
 
 #### 7. `GET /api/misconceptions/proposed`
 - **Query Parameters**:
@@ -151,9 +169,9 @@ flowchart TD
 - **Path Parameters**:
   - `misconception_id`: UUID of target misconception.
 - **Request Body**: `MisconceptionReviewRequest`
-  - `action`: `'confirm'` (promotes to `'confirmed'`) | `'dismiss'` (marks as `'dismissed'`).
-  - `reviewer_id`: UUID of teacher performing review.
-- **Response**: `dict` (`{"status": "ok", "action": "...", "misconception_id": "..."}`).
+  - `status`: `'confirmed'` | `'dismissed'`.
+  - `reviewer_id`: Optional UUID of teacher performing review.
+- **Response**: `dict` (`{"status": "ok", "misconception_id": "...", "new_status": "..."}`).
 
 ---
 
@@ -162,15 +180,21 @@ flowchart TD
 The backend connects to external LLM providers via OpenRouter using LangChain's `ChatOpenAI`:
 
 ```python
-def get_openrouter_llm(model: str, api_key: str, temperature: float = 0.2) -> ChatOpenAI:
-    """Instantiate OpenRouter client with standardized base URL and timeout parameters."""
+def get_openrouter_llm(model: str, api_key: str) -> ChatOpenAI:
+    """Instantiate and return the LangChain OpenRouter-backed ChatOpenAI client."""
+    extra_headers: dict[str, str] = {
+        "X-Title": os.getenv("OPENROUTER_TITLE", "Didactiq"),
+    }
+    site_url = os.getenv("OPENROUTER_HTTP_REFERER") or os.getenv("APP_URL")
+    if site_url:
+        extra_headers["HTTP-Referer"] = site_url
+
     return ChatOpenAI(
         model=model,
-        openai_api_key=api_key,
-        openai_api_base="https://openrouter.ai/api/v1",
-        temperature=temperature,
-        max_retries=3,
-        request_timeout=60.0,
+        api_key=SecretStr(api_key),
+        base_url="https://openrouter.ai/api/v1",
+        model_kwargs={"extra_headers": extra_headers},
+        temperature=0.7,
     )
 ```
 
@@ -190,12 +214,12 @@ To optimize prompt token density and maximize LLM comprehension:
 
 ## 5. LangGraph State Persistence & Memory Architecture
 
-For multi-turn agentic conversations and autonomous workflows, the backend connects to PostgreSQL checkpoint tables stored in the isolated `langgraph` schema:
+Checkpoint tables are provisioned in the isolated `langgraph` schema via `scripts/_setup_langchain_postgres.py` (`make db-setup` / `make db-reset`):
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart LR
-    LangGraphAgent["LangGraph Agent Node"]
+    LangGraphAgent["LangGraph Agent Node (Planned Checkpointer Wiring)"]
     PostgresSaver["PostgresSaver / PostgresStore"]
     LGCheckpoints[("langgraph.checkpoints")]
     LGBlobs[("langgraph.checkpoint_blobs")]
@@ -208,7 +232,7 @@ flowchart LR
 ```
 
 - **Isolated Schema**: Tables reside in `langgraph` schema (`langgraph.checkpoints`, `langgraph.checkpoint_blobs`, `langgraph.checkpoint_writes`, `langgraph.store`), preventing agent execution metadata from cluttering domain tables in `public`.
-- **Time-Travel & Resumption**: Checkpoint states allow reconstructing previous conversation turns, resuming interrupted tool executions, and maintaining conversation memory across browser sessions.
+- **Current Chat Execution vs. Planned Checkpointer Wiring**: Current `/api/chat` (`ChatService.process_chat_message`) executes single-turn `ChatOpenAI` invocations using client-supplied conversation history stored in `public.chat_sessions`; connecting LangGraph checkpoint resumption into live chat turns is scheduled for Phase 7.
 
 ---
 
@@ -225,7 +249,7 @@ flowchart LR
     Services["Domain Services (TreeIndexer, Ontology, Evaluator, Chat)"]
 
     Lifespan -->|init_db_pool() at startup| PoolMgr
-    Services -->|execute_query / fetch_all / fetch_one| PoolMgr
+    Services -->|execute / fetch_all / fetch_one| PoolMgr
     PoolMgr -->|AsyncConnection (dict_row)| PostgresEngine
     Lifespan -->|close_db_pool() at shutdown| PoolMgr
 ```
@@ -237,7 +261,7 @@ flowchart LR
    - `fetch_all(query, params)`: Returns list of record dictionaries.
    - `fetch_one(query, params)`: Returns single record dictionary or `None`.
    - `execute(query, params)`: Executes mutation statements (`INSERT`, `UPDATE`, `DELETE`) within an async connection context.
-4. **Resilient Initialization**: If `DATABASE_URL` is omitted (e.g. in standalone unit testing), pool initialization logs a diagnostic warning and degrades gracefully without crashing the web service.
+4. **Resilient Initialization**: If `POSTGRES_URI` is omitted (e.g. in standalone unit testing), pool initialization logs a diagnostic warning and degrades gracefully without crashing the web service.
 
 ---
 
@@ -248,16 +272,16 @@ The service layer implements the **Lean Dual-Engine Knowledge Architecture**, re
 ### 7.1 Tree Indexer Service (`src/service/tree_indexer.py`)
 - **Purpose**: Solves context fragmentation for long documents ($\ge 20$ pages or $\ge 15,000$ characters) such as textbooks, state curriculum standards, and multi-unit syllabi.
 - **PageIndex Hierarchical Tree Construction**:
-  - Recursively splits documents by heading levels (`#`, `##`, `###`).
-  - Synthesizes section-level summaries, key pedagogical concepts, and token counts.
-  - Persists JSONB tree representation to `ai.material_trees` with GIN indexing.
-- **Top-Down Branch Navigation**: Traverses from document root $\to$ target unit $\to$ target section in $<15\text{ms}$, extracting only the relevant 300–500 token leaf passage with section breadcrumbs rather than dumping entire documents.
+  - Splits Markdown text by headings (`#`, `##`, `###`) with a 3,500-character chunk fallback when headings are absent (`depth` 1–2 hierarchy).
+  - Synthesizes single-pass LLM section summaries, key pedagogical concepts, and estimated token counts (`root_node` JSONB includes computed metadata and child nodes).
+  - Persists JSONB tree representation to `ai.material_trees` indexed by B-Tree `idx_ai_mat_trees_material_id`.
+- **Top-Down Branch Navigation (`traverse_tree`)**: Traverses from document root $\to$ target unit $\to$ target section in $<15\text{ms}$ on cached trees, extracting only the top matching leaf passage with section breadcrumbs rather than loading entire documents.
 
 ### 7.2 Ontology Service (`src/service/ontology.py`)
 - **OKF v0.2 Knowledge Envelopes**: Manages pedagogical standards and concepts with metadata fields (`okf_type`, `status`, `verified_by`, `stale_after`, `tags`).
 - **Closed Vocabulary Edges**: Validates relationships against `chk_relationship_type` (`prerequisite_of`, `subconcept_of`, `reinforces`, `remediates_misconception`, `assesses`, `supersedes`, `related_to`).
-- **Recursive CTE Prerequisite Traversal**: Executes native PostgreSQL `WITH RECURSIVE` queries to resolve multi-hop prerequisite dependencies and learning gaps in $<10\text{ms}$.
-- **Misconception Review Management**: Powers educator review flows for proposed pedagogical misconceptions (`confirm` or `dismiss`).
+- **Recursive CTE Prerequisite Traversal (`get_prerequisite_graph_cte`)**: Executes native PostgreSQL `WITH RECURSIVE` queries with cycle guards to resolve multi-hop dependency chains in $<10\text{ms}$.
+- **Misconception Review Management**: Powers educator review flows for proposed pedagogical misconceptions (`'confirmed'` or `'dismissed'`).
 
 ### 7.3 Consolidation Service (`src/service/consolidation.py`)
 - **Daily Anti-Drift Audit**: Scheduled background maintenance pass identifying:
@@ -267,6 +291,6 @@ The service layer implements the **Lean Dual-Engine Knowledge Architecture**, re
 - **Autonomous Misconception Dreaming**: Synthesizes student errors across evaluated submissions to detect recurrent pedagogical pitfalls, inserting them into `ai.ontology_misconceptions` with `status = 'proposed'`.
 
 ### 7.4 Chat Service (`src/service/chat.py`)
-- **Pre-Query Soft-Warning Gate**: Checks query concepts against classroom materials using `ai.check_answerable`. If coverage is low ($< 0.4$), returns a cooperative soft-warning caveat asking if the teacher wishes to proceed.
-- **Dual-Engine Context Fusion**: Combines retrieved tree leaf citations and prerequisite chains within a deterministic ~4,300 prompt token budget.
-- **Structured Interactive Visualizations**: Generates rich Markdown text coupled with structured interactive visualization payloads (`charts`, `heatmap`, `ranking`, `timeline`, `stats`) rendered by `Visualizer.tsx`.
+- **Pre-Query Soft-Warning Gate**: Checks query concepts against classroom materials using `ai.check_answerable`. If coverage is low ($< 0.4$), returns a cooperative soft-warning caveat (`is_soft_warning: true`, `requires_confirmation: true`) asking if the teacher wishes to proceed.
+- **Dual-Engine Context Fusion**: Combines retrieved tree leaf citations and prerequisite chains bounded deterministically via fixed SQL/slice limits (`LIMIT 3` trees, top 3 leaf nodes, `LIMIT 5` concepts, top 6 CTE nodes truncated to 120 chars, `LIMIT 5` mastery rows, last 10 turns) targeting the ~4,300-token context budget design goal.
+- **Structured Interactive Visualizations**: Prompts the LLM to generate rich Markdown text paired with optional structured visualization payloads (`ranking`, `timeline`, `heatmap`, `stats`, plus `charts`/`radar` schemas which currently fall back to `stats` KPI card layout in `Visualizer.tsx`).

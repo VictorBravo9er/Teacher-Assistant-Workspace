@@ -20,7 +20,7 @@ As Didactiq scales its LMS capabilities, developers, testers, and AI agents face
    - Requests lack a standardized correlation ID (`x-request-id`) to correlate frontend API calls with backend execution traces.
    - LLM calls (`llm.invoke`) and JSON parsing (`parse_llm_response`) lack timing telemetry and diagnostic dumps on malformed model outputs.
 4. **Mock Data Pollution & Silent Failures**:
-   - [`frontend/src/lib/mockChat.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/mockChat.ts) contains hardcoded dummy AI responses ("Sofia Patel", "Classroom Score Distribution", etc.).
+   - `frontend/src/lib/mockChat.ts` (historical) contained hardcoded dummy AI responses ("Sofia Patel", "Classroom Score Distribution", etc.).
    - [`frontend/src/hooks/useAIChat.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useAIChat.ts#L102-L117) catches backend network failures and silently masks them by returning synthetic responses from `mockChat.ts`.
    - This masks real API connection failures, hides 500 errors from developers, and prevents the newly introduced logging engine from capturing real error states.
    - [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx#L145) contains fake mock toast messages ("Mock Upgrade Successful: Welcome to Pro!").
@@ -761,7 +761,7 @@ Instrument `ChatService` and `EvaluatorService` to log domain-specific telemetry
 
 To guarantee that the application only runs against real PostgreSQL data, real Supabase storage, and real FastAPI/OpenRouter endpoints, all mock files, synthetic fallback generators, and fake UI toast actions must be permanently eradicated:
 
-### Step 7.1: Permanently Delete [`frontend/src/lib/mockChat.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/mockChat.ts)
+### Step 7.1: Permanently Delete `frontend/src/lib/mockChat.ts`
 - Delete the 116-line mock response file entirely.
 - Ensure no lingering imports remain in the codebase.
 
@@ -786,8 +786,8 @@ Currently, `useAIChat.ts` catches backend network failures and falls back to `ge
 - Replace with real plan state or explicit disabled state ("Subscription management coming soon in enterprise edition"), ensuring no "Mock" branding or false confirmations appear to users.
 
 ### Step 7.4: Update Directory Documentation
-- Update [`frontend/src/lib/code.DESC.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/code.DESC.md): Remove references to `mockChat.ts` and "fallback mock generators".
-- Update [`frontend/src/services/code.ARCH.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/code.ARCH.md) and [`frontend/src/services/code.DESC.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/code.DESC.md): Remove descriptions stating services fall back to local mock responses.
+- Update [`frontend/src/lib/code.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/code.md): Remove references to `mockChat.ts` and "fallback mock generators".
+- Update [`frontend/src/services/code.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/code.md): Remove descriptions stating services fall back to local mock responses.
 
 ---
 

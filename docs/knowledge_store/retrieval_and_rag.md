@@ -22,23 +22,23 @@ flowchart TD
     subgraph SearchEngines["2. Dual-Engine Search & Context Pull"]
         TreeSearch["Engine A: Hierarchical Tree Navigation (ai.material_trees)"]
         GraphSearch["Engine B: Ontological Graph Traversal (ai.ontology_relationships)"]
-        RosterContext["Direct Context: Live Class Roster & Rubrics (get-class-agent-context)"]
+        RosterContext["Client / Direct Context: Classroom Metadata, Roster & Mastery Stats"]
     end
 
-    subgraph ContextFusion["3. Pedagogical Context Fusion & Token Budget Allocator"]
-        FusionEngine["Deterministic Priority Assembly (~4,300 Token Ceiling)"]
+    subgraph ContextFusion["3. Context Fusion & Deterministic Slice Limits"]
+        FusionEngine["Priority Context Assembly (Targeting ~4,300 Token Budget)"]
     end
 
     subgraph AssistantInference["4. Model Inference & Structured Response"]
         PromptBuilder["Assembled System & User Prompt"]
         LLM["OpenRouter Model (Gemini 2.5 Flash / Claude 3.5 Sonnet)"]
         Parser["Resilient JSON & Visualization Generator"]
-        UI["Render Markdown Text + Interactive Visualizer Widget"]
+        UI["Render Markdown Text + Visualizer.tsx Widget"]
     end
 
     UserQuery --> Gate
     Gate -->|Coverage < 0.4 / Pending| SoftWarn
-    SoftWarn -->|User Confirms Continue| IntentRouter
+    SoftWarn -.->|"Cooperative Retry (UI Loop Pending)"| IntentRouter
     Gate -->|Coverage >= 0.4 Verified| IntentRouter
     
     IntentRouter -->|Long Document / Unit Deep-Dive| TreeSearch
@@ -63,98 +63,87 @@ flowchart TD
 Used when querying long educational documents (e.g. 50+ page textbooks, comprehensive state syllabi):
 1. **Root Query Match**: Match query keywords and intent against the root syllabus summary in `ai.material_trees`.
 2. **Branch Pruning**: Prune unrelated chapters/units and identify the top target sections.
-3. **Section Extraction**: Navigate the sub-tree directly to the exact target section and extract the leaf paragraph (~300–500 tokens).
-4. **Token Advantage**: Injects only the precise 300–500 token subsection with parent breadcrumbs, rather than 5,000 tokens of noisy vector chunks or 50,000 tokens of raw PDF text.
+3. **Section Extraction**: Navigate the sub-tree directly to the exact target section and extract the leaf passage (~300–500 tokens).
+4. **Token Advantage**: Injects only targeted subsection excerpts (`LIMIT 3` cached trees, top 3 matching leaves) with parent breadcrumbs rather than 50,000 tokens of raw PDF text.
 
 ---
 
 ### Algorithm 2: Ontological Graph Expansion (GraphRAG-Style)
-Used for pedagogical gap analyses, prerequisite checks, and mastery questions:
+Used for pedagogical gap analyses, prerequisite checks, and mastery questions. `OntologyService.get_prerequisite_graph_cte()` executes a recursive CTE over `ai.ontology_relationships` with path cycle-protection (traversing up to `max_depth` parent edges; `relationship_type` filtering can be scoped further as needed):
 ```sql
--- Fetch Missing Prerequisites for a Target Concept (Native SQL Graph Traversal)
-WITH RECURSIVE prerequisite_chain AS (
-    SELECT 
-        c.id, c.name, c.bloom_level, r.relationship_type, 1 AS depth
-    FROM ai.ontology_concepts c
-    JOIN ai.ontology_relationships r ON r.source_concept_id = c.id
-    WHERE r.target_concept_id = p_target_concept_id AND r.relationship_type = 'prerequisite_of'
+-- Implemented recursive traversal in OntologyService.get_prerequisite_graph_cte()
+WITH RECURSIVE prereq_tree AS (
+    SELECT
+        r.source_concept_id,
+        r.target_concept_id,
+        r.relationship_type,
+        1 AS depth,
+        ARRAY[r.target_concept_id, r.source_concept_id] AS path
+    FROM ai.ontology_relationships r
+    WHERE r.target_concept_id = ANY($1::uuid[])
     
     UNION ALL
     
-    SELECT 
-        c.id, c.name, c.bloom_level, r.relationship_type, pc.depth + 1
-    FROM ai.ontology_concepts c
-    JOIN ai.ontology_relationships r ON r.source_concept_id = c.id
-    JOIN prerequisite_chain pc ON pc.id = r.target_concept_id
-    WHERE r.relationship_type = 'prerequisite_of' AND pc.depth < 3
+    SELECT
+        r.source_concept_id,
+        r.target_concept_id,
+        r.relationship_type,
+        pt.depth + 1,
+        pt.path || r.source_concept_id
+    FROM ai.ontology_relationships r
+    JOIN prereq_tree pt ON r.target_concept_id = pt.source_concept_id
+    WHERE pt.depth < $2
+      AND NOT (r.source_concept_id = ANY(pt.path))
 )
-SELECT * FROM prerequisite_chain;
+SELECT pt.*, c.name, c.subject, c.bloom_level
+FROM prereq_tree pt
+JOIN ai.ontology_concepts c ON pt.source_concept_id = c.id;
 ```
 
 ---
 
 ### Algorithm 3: Relational SQL Aggregation for Class & Student Diagnostics
-Rather than dumping raw student submissions into prompt context, PostgreSQL pre-aggregates diagnostic statistics directly inside the database via public RPC gateways:
-- `get_class_concept_matrix(p_class_id)`: Calculates average mastery percentages, counts students with gaps, and groups by Bloom level in SQL.
-- `get_student_concept_gaps(p_class_id, p_student_id)`: Traverses student evaluation records and attaches targeted remediation strategies from `ai.ontology_misconceptions`.
-- **Token Advantage**: Delivers compact JSON diagnostic summaries (~250–400 tokens) instead of tens of thousands of raw submission tokens.
+Rather than dumping raw student submissions into prompt context, PostgreSQL exposes pre-aggregated diagnostic summaries via security-definer public RPCs:
+- `get_class_concept_matrix(p_class_id)`: Calculates average mastery percentages, counts students with gaps, and returns concept metadata in SQL.
+- `get_student_concept_gaps(p_class_id, p_student_id)`: Traverses `ai.student_concept_mastery` (`status = 'gap_detected'` or `mastery_score < 0.70`) and attaches targeted remediation strategies from `ai.ontology_misconceptions`.
+- *(Note: Current `ChatService` queries `ai.student_concept_mastery` directly in SQL alongside `ai.material_trees` and `ai.ontology_concepts`, while the public RPCs serve client/external callers.)*
 
 ---
 
 ## 3. Pedagogical Context Assembly & Token Budgeting
 
-Rather than fuzzy reciprocal ranking across random chunks, context is fused using a deterministic priority hierarchy:
+Rather than fuzzy reciprocal ranking across random chunks, `ChatService._retrieve_knowledge_context()` assembles Dual-Engine context using deterministic SQL and slice bounds to align with the target **~4,300-token** prompt budget design goal (dynamic tokenizer counting is planned):
 
-1. **Active Directives & Teacher Profile** (Highest Priority)
-2. **Targeted Material / Tree Leaf Excerpt** (Scoped by active assignment or tree navigation)
-3. **Pre-Aggregated Student / Class Diagnostic Metrics** (From PostgreSQL RPCs)
-4. **Recent Conversation Turns** (Sliding window of last 4–5 turns)
-
-### Prompt Context Budget Allocation:
-The assembled prompt enforces a strict token budget to guarantee rapid inference, zero context truncation, and minimal operational costs:
-- **System Instructions & Teacher Persona**: ~500 tokens.
-- **Classroom Profile & Active Directives**: ~300 tokens.
-- **Retrieved Curriculum Excerpt (Tree Leaf / Section)**: ~1,500 tokens.
-- **Pre-Aggregated Student Mastery Statistics**: ~800 tokens.
-- **Conversation History (Last 5 Turns)**: ~1,200 tokens.
-- **Total Prompt Ceiling**: **~4,300 tokens** (leaving ample headroom for structured JSON response generation).
+1. **Active Directives & Teacher Profile**: Classroom metadata + active directives from `ChatPayload`.
+2. **Hierarchical Tree Leaves**: Up to `LIMIT 3` `ai.material_trees`, top 3 matching leaves per tree.
+3. **Ontological Concepts & Prerequisite Chains**: Up to `LIMIT 5` `ai.ontology_concepts` and top 6 CTE nodes truncated to 120 chars each.
+4. **Student Mastery Rows**: Up to `LIMIT 5` recent/gap `ai.student_concept_mastery` records.
+5. **Recent Conversation Turns**: Sliding window of the last 10 messages (`payload.messages[-10:]`).
 
 ---
 
 ## 4. Interactive Visualization Generator
 
-The RAG Assistant generates structured interactive UI widgets alongside markdown text, rendered by `Visualizer.tsx`:
+The RAG Assistant generates structured interactive UI widgets alongside markdown text, rendered by [`Visualizer.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/Visualizer.tsx):
 
 ```json
 {
-  "text": "### Unit 3 Mastery Overview\nMost students have mastered Linear Equations, but 35% exhibit a gap in **Quadratic Factoring by Grouping**.",
+  "text": "### Unit 3 Mastery Overview\nMost students have mastered Linear Equations, but several exhibit a gap in **Quadratic Factoring by Grouping**.",
   "visualization": {
     "type": "heatmap",
     "title": "Classroom Concept Mastery Heatmap",
-    "description": "Student performance across Unit 3 learning standards",
+    "description": "Topic mastery breakdown across Unit 3 learning standards",
     "data": [
-      {
-        "studentName": "Alex Johnson",
-        "concepts": [
-          {"name": "Linear Equations", "score": 95, "status": "Mastered"},
-          {"name": "Factoring by Grouping", "score": 58, "status": "Gap Detected"}
-        ]
-      },
-      {
-        "studentName": "Beatrice Smith",
-        "concepts": [
-          {"name": "Linear Equations", "score": 88, "status": "Mastered"},
-          {"name": "Factoring by Grouping", "score": 84, "status": "Practicing"}
-        ]
-      }
+      {"topic": "Linear Equations", "mastery": 92},
+      {"topic": "Factoring by Grouping", "mastery": 58},
+      {"topic": "Quadratic Formula", "mastery": 81}
     ]
   }
 }
 ```
 
 ### Supported Widget Types:
-1. **`charts`**: Score distribution bar charts, class averages vs. student score comparisons.
-2. **`heatmap`**: Multi-student concept mastery matrix.
-3. **`ranking`**: Leaderboards, highest improving students, and students needing critical intervention.
-4. **`timeline`**: Longitudinal assignment score trends across the semester.
-5. **`stats`**: Summary KPI cards (class average GPA, attendance rate, submission completion percentage).
+1. **`ranking`**: Ranked leaderboard cards (`name`, `score`, `classAvg`, `status`).
+2. **`timeline`**: Longitudinal milestone progression (`period`, `score`).
+3. **`heatmap`**: Topic mastery progress bars (`topic`, `mastery`).
+4. **`stats`**: Summary KPI metric grid (`label`, `value`, `trend`). *(Note: `'charts'` and `'radar'` schemas returned by the backend currently fall back to the `'stats'` KPI grid layout in `Visualizer.tsx`.)*
