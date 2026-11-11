@@ -1,10 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { adminSupabase } from "../_shared/supabaseAdmin.ts";
+import { getAuthClient } from "../_shared/supabaseClient.ts";
 import { verifyCallerAuth } from "../_shared/auth.ts";
+import {
+  type AssetStoragePolicy,
+  type ContentItemLike,
+  extractContentItems,
+} from "../_shared/documentExtractor.ts";
+import {
+  appendVisualAssetsMarkdown,
+  persistExtractedAssets,
+  syncAssetsToMaterialKnowledge,
+} from "../_shared/assetPersistence.ts";
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -15,19 +25,40 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { submission_id, class_id, material_id, student_id } = body;
+    const {
+      submission_id,
+      class_id,
+      asset_storage_policy = "auto",
+    }: {
+      submission_id?: string;
+      class_id?: string;
+      asset_storage_policy?: AssetStoragePolicy;
+    } = body;
 
     if (!submission_id) {
       return jsonResponse({ error: "Missing required 'submission_id'" }, 400);
     }
 
-    // 1. Verify caller authorization (Service Role from pg_net or Authenticated User)
+    // 1. Verify caller authorization (Service Role from pg_net or Authorized User)
     const authCtx = await verifyCallerAuth(req, class_id);
     if (!authCtx.isAuthorized) {
       return jsonResponse({ error: authCtx.errorMessage || "Unauthorized" }, 401);
     }
 
-    // 2. Fetch submission record
+    // 2. Enforce caller authorization on submission_id unless service_role
+    if (!authCtx.isServiceRole) {
+      const authClient = getAuthClient(req.headers.get("Authorization") || "");
+      const { data: visibleSub } = await authClient
+        .from("student_submissions")
+        .select("id")
+        .eq("id", submission_id)
+        .maybeSingle();
+      if (!visibleSub) {
+        return jsonResponse({ error: "Forbidden or submission record not found" }, 403);
+      }
+    }
+
+    // 3. Fetch submission record
     const { data: submission, error: subErr } = await adminSupabase
       .from("student_submissions")
       .select("id, class_id, student_id, material_id, content, status, due_at, is_late")
@@ -38,8 +69,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Submission record not found" }, 404);
     }
 
-    // 3. Fetch material criteria & context if linked
-    let rubricCriteria: any[] = [];
+    // 3. Fetch material criteria + optional class-private rubric overrides
+    let rubricCriteria: unknown[] = [];
     let materialName = "Assignment";
     let maxScore = 100;
 
@@ -53,59 +84,116 @@ Deno.serve(async (req) => {
       if (material) {
         materialName = material.name;
         maxScore = material.max_score || 100;
-        rubricCriteria = Array.isArray(material.rubric_criteria) ? material.rubric_criteria : [];
+        if (Array.isArray(material.rubric_criteria)) {
+          rubricCriteria = [...material.rubric_criteria];
+        }
       }
-    }
 
-    // 4. Extract raw text from submission content
-    let extractedText = "";
-    const contentItems = Array.isArray(submission.content) ? submission.content : [];
+      if (submission.class_id) {
+        const { data: classMat } = await adminSupabase
+          .from("class_materials")
+          .select("custom_rubric_criteria")
+          .eq("class_id", submission.class_id)
+          .eq("material_id", submission.material_id)
+          .maybeSingle();
 
-    for (const item of contentItems) {
-      if (item.path?.startsWith("text://")) {
-        extractedText += `${item.description || ""}\n`;
-      } else if (item.type === "File" && item.path && !item.path.startsWith("grade://")) {
-        try {
-          const { data: fileBlob } = await adminSupabase.storage
-            .from("student-submissions")
-            .download(item.path);
-
-          if (fileBlob) {
-            const rawBuffer = await fileBlob.arrayBuffer();
-            const decoder = new TextDecoder("utf-8", { fatal: false });
-            extractedText += `${decoder.decode(rawBuffer)}\n`;
-          }
-        } catch (e: any) {
-          console.warn(`Could not extract file text for ${item.path}:`, e.message);
+        if (Array.isArray(classMat?.custom_rubric_criteria)) {
+          rubricCriteria = [...rubricCriteria, ...classMat.custom_rubric_criteria];
         }
       }
     }
 
-    // Clean control characters
-    extractedText = extractedText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ").trim();
+    // 4. Extract normalized Markdown text + student diagrams/scans from submission content
+    const contentItems = Array.isArray(submission.content)
+      ? (submission.content as ContentItemLike[])
+      : [];
 
-    // 5. Update processing status in hidden ai.submission_evaluations
-    await adminSupabase
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY") || "";
+    const openRouterModel =
+      Deno.env.get("OPENROUTER_VISION_MODEL") ||
+      Deno.env.get("OPENROUTER_MODEL") ||
+      "google/gemini-2.5-flash";
+
+    const extraction = await extractContentItems({
+      items: contentItems,
+      storageClient: adminSupabase,
+      defaultBucket: "student-submissions",
+      options: {
+        enableOcr: true,
+        describeVisualAssets: Boolean(openRouterApiKey),
+        assetStoragePolicy: asset_storage_policy,
+        openRouterApiKey,
+        openRouterModel,
+      },
+    });
+
+    // 5. Upsert hidden ai.submission_evaluations first so intra-ai FK
+    //    submission_evaluation_id exists prior to inserting ai.document_assets.
+    const { data: evalRow, error: evalUpsertErr } = await adminSupabase
       .schema("ai")
       .from("submission_evaluations")
-      .upsert({
-        submission_id: submission.id,
-        status: "processing",
-        raw_extracted_text: extractedText || null,
-        updated_at: new Date().toISOString(),
+      .upsert(
+        {
+          submission_id: submission.id,
+          status: "processing",
+          raw_extracted_text: extraction.text || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "submission_id" },
+      )
+      .select("id")
+      .single();
+
+    const warnings = [...extraction.warnings];
+    if (evalUpsertErr) {
+      warnings.push(`ai.submission_evaluations upsert warning: ${evalUpsertErr.message}`);
+    }
+    const submissionEvaluationId = evalRow?.id;
+
+    // 5b. Persist student visual assets directly inside ai.document_assets
+    const { persisted: persistedAssets, warnings: persistWarnings } =
+      await persistExtractedAssets(extraction.assets, {
+        submissionId: submission.id,
+        submissionEvaluationId,
+        assetStoragePolicy: asset_storage_policy,
       });
+    warnings.push(...persistWarnings);
+
+    if (persistedAssets.length > 0 && submission.material_id) {
+      const syncResult = await syncAssetsToMaterialKnowledge({
+        materialId: submission.material_id,
+        classId: submission.class_id || undefined,
+        assets: persistedAssets,
+        linkMaterialHierarchy: false,
+      });
+      warnings.push(...syncResult.warnings);
+    }
+
+    const extractedText = appendVisualAssetsMarkdown(extraction.text, persistedAssets);
+
+    // 5c. Refresh raw_extracted_text once visual asset references & descriptions are attached
+    if (submissionEvaluationId && extractedText && extractedText !== extraction.text) {
+      await adminSupabase
+        .schema("ai")
+        .from("submission_evaluations")
+        .update({
+          raw_extracted_text: extractedText,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", submissionEvaluationId);
+    }
 
     // 6. Forward payload to FastAPI Backend Evaluation Endpoint
     const backendBaseUrl = Deno.env.get("BACKEND_API_URL") || "http://127.0.0.1:8000";
     const gradeEndpoint = `${backendBaseUrl}/api/grade`;
 
-    let backendResponse: any = null;
+    let backendResponse: unknown = null;
     try {
       const resp = await fetch(gradeEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": req.headers.get("Authorization") || "",
+          Authorization: req.headers.get("Authorization") || "",
         },
         body: JSON.stringify({
           submission_id: submission.id,
@@ -125,8 +213,9 @@ Deno.serve(async (req) => {
         const errText = await resp.text();
         console.warn(`Backend /api/grade returned ${resp.status}:`, errText);
       }
-    } catch (backendErr: any) {
-      console.warn("Backend /api/grade dispatch warning (asynchronous):", backendErr.message);
+    } catch (backendErr: unknown) {
+      const msg = backendErr instanceof Error ? backendErr.message : String(backendErr);
+      console.warn("Backend /api/grade dispatch warning (asynchronous):", msg);
     }
 
     return jsonResponse({
@@ -134,10 +223,15 @@ Deno.serve(async (req) => {
       submission_id: submission.id,
       status: backendResponse ? "evaluated" : "queued_for_evaluation",
       extracted_char_count: extractedText.length,
+      page_count: extraction.pageCount,
+      ocr_used: extraction.ocrUsed,
+      asset_count: persistedAssets.length,
       rubric_criteria_count: rubricCriteria.length,
+      warnings,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Trigger Submission Evaluation Error:", error);
-    return jsonResponse({ error: error.message || "Internal Server Error" }, 500);
+    const msg = error instanceof Error ? error.message : "Internal Server Error";
+    return jsonResponse({ error: msg }, 500);
   }
 });
