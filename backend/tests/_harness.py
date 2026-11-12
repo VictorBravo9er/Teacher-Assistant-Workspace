@@ -830,9 +830,13 @@ async def offline_runtime(
     db_state: MockDBState | None = None,
     fake_llm: FakeOpenRouterLLM | None = None,
     set_dummy_api_key: bool = True,
+    use_real_llm: bool = False,
 ) -> AsyncGenerator[OfflineRuntime]:
-    """Patch DB helpers and OpenRouter LLM factory across all backend modules."""
+    """Patch DB helpers (and optionally OpenRouter LLM factory) across all backend modules."""
     _import_backend_modules()
+    if use_real_llm and not os.environ.get("OPENROUTER_API_KEY", "").strip():
+        raise ValueError("OPENROUTER_API_KEY must be set when use_real_llm=True.")
+
     db = db_state or MockDBState()
     llm = fake_llm or FakeOpenRouterLLM()
 
@@ -845,7 +849,7 @@ async def offline_runtime(
         return None
 
     env_patch: dict[str, str] = {}
-    if set_dummy_api_key:
+    if set_dummy_api_key and not use_real_llm:
         env_patch["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
     with ExitStack() as stack:
@@ -872,17 +876,18 @@ async def offline_runtime(
         stack.enter_context(patch("src.main.init_db_pool", side_effect=_noop_pool))
         stack.enter_context(patch("src.main.close_db_pool", side_effect=_noop_pool))
 
-        for llm_mod in (
-            "src.lib.llm",
-            "src.service.chat",
-            "src.service.consolidation",
-            "src.service.evaluator",
-            "src.service.tree_indexer",
-        ):
-            if hasattr(sys.modules[llm_mod], "get_openrouter_llm"):
-                stack.enter_context(
-                    patch(f"{llm_mod}.get_openrouter_llm", side_effect=_fake_llm_factory)
-                )
+        if not use_real_llm:
+            for llm_mod in (
+                "src.lib.llm",
+                "src.service.chat",
+                "src.service.consolidation",
+                "src.service.evaluator",
+                "src.service.tree_indexer",
+            ):
+                if hasattr(sys.modules[llm_mod], "get_openrouter_llm"):
+                    stack.enter_context(
+                        patch(f"{llm_mod}.get_openrouter_llm", side_effect=_fake_llm_factory)
+                    )
 
         yield OfflineRuntime(db=db, llm=llm)
 
