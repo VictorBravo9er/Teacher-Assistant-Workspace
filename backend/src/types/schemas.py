@@ -53,12 +53,15 @@ class AnalysisConfig(BaseModel):
 
 class ChatPayload(BaseModel):
     messages: list[Message]
-    workspaceName: str
-    subject: str
-    academicYear: str
-    semester: str
-    teacherName: str
-    teachingStyle: str
+    workspaceName: str = ""
+    classItemName: str | None = None
+    class_id: str | None = None
+    confirmed_soft_warning: bool = False
+    subject: str = ""
+    academicYear: str = ""
+    semester: str = ""
+    teacherName: str = ""
+    teachingStyle: str = ""
     specialNotes: str | None = ""
     assessmentPreferences: str | None = ""
     materials: list[Material] = []

@@ -4,16 +4,14 @@ import { Template, Student } from '@/types/main';
 import { useWorkspaceData } from '@/hooks/useWorkspaceData';
 import { useTheme } from '@/hooks/useTheme';
 import { useClassOperations } from '@/hooks/useClassOperations';
-// TODO: Uncomment when AI / RAG services are reintegrated
-// import { useAIChat } from '@/hooks/useAIChat';
+import { useAIChat } from '@/hooks/useAIChat';
 import { classService } from '@/services/classService';
 import { templateService } from '@/services/templateService';
 
 import Sidebar from '@/components/layout/Sidebar';
 import ClassDetails from '@/features/classroom/ClassDetails';
 import StudentRegister from '@/features/students/StudentRegister';
-// TODO: Uncomment when AI / RAG services are reintegrated
-// import RAGClass from '@/features/ai-assistant/RAGClass';
+import RAGClass from '@/features/ai-assistant/RAGClass';
 import CommandPalette from '@/components/layout/CommandPalette';
 import { LoadingOverlay } from '@/components/shared/CustomDialogs';
 
@@ -127,12 +125,11 @@ export default function ClassApp() {
     triggerToast,
   });
 
-  // TODO: Uncomment when AI / RAG services are reintegrated
-  // const { isGeneratingAI, sendChatMessage } = useAIChat({
-  //   classes,
-  //   setClasses: mutateClasses,
-  //   triggerToast,
-  // });
+  const { isGeneratingAI, sendChatMessage } = useAIChat({
+    classes,
+    setClasses: mutateClasses,
+    triggerToast,
+  });
 
   const handleSaveEditChanges = async () => {
     if (viewMode === 'class' && activeClass && preEditClassSnapshot) {
@@ -405,8 +402,7 @@ export default function ClassApp() {
                       <Check className="w-4 h-4" />
                     </button>
                   )}
-                  {/* TODO: Uncomment when AI / RAG services are reintegrated */}
-                  {/* {viewMode === 'class' && (
+                  {viewMode === 'class' && (
                     <div
                       id="top-nav-view-mode-group"
                       className={`flex items-center bg-elevated/40 border border-border-color rounded-lg p-0.5 ${isEditMode ? 'opacity-50 pointer-events-none' : ''}`}
@@ -448,7 +444,7 @@ export default function ClassApp() {
                         <Square className="w-4 h-4" />
                       </button>
                     </div>
-                  )} */}
+                  )}
                 </div>
 
                 {/* Top Row Content */}
@@ -535,8 +531,7 @@ export default function ClassApp() {
                 )}
               </div>
 
-              {/* TODO: Uncomment when AI / RAG services are reintegrated */}
-              {/* {layoutMode !== 'details-only' && viewMode === 'class' && (
+              {layoutMode !== 'details-only' && viewMode === 'class' && (
                 <div className="flex-1 min-h-0 relative">
                   <RAGClass
                     classItem={adapterClassItem}
@@ -547,7 +542,7 @@ export default function ClassApp() {
                     isGeneratingAI={isGeneratingAI}
                   />
                 </div>
-              )} */}
+              )}
             </div>
           )}
         </main>

@@ -81,11 +81,15 @@ sequenceDiagram
     
     Note over Svc,DB: Clone Template Instructions to Class
     Svc->>DB: SELECT instruction_id FROM public.template_instructions WHERE template_id = ?
-    Svc->>DB: INSERT INTO public.class_instructions (class_id, instruction_id, order_index)
+    Svc->>DB: INSERT INTO public.class_instructions (class_id, instruction_id)
     
-    Note over Svc,DB: Clone Template Materials to Class
+    Note over Svc,DB: Link or Fork Template Materials to Class
     Svc->>DB: SELECT material_id FROM public.template_materials WHERE template_id = ?
-    Svc->>DB: INSERT INTO public.class_materials (class_id, material_id, order_index)
+    alt forkMaterials = true (Independent Copies)
+        Svc->>DB: Clone public.materials rows & INSERT INTO public.class_materials
+    else forkMaterials = false (Shared Reference)
+        Svc->>DB: INSERT INTO public.class_materials (class_id, material_id)
+    end
 
     DB-->>Svc: Returns instantiated ClassModel with linked relations
     Svc-->>Hook: Resolves created ClassModel
@@ -97,15 +101,13 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **User Initiation & Blueprint Selection**:
-   - In [`CreateClassModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/CreateClassModal.tsx), the user selects an Institute and chooses **"Start from Template"**.
-   - The modal previews the template's teaching styles, attached materials, and rubrics.
-   - The user enters class-specific attributes: Course Section, Academic Year, Term/Semester, Weekly Schedule.
+   - In [`CreateClassModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/CreateClassModal.tsx), the user enters Class Name, selects an optional Base Curriculum Template, selects a material strategy (**Independent Copies** `forkMaterials=true` vs. **Shared Reference** `forkMaterials=false`), and chooses an existing Institute or registers a new one.
 2. **Service Orchestration**:
-   - The modal calls [`classService.createClass()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/classService.ts).
+   - The modal delegates creation to [`useWorkspaceData`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useWorkspaceData.ts) / [`classService.createClass()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/classService.ts).
 3. **Database Junction Population**:
    - A new row is inserted into `public.classes` with `user_id = auth.uid()`.
-   - The service fetches all `instruction_id` records attached to the source template and creates corresponding rows in `public.class_instructions` with indexed `order_index`.
-   - The service fetches all `material_id` records attached to the source template and creates corresponding rows in `public.class_materials` with indexed `order_index`.
+   - The service copies all `instruction_id` bindings from `public.template_instructions` into `public.class_instructions`.
+   - For template materials, it either forks dedicated copies in `public.materials` (`forkMaterials=true`) or links shared references (`forkMaterials=false`) in `public.class_materials`.
 4. **Context Switching & Workspace Hydration**:
    - [`useWorkspaceData`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useWorkspaceData.ts) appends the new class and automatically switches `activeClassId` to the newly instantiated class.
    - The UI transitions directly into the **Class Details** view, fully populated with the template's materials and instructions.

@@ -11,12 +11,13 @@ The **Student Submissions & Mastery Portfolio Store** manages the ingestion, ind
 flowchart TD
     subgraph SubmissionIntake["1. Student Submission Intake"]
         Student["Student / Teacher Client"] -->|Upload Work (PDF, Code, Text)| SubBucket["Storage: student-submissions"]
-        SubBucket -->|INSERT / UPDATE status='Submitted'| SubTrigger["DB Trigger: trg_submission_ai_eval"]
-        SubTrigger -->|pg_net POST| EdgeFnSub["Edge Function: trigger-submission-evaluation"]
+        SubBucket -.->|"Planned INSERT/UPDATE Trigger (Currently Commented Out)"| SubTrigger["DB Trigger: trg_submission_ai_eval"]
+        SubTrigger -.->|pg_net POST| EdgeFnSub["Edge Function: trigger-submission-evaluation"]
     end
 
     subgraph ExtractionEval["2. Extraction & Auto-Grading"]
-        EdgeFnSub -->|Download & Parse Text| Extractor["Text Extractor (extract-material-text)"]
+        EdgeFnSub -->|"Download / Read Native Text / Vision"| Extractor["Deno Extractor (_shared/documentExtractor.ts: PDF, OOXML, Vision Discernment)"]
+        Extractor -->|"Discern & Persist Work Scans/Diagrams"| SubAssets[("ai.document_assets")]
         Extractor --> EvalPayload["Assemble Grading Request Payload"]
         EvalPayload --> BackendGrade["Backend POST /api/grade (EvaluatorService)"]
         BackendGrade --> RubricEval["LLM Multi-Criterion Rubric Scoring & Rationale"]
@@ -28,10 +29,10 @@ flowchart TD
         RubricEval --> SubEvalRecord[("ai.submission_evaluations")]
     end
 
-    subgraph TeacherReview["4. Teacher Review & Gradebook Sync"]
-        SubEvalRecord --> DiffUI["AI Diagnostic Review Modal (AIDiagnosticDiffModal.tsx)"]
+    subgraph TeacherReview["4. Teacher Review & Gradebook Sync (Frontend RPC Wiring Pending)"]
+        SubEvalRecord -.->|"Planned get_submission_ai_diagnostic()"| DiffUI["AI Diagnostic Review Modal (AIDiagnosticDiffModal.tsx)"]
         DiffUI -->|Accept / Tweak Sliders / Save| PublicSub[("public.student_submissions")]
-        PublicSub -->|Trigger trg_sync_student_scores| ClassStudents[("public.class_students (GPA, Tier, Grade)")]
+        PublicSub -->|Trigger trg_sync_student_scores| ClassStudents[("public.class_students (Score, Tier, Grade)")]
     end
 ```
 
@@ -61,11 +62,11 @@ sequenceDiagram
     participant LLM as OpenRouter (Gemini / Claude)
     participant DB as PostgreSQL ai Schema
 
-    Edge->>API: POST { submission_id, material_name, submission_text, rubric_criteria, max_score }
+    Edge->>API: POST { submission_id, class_id?, student_id?, material_id?, material_name, submission_text, rubric_criteria, max_score }
     API->>LLM: Formulate system prompt with Bloom levels + Rubric criteria
-    LLM-->>API: JSON { score, grade, feedback, private_teacher_notes, rubric_breakdown, rationale }
-    API->>DB: INSERT into ai.submission_evaluations
-    API->>DB: UPDATE ai.student_concept_mastery
+    LLM-->>API: JSON { score, grade, feedback, private_teacher_notes, rubric_breakdown, rationale, detected_misconceptions }
+    API->>DB: INSERT/UPSERT into ai.submission_evaluations
+    API->>DB: UPSERT ai.student_concept_mastery & proposed ai.ontology_misconceptions
     API-->>Edge: Returns GradeResponse
 ```
 
@@ -94,6 +95,7 @@ sequenceDiagram
       "comment": "Accurate factorization with clear step-by-step proof."
     }
   ],
+  "detected_misconceptions": [],
   "rationale": "High mastery across all standard criteria.",
   "status": "completed",
   "model_used": "google/gemini-2.5-flash"
@@ -104,20 +106,30 @@ sequenceDiagram
 
 ## 4. Misconception & Error Taxonomy (`ai.ontology_misconceptions`)
 
-To prevent generic feedback, the Knowledge Store matches student errors against a formal pedagogical misconception taxonomy:
+To prevent generic feedback, the Knowledge Store matches student errors against a formal pedagogical misconception taxonomy. The consolidation service also runs autonomous "Misconception Dreaming" (`POST /api/consolidation/run`) to hypothesize new error patterns, exposing `GET /api/misconceptions/proposed` and `POST /api/misconceptions/{id}/review` for **Gradebook Matrix** integration:
 
 ```sql
 CREATE TABLE IF NOT EXISTS ai.ontology_misconceptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID REFERENCES public.classes(id) ON DELETE CASCADE,
     concept_id UUID NOT NULL REFERENCES ai.ontology_concepts(id) ON DELETE CASCADE,
-    error_pattern TEXT NOT NULL,          -- e.g. 'Treats (a+b)^2 as a^2 + b^2 (Freshman's Dream)'
+    prerequisite_concept_id UUID REFERENCES ai.ontology_concepts(id) ON DELETE SET NULL,
+    name TEXT NOT NULL DEFAULT 'Pedagogical Misconception',
+    error_pattern TEXT NOT NULL,          -- e.g. 'Treats (a+b)^2 as a^2 + b^2 (Freshman''s Dream)'
     remediation_strategy TEXT NOT NULL,   -- e.g. 'Guide with geometric 2x2 area model'
-    severity TEXT DEFAULT 'Moderate',     -- 'Minor', 'Moderate', 'Critical'
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    severity TEXT DEFAULT 'Moderate',     -- SQL comment: 'Minor'|'Moderate'|'Critical'; Pydantic/LLM prompt uses 'Low'|'Moderate'|'High'
+    status TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'confirmed', 'dismissed')),
+    confidence FLOAT DEFAULT 1.0,         -- Statistical confidence [0, 1]
+    evidence_submission_ids UUID[] DEFAULT '{}',
+    surfaced_in_gradebook BOOLEAN NOT NULL DEFAULT TRUE,
+    teacher_reviewed_at TIMESTAMPTZ,
+    teacher_reviewer_id UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 ```
 
-When the evaluator detects an error matching `error_pattern`, it automatically attaches the corresponding `remediation_strategy` to the private teacher notes and student feedback.
+When candidate misconceptions are generated (`status = 'proposed'`), backend APIs surface them for the **Gradebook Matrix (`GradebookMatrix.tsx`)** so teachers can confirm or dismiss them against evidence submissions *(frontend badge UI integration in `GradebookMatrix.tsx` is pending wiring)*.
 
 ---
 
@@ -133,7 +145,7 @@ CREATE TABLE IF NOT EXISTS ai.student_concept_mastery (
     concept_id UUID NOT NULL REFERENCES ai.ontology_concepts(id) ON DELETE CASCADE,
     mastery_score NUMERIC NOT NULL DEFAULT 0.0, -- Normalized score (0.00 to 1.00)
     confidence NUMERIC NOT NULL DEFAULT 0.5,    -- Statistical confidence based on sample count
-    status TEXT NOT NULL DEFAULT 'practicing',  -- 'mastered' (>=0.85), 'practicing' (0.65-0.84), 'gap_detected' (<0.65)
+    status TEXT NOT NULL DEFAULT 'unassessed',  -- Initial DB default 'unassessed'; updated to 'mastered' (>=0.85), 'practicing' (0.65-0.84), 'gap_detected' (<0.65)
     evidence_submission_ids UUID[] DEFAULT '{}'::uuid[],
     last_evaluated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT unique_student_class_concept UNIQUE (student_id, class_id, concept_id)
@@ -143,10 +155,11 @@ CREATE INDEX IF NOT EXISTS idx_ai_mastery_student_class
 ON ai.student_concept_mastery(student_id, class_id);
 ```
 
-### Dynamic Mastery Calculation Formula:
-When a new submission $s_k$ is graded with score $M_{s_k}$ on concept $C$:
+### Dynamic Mastery Calculation Model:
+- **Current Implementation (`OntologyService.update_student_mastery`)**: Executes `ON CONFLICT (student_id, class_id, concept_id) DO UPDATE SET mastery_score = EXCLUDED.mastery_score` (latest evaluation score overwrite) while appending submission evidence IDs and classifying `'mastered'` ($\ge 0.85$), `'practicing'` ($0.65 - 0.84$), or `'gap_detected'` ($< 0.65$).
+- **Target Recency-Weighted EMA Formula**:
 $$\text{Mastery}_{new} = \alpha \cdot M_{s_k} + (1 - \alpha) \cdot \text{Mastery}_{prev}$$
-where $\alpha = 0.35$ (recency-weighted exponential moving average).
+where $\alpha = 0.35$.
 
 ---
 
@@ -157,10 +170,10 @@ To keep the teacher fully in control (Human-in-the-Loop):
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart LR
-    AIResult["AI Evaluator Output (ai.submission_evaluations)"]
+    AIResult["AI Evaluator Output (ai.submission_evaluations / Current Stub in GradingModal)"]
     DiffModal["AIDiagnosticDiffModal.tsx"]
     TeacherControls["Teacher Actions: Slider Fine-Tuning / Checkbox Acceptance / Custom Feedback"]
-    SaveAction["Save & Apply Changes"]
+    SaveAction["Apply to Form & Save Grade"]
     DBPublic[("public.student_submissions")]
 
     AIResult --> DiffModal
@@ -169,7 +182,7 @@ flowchart LR
     SaveAction --> DBPublic
 ```
 
-1. **Visual Diff Inspection**: Teachers view AI-suggested criterion scores side-by-side with original draft scores.
+1. **Visual Diff Inspection**: Teachers view AI-suggested criterion scores side-by-side with current scores. *(In `SubmissionGradingModal.tsx`, clicking **"Diagnose with AI"** currently runs a local heuristic stub rather than fetching `ai.submission_evaluations` via `get_submission_ai_diagnostic()` yet.)*
 2. **Interactive Slider Overrides**: Teachers can adjust any individual criterion score slider in real-time.
 3. **Selective Acceptance**: Individual checkboxes allow accepting AI feedback comments while rejecting or adjusting numerical scores.
-4. **Audit Trail**: Saves final scores to `public.student_submissions` and logs the reviewed status in `ai.submission_evaluations`.
+4. **Submission Persistence**: Saves final teacher-approved scores to `public.student_submissions` via `studentService`.

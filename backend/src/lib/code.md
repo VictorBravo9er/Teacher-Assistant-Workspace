@@ -6,6 +6,7 @@ This directory provides shared infrastructure utilities, prompt formatters, LLM 
 
 ## 📁 Directory Files
 
+- [`db.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/db.py): High-performance asynchronous database pool manager using `psycopg_pool.AsyncConnectionPool` and `psycopg.AsyncConnection` configured with dictionary row factory (`dict_row`), connection lifecycle controls (`init_db_pool`, `close_db_pool`), and helper query executors (`fetch_all`, `fetch_one`, `execute`).
 - [`formatter.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/formatter.py): Pure transformation functions that format incoming classroom data (`format_classroom_context`), student portfolios and grade histories (`format_students_context`), and custom session configs (`format_analysis_config_context`) into structured, token-efficient text prompts for LLM consumption.
 - [`llm.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/llm.py): Contains `get_openrouter_llm` for instantiating LangChain's `ChatOpenAI` client directed to the OpenRouter gateway, and `parse_llm_response` for sanitizing markdown-wrapped JSON text blocks into typed Python dictionaries.
 - [`logger.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/logger.py): Production-grade structured logging engine featuring context-aware request ID tracing (`x-request-id`), dual stream and rotating file output, coordinated 5000-entry timestamped cohorts, JSON Lines telemetry, and async execution measurement (`measure_async`).
@@ -50,3 +51,11 @@ flowchart LR
 - **Coordinated Cohort Rotation**: Synchronizes file rotation across human-readable `.log`, dedicated `-error.log`, and structured `.jsonl` streams every 5,000 primary entries.
 - **Structured JSON Lines Formatting**: Serializes log level, timestamp, logger name, message, request ID, duration, and exception tracebacks into ndjson format for automated log analysis.
 - **Execution Telemetry**: `measure_async` context helper measures async execution durations in milliseconds and logs performance metrics.
+
+### 4. `db.py` Asynchronous Database Pool & Lifecycle:
+- **`init_db_pool()`**: Initializes and opens global `psycopg_pool.AsyncConnectionPool` configured with `row_factory=dict_row`, reading `POSTGRES_URI` from the environment during FastAPI lifespan startup.
+- **`close_db_pool()`**: Closes active database connections gracefully during server shutdown.
+- **`get_postgres_uri()`**: Retrieves `POSTGRES_URI` from environment variables.
+- **`get_db_pool()`**: Returns the active connection pool instance, calling `init_db_pool()` on demand if uninitialized or closed.
+- **`get_connection()`**: Async context manager acquiring a dictionary-row connection from the pool.
+- **Query Helpers**: `fetch_all`, `fetch_one`, and `execute` acquire connections asynchronously from the pool, execute parameterized SQL queries, and release connections automatically back to the pool.

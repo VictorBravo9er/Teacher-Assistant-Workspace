@@ -20,7 +20,7 @@ sequenceDiagram
 
     Teacher->>UI: Fills Student Form (Name, Email, Enrollment No, Learning Style)
     Teacher->>UI: Clicks "Add Student" / "Send Invite"
-    UI->>UI: Prepends temp-invite-* card (isPending: true, "Inviting..." pill)
+    UI->>UI: Prepends temp student card (crypto.randomUUID() tempId, isPending: true, "Inviting..." pill)
     UI-->>Teacher: Closes Add Student Modal in 0ms (does NOT auto-open StudentDetailModal)
     UI->>Svc: Background addStudentToClass(classId, studentPayload)
     Svc->>Edge: POST /invite-student (class_id, email, name, ...)
@@ -28,12 +28,12 @@ sequenceDiagram
         Edge->>DB: Creates student & class_students records, sends invite email
         Edge-->>Svc: Returns { student_id: realId }
         Svc-->>UI: Resolves Student with realId
-        UI->>UI: Replaces temp-invite-* with realId & clears isPending via classItemRef
+        UI->>UI: Replaces tempId with realId & clears isPending via classItemRef
         UI-->>Teacher: Displays toast ("Invited <Name> to class")
     else Failure / Network Error
         Edge-->>Svc: Rejects error
         Svc-->>UI: Throws error
-        UI->>UI: Evicts temp-invite-* from roster via classItemRef
+        UI->>UI: Evicts tempId from roster via classItemRef
         UI-->>Teacher: Displays error toast
     end
 ```
@@ -42,14 +42,14 @@ sequenceDiagram
 
 1. **Optimistic User Initiation (`0ms`)**:
    - In [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx), the teacher fills out the student form and clicks **"Add Student"**.
-   - A temporary `Student` object (`id: "temp-invite-<timestamp>"`, `isPending: true`) is immediately inserted into the roster via `classItemRef`, displaying an animated `"Inviting..."` overlay pill on the card.
+   - A temporary `Student` object (`id: crypto.randomUUID()`, `isPending: true`) is immediately inserted into the roster via `classItemRef`, displaying an animated `"Inviting..."` overlay pill on the card.
    - The Add Student modal closes immediately (`0ms`) without interrupting the teacher by opening `StudentDetailModal`.
 2. **Background Edge Function & Database Provisioning**:
    - [`studentService.addStudentToClass()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) invokes the `invite-student` Edge Function in the background.
    - The student master record is created or updated in `public.students` and linked in `public.class_students`.
 3. **Reconciliation or Rollback**:
-   - On success, `temp-invite-*` is swapped in-place with the real database UUID and `isPending` is cleared.
-   - On error, `temp-invite-*` is evicted from `classItemRef.current.students` and an error toast is shown.
+   - On success, `tempId` is swapped in-place with the real database UUID and `isPending` is cleared.
+   - On error, `tempId` is evicted from `classItemRef.current.students` and an error toast is shown.
 
 ---
 
@@ -86,9 +86,9 @@ sequenceDiagram
 
 1. **Roll-Call Interface & 0ms Optimistic Application**:
    - The teacher opens [`AttendanceManagerModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/AttendanceManagerModal.tsx) and marks `Present`, `Absent`, `Late`, or `Excused`.
-   - Clicking **"Save Attendance"** captures a `previousStudents` snapshot, calculates the new attendance histories and percentages (`Math.round((presentCount / totalDays) * 100)`) in memory, immediately updates the parent roster (`onUpdateStudents(updatedStudents)`), and closes the modal in `0ms`.
+   - Clicking **"Save Attendance"** captures a `previousStudents` snapshot, calculates the new attendance histories and percentages (`Math.round(((present + excused + lateWeight * late) / totalDays) * 100)`, using the educator's `lateAttendanceWeight`, default `0.5`) in memory, immediately updates the parent roster (`onUpdateStudents(updatedStudents)`), and closes the modal in `0ms`.
 2. **Background Database Persistence & Snapshot Rollback**:
-   - [`studentService.bulkLogAttendance()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) executes batch upserts into `public.attendance_records` and updates `public.class_students` in the background.
+   - [`studentService.bulkLogAttendance()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) executes batch upserts into `public.attendance_records` in the background.
    - If the database write fails, `onUpdateStudents(previousStudents)` automatically restores the pre-save attendance state and alerts the teacher.
 
 ---
@@ -102,19 +102,14 @@ Teachers can inspect a student's holistic performance profile:
 flowchart TD
     Click["Teacher clicks student card in StudentRegister.tsx"] --> OpenModal["Opens StudentDetailModal.tsx"]
     
-    OpenModal --> Fetch1["Fetch submissions & scores from public.student_submissions"]
-    OpenModal --> Fetch2["Fetch attendance trajectory from public.attendance_records"]
-    OpenModal --> Fetch3["Fetch concept mastery & learning gaps via RPC get_student_concept_gaps()"]
+    OpenModal --> Fetch1["Read submissions & scores from class state (public.student_submissions)"]
+    OpenModal --> Fetch2["Read attendance trajectory from class state (public.attendance_records)"]
+    OpenModal -.-> Fetch3["Planned: Fetch concept mastery & learning gaps via RPC get_student_concept_gaps()"]
     
-    Fetch1 --> Aggregate["studentCalculations.ts computes GPA & submission completion rate"]
+    Fetch1 --> Aggregate["studentCalculations.ts computes cumulative average & tier"]
     Fetch2 --> Aggregate
-    Fetch3 --> Aggregate
 
-    Aggregate --> RenderProfile["Renders 360 Student Profile:
-    • Cumulative GPA & Tier (Advanced / Proficient / Developing / Critical Support)
-    • Longitudinal Attendance Chart
-    • Assignment Timeline with Teacher Feedback & Rubric Breakdowns
-    • AI Identified Concept Gaps & Recommended Practice"]
+    Aggregate --> RenderProfile["Renders 360 Student Profile:<br/>• Cumulative Score & Tier (High / Average / At Risk / Unassessed)<br/>• Attendance Rate & Trajectory<br/>• Assignment History with Teacher Feedback & Rubric Breakdowns<br/>• Contact Dossier, Guardians & Accommodations"]
 ```
 
 ### Buffered Contact & Guardian Dossier Persistence:

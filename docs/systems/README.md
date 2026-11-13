@@ -23,14 +23,14 @@ flowchart TD
     end
 
     subgraph Tier2["2. Compute & Microservice Layer"]
-        EdgeFunctions["⚡ Serverless Edge Functions<br/><b>Supabase Edge Runtime (Deno)</b><br/><i>(OCR extraction, URL signing, invites, Resend email dispatches)</i>"]:::edge
-        FastAPIService["🐍 Backend AI & Analytics Service<br/><b>FastAPI / Python 3.13 / Uvicorn</b><br/><i>(ChatService, EvaluatorService, LangGraph)</i>"]:::backend
+        EdgeFunctions["⚡ Serverless Edge Functions<br/><b>Supabase Edge Runtime (Deno)</b><br/><i>(Text extraction, URL signing, invites, Resend email dispatches)</i>"]:::edge
+        FastAPIService["🐍 Backend AI & Analytics Service<br/><b>FastAPI / Python 3.13 / Uvicorn</b><br/><i>(ChatService, EvaluatorService, TreeIndexer, Ontology, Consolidation)</i>"]:::backend
     end
 
     subgraph Tier3["3. Persistence & Event Layer"]
-        PostgresDB[("🗄️ PostgreSQL Database<br/><b>public, ai & langgraph schemas</b><br/><i>(Multi-tenant RLS, pgvector HNSW, triggers)</i>")]:::data
+        PostgresDB[("🗄️ PostgreSQL Database<br/><b>public, ai & langgraph schemas</b><br/><i>(Multi-tenant RLS, Material Trees, OKF v0.2 Graph, Triggers)</i>")]:::data
         StorageBuckets[("📦 Supabase Object Storage<br/><b>class-materials & student-submissions</b><br/><i>(Private buckets, 50MB limits)</i>")]:::data
-        PgNetQueue["📡 pg_net Async Webhook Dispatcher"]:::data
+        PgNetQueue["📡 pg_net Async Webhook Dispatcher<br/><i>(AI triggers currently commented out)</i>"]:::data
     end
 
     subgraph Tier4["4. External Intelligence & Communication Gateway"]
@@ -45,16 +45,16 @@ flowchart TD
     ClientApp -->|"HTTP Edge Requests (URL signing, invites, notify)"| EdgeFunctions
 
     %% Asynchronous Event Pipeline
-    PostgresDB -->|"DB Triggers (Materials / Submissions)"| PgNetQueue
+    PostgresDB -.->|"DB Webhook Triggers (Currently Commented Out)"| PgNetQueue
     PgNetQueue -.->|"Async Webhook POST"| EdgeFunctions
-    EdgeFunctions -->|"Document Fetch & Text Parsing"| StorageBuckets
-    EdgeFunctions -->|"Forward AI Workload (/api/grade, /api/analyze)"| FastAPIService
-    EdgeFunctions -->|"Update State, Logs & Insights (Service Role)"| PostgresDB
+    EdgeFunctions -->|"Document Fetch & Text Extraction"| StorageBuckets
+    EdgeFunctions -->|"Forward AI Workload (/api/grade, /api/materials/analyze)"| FastAPIService
+    EdgeFunctions -->|"Update Status & Logs (Service Role)"| PostgresDB
     EdgeFunctions -->|"Batch Email Dispatch (Announcements/Materials/Submissions)"| ResendAPI
     ResendAPI -.->|"Delivery Status Webhook (resend-webhook)"| EdgeFunctions
 
     %% Backend & LLM Connections
-    FastAPIService -->|"Vector Search & Checkpoints"| PostgresDB
+    FastAPIService -->|"Tree Indexing, Graph Traversal, Evaluations & Checkpoints"| PostgresDB
     FastAPIService -->|"Inference Prompts & Structured JSON"| OpenRouterLLM
 ```
 
@@ -67,11 +67,11 @@ Explore detailed subsystem specifications, data contracts, and architectural des
 | Subsystem Document | Primary Technologies | Key Responsibilities |
 | :--- | :--- | :--- |
 | [**`database_and_storage.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/database_and_storage.md) | PostgreSQL 15+, Supabase RLS, Storage Buckets, `pg_trgm`, `pgcrypto` | Relational multi-tenancy, Row Level Security (RLS) policies, atomic RPC helper functions (`delete_material`, `unlink_material_from_class`, `delete_submission_atomic`), score recalculation triggers (`trg_sync_student_scores`), announcements and notification logs tracking. |
-| [**`ai_and_ontology_subsystem.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/ai_and_ontology_subsystem.md) | `pgvector` (HNSW), LangChain Core, OpenRouter, Ontological Graph | Autonomous student submission grading (`/api/grade`), material syllabus analysis & prerequisite gap detection (`/api/materials/analyze`), interactive RAG chat with dynamic data visualizations (`/api/chat`), and pedagogical concept mastery tracking. |
+| [**`ai_and_ontology_subsystem.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/ai_and_ontology_subsystem.md) | Dual-Engine Knowledge Store (PageIndex Trees & Relational OKF v0.2 Graph), LangChain Core, OpenRouter | Autonomous student submission grading (`/api/grade`), material syllabus analysis & prerequisite gap detection (`/api/materials/analyze`), PageIndex hierarchical tree indexing (`/api/materials/tree`), background integrity consolidation & Misconception Dreaming (`/api/consolidation/run`), proposed misconception review in Gradebook Matrix, and interactive RAG chat with soft-warning pre-query gate (`/api/chat`). |
 | [**`backend_service.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/backend_service.md) | Python 3.13, FastAPI, Uvicorn, Pydantic v2, LangGraph, uv | REST API routing, structured LLM prompt formatting, JSON response parsing and validation, LangGraph state persistence, and BasedPyright-verified type safety. |
-| [**`edge_functions.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/edge_functions.md) | Deno, TypeScript, Supabase Edge Runtime, Resend Batch API, PDF/Doc Parsers | Event-driven webhook processing (`trigger-submission-evaluation`, `trigger-material-analysis`), serverless document OCR text extraction, secure short-lived signed URL generation, student invitation tokens, batch email notifications via Resend, and delivery tracking webhooks. |
+| [**`edge_functions.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/edge_functions.md) | Deno, TypeScript, Supabase Edge Runtime, Resend Batch API, UTF-8 Decoders | Event-driven webhook processing (`trigger-submission-evaluation`, `trigger-material-analysis`), serverless plaintext extraction (`extract-material-text`), secure short-lived signed URL generation, student invitation tokens, batch email notifications via Resend, and delivery tracking webhooks. |
 | [**`frontend_architecture.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/frontend_architecture.md) | React 19, Vite, TypeScript, Tailwind CSS, Lucide Icons | Single-Page Application (SPA) architecture, custom state hooks (`useClassOperations`, `useWorkspaceData`, `useAIChat`), feature modularity (`classroom`, `students`, `ai-assistant`, `calendar`), and interactive rubric/diagnostic modals. |
-| [**`devops_and_deployment.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/devops_and_deployment.md) | Docker, Docker Compose, Nginx Unprivileged, Vercel, Bash | Rootless container orchestration (`USER 1000:1000`), immutable production file permissions (`0555`/`0444`), multi-service serverless hosting, database provisioning automation, and environment cascading. |
+| [**`devops_and_deployment.md`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/devops_and_deployment.md) | Docker, Docker Compose, Nginx, Vercel, Bash | Non-root container orchestration (`b-usr`/`node` UID 1000), read-only production asset permissions (`0555`/`0444`), multi-service serverless hosting, database provisioning automation, and environment cascading. |
 | [**`workflows/`**](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/systems/workflows/README.md) | Operational Workflows | End-to-end user journeys, sequence diagrams, and lifecycle specifications for templates, materials, student enrollment & attendance, submission turn-in & AI grading, announcements & notifications, student portal, and RAG copilot interactions. |
 
 ---
@@ -79,6 +79,7 @@ Explore detailed subsystem specifications, data contracts, and architectural des
 ## 🔄 End-to-End System Lifecycles
 
 ### 1. Student Submission & Autonomous AI Grading Flow
+*(Note: Database webhook trigger `trg_submission_ai_eval` in `20260915120100_ai_functions_and_triggers.sql` and live UI integration in `SubmissionGradingModal.tsx` are currently decoupled/pending activation.)*
 ```mermaid
 sequenceDiagram
     autonumber
@@ -95,19 +96,18 @@ sequenceDiagram
     UI->>SB: Stores blob in `student-submissions` bucket
     UI->>DB: Inserts row into `public.student_submissions` (status='Submitted')
     DB-->>DB: Executes `trg_sync_student_scores` trigger
-    DB->>Edge: Database webhook triggered via pg_net
-    Edge->>DB: Updates `ai.submission_evaluations` to status='processing'
+    DB-.->Edge: Planned pg_net webhook trigger (`trg_submission_ai_eval` commented out)
+    Edge->>DB: Upserts `ai.submission_evaluations` to status='processing'
     Edge->>BE: Invokes POST /api/grade (payload with extracted text & rubric)
     BE->>LLM: Evaluates work against rubric criteria
     LLM-->>BE: Returns structured evaluation JSON (scores, feedback, notes)
-    BE->>DB: Persists rubric breakdown & notes in `ai.submission_evaluations`
+    BE->>DB: Persists rubric breakdown, mastery & proposed misconceptions in `ai` schema
     BE-->>Edge: Returns GradeResponse
-    Edge->>DB: Updates `public.student_submissions` (status='Evaluated', score, feedback)
-    DB-->>UI: Realtime update reflected in Gradebook Matrix
-    Teacher->>UI: Reviews AI diagnostic diff, edits feedback, and publishes grade
+    Teacher->>UI: Reviews diagnostic diff, adjusts feedback, and saves grade in `public.student_submissions`
 ```
 
 ### 2. Educational Material Upload & Pedagogical Gap Analysis Flow
+*(Note: Database webhook triggers `trg_material_ai_analysis` / `trg_class_material_ai_analysis` and UI `get_material_ai_insights` panel in `MaterialPreviewModal.tsx` are currently decoupled/pending wiring.)*
 ```mermaid
 sequenceDiagram
     autonumber
@@ -122,18 +122,16 @@ sequenceDiagram
     Teacher->>UI: Uploads lecture slides / syllabus note
     UI->>SB: Stores blob in `class-materials` bucket
     UI->>DB: Inserts row into `public.materials` & `public.class_materials`
-    DB->>Edge: Database webhook triggered via pg_net
+    DB-.->Edge: Planned pg_net webhook trigger (`trg_material_ai_analysis` commented out)
     Edge->>SB: Fetches document blob
-    Edge->>Edge: Extracts raw textual content
+    Edge->>Edge: Extracts raw UTF-8 textual content
     Edge->>DB: Records state in `ai.material_insights` (status='processing')
     Edge->>BE: Invokes POST /api/materials/analyze
     BE->>LLM: Analyzes topics, detects prerequisite gaps, generates sample Q&A
     LLM-->>BE: Returns structured MaterialAnalyzeResponse
-    BE->>DB: Stores insights in `ai.material_insights` & maps ontology concepts
+    BE->>DB: Stores insights in `ai.material_insights`, maps ontology concepts & builds `ai.material_trees`
     BE-->>Edge: Returns completed analysis
-    Edge->>DB: Updates status='completed'
-    UI->>DB: Calls RPC `get_material_ai_insights`
-    UI-->>Teacher: Displays syllabus alignment, prerequisite warnings, and practice questions
+    UI-.->DB: Planned RPC `get_material_ai_insights` display in MaterialPreviewModal
 ```
 
 ### 3. Class Announcement Broadcast & Email Notification Delivery Flow

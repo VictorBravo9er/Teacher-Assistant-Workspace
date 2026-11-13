@@ -15,6 +15,8 @@ dependencies = [
     "langchain-openrouter>=0.2.6",
     "langgraph>=1.2.9",
     "langgraph-checkpoint-postgres>=3.1.0",
+    "psycopg[binary]>=3.3.4",
+    "psycopg-pool>=3.3.1",
 ]
 
 [dependency-groups]
@@ -23,12 +25,27 @@ dev = [
     "basedpyright>=1.38.3",
     "poethepoet>=0.25.0",
     "uvicorn>=0.28.0",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "httpx>=0.28.1",
+    "ipykernel>=7.4.0",
 ]
 
 [tool.poe.tasks]
 run-dev = "uvicorn src.main:app --reload --host 0.0.0.0 --port 8000"
-lint = { shell = "ruff check . && basedpyright && python ../scripts/verify_doc_coverage.py backend" }
+lint = { shell = "ruff check . && basedpyright --level error && python ../scripts/verify_doc_coverage.py backend" }
 format = "ruff format ."
+test = "pytest"
+test-live = { shell = "DIDACTIQ_TEST_MODE=live pytest -v" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "live: requires live PostgreSQL (ai/langgraph schemas) and/or OpenRouter API credentials",
+]
 
 [tool.uv]
 package = false
@@ -42,9 +59,11 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-per-file-ignores = { "src/types/db.py" = ["ALL"] }
+per-file-ignores = { "src/types/db.py" = ["ALL"], "tests/*.py" = ["E402"], "notebooks/*.py" = ["E402"], "notebooks/*.ipynb" = ["E402"] }
 
 [tool.basedpyright]
+typeCheckingMode = "standard"
+failOnWarnings = false
 include = ["src"]
 exclude = [
     "**/__pycache__",

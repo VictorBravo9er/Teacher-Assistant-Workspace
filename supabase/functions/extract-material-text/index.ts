@@ -1,10 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { adminSupabase } from "../_shared/supabaseAdmin.ts";
+import { getAuthClient } from "../_shared/supabaseClient.ts";
 import { verifyCallerAuth } from "../_shared/auth.ts";
+import {
+  type AssetStoragePolicy,
+  type ContentItemLike,
+  extractContentItems,
+} from "../_shared/documentExtractor.ts";
+import {
+  appendVisualAssetsMarkdown,
+  persistExtractedAssets,
+  type PersistedAssetRecord,
+} from "../_shared/assetPersistence.ts";
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -18,25 +28,48 @@ Deno.serve(async (req) => {
     const {
       material_id,
       submission_id,
+      class_id,
       storage_path: explicitPath,
       bucket: explicitBucket,
       content_item_id,
+      enable_ocr = true,
+      describe_assets = true,
+      persist_assets = true,
+      store_inline_base64 = true,
+      asset_storage_policy,
     } = body;
 
-    // 1. Verify caller authorization
-    const authCtx = await verifyCallerAuth(req);
+    const effectivePolicy: AssetStoragePolicy =
+      asset_storage_policy ||
+      (store_inline_base64 === false ? "description_only" : "auto");
+
+    const authCtx = await verifyCallerAuth(req, class_id);
     if (!authCtx.isAuthorized) {
       return jsonResponse({ error: authCtx.errorMessage || "Unauthorized" }, 401);
     }
 
-    let targetPath = explicitPath;
+    const authHeader = req.headers.get("Authorization") || "";
+    const authClient = getAuthClient(authHeader);
+
+    let targetItems: ContentItemLike[] = [];
     let targetBucket = explicitBucket || "class-materials";
     let documentName = "Document";
     let documentType = "File";
-    let inlineText = "";
+    let primaryPath = explicitPath || "";
 
-    // 2. Resolve path from Material if material_id provided
-    if (material_id && !targetPath) {
+    // 1. Resolve items from Material (enforcing RLS access check unless service_role)
+    if (material_id && !explicitPath) {
+      if (!authCtx.isServiceRole) {
+        const { data: visibleMat } = await authClient
+          .from("materials")
+          .select("id")
+          .eq("id", material_id)
+          .maybeSingle();
+        if (!visibleMat) {
+          return jsonResponse({ error: "Forbidden or material not found" }, 403);
+        }
+      }
+
       const { data: material, error: matErr } = await adminSupabase
         .from("materials")
         .select("id, name, category, content")
@@ -48,41 +81,45 @@ Deno.serve(async (req) => {
       }
 
       documentName = material.name;
-      const contentList = Array.isArray(material.content) ? material.content : [];
-      const item = content_item_id
-        ? contentList.find((c: any) => c.id === content_item_id)
-        : contentList[0];
+      const canonical = Array.isArray(material.content) ? material.content : [];
+      let custom: ContentItemLike[] = [];
 
-      if (item) {
-        documentType = item.type;
-        documentName = item.name || documentName;
-        targetPath = item.path;
-
-        if (item.type === "URL" || item.path?.startsWith("http")) {
-          // Fetch external URL content if accessible
-          try {
-            const urlRes = await fetch(item.path);
-            if (urlRes.ok) {
-              const fetchedText = await urlRes.text();
-              return jsonResponse({
-                success: true,
-                name: documentName,
-                type: "URL",
-                path: item.path,
-                text: fetchedText,
-                char_count: fetchedText.length,
-              });
-            }
-          } catch (e: any) {
-            inlineText = `URL Link: ${item.path}\nDescription: ${item.description || ""}`;
-          }
+      if (class_id) {
+        const { data: classLink } = await adminSupabase
+          .from("class_materials")
+          .select("custom_content")
+          .eq("class_id", class_id)
+          .eq("material_id", material_id)
+          .maybeSingle();
+        if (Array.isArray(classLink?.custom_content)) {
+          custom = classLink.custom_content as ContentItemLike[];
         }
       }
-    }
 
-    // 3. Resolve path from Submission if submission_id provided
-    if (submission_id && !targetPath) {
+      const combined = [...(canonical as ContentItemLike[]), ...custom];
+      targetItems = content_item_id
+        ? combined.filter((c) => c.id === content_item_id)
+        : combined;
+
+      if (targetItems.length > 0) {
+        documentType = targetItems[0].type || "File";
+        documentName = targetItems[0].name || documentName;
+        primaryPath = targetItems[0].path || primaryPath;
+      }
+    } else if (submission_id && !explicitPath) {
+      // 2. Resolve items from Student Submission (enforcing RLS unless service_role)
       targetBucket = "student-submissions";
+      if (!authCtx.isServiceRole) {
+        const { data: visibleSub } = await authClient
+          .from("student_submissions")
+          .select("id")
+          .eq("id", submission_id)
+          .maybeSingle();
+        if (!visibleSub) {
+          return jsonResponse({ error: "Forbidden or submission not found" }, 403);
+        }
+      }
+
       const { data: submission, error: subErr } = await adminSupabase
         .from("student_submissions")
         .select("id, content")
@@ -93,69 +130,157 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Submission not found" }, 404);
       }
 
-      const contentList = Array.isArray(submission.content) ? submission.content : [];
-      const item = content_item_id
-        ? contentList.find((c: any) => c.id === content_item_id)
-        : contentList[0];
+      const contentList = Array.isArray(submission.content)
+        ? (submission.content as ContentItemLike[])
+        : [];
+      targetItems = content_item_id
+        ? contentList.filter((c) => c.id === content_item_id)
+        : contentList;
 
-      if (item) {
-        documentName = item.name || "Student Turn-in";
-        documentType = item.type;
-        targetPath = item.path;
-
-        if (item.path?.startsWith("text://")) {
-          inlineText = item.description || "";
-        }
+      if (targetItems.length > 0) {
+        documentName = targetItems[0].name || "Student Turn-in";
+        documentType = targetItems[0].type || "File";
+        primaryPath = targetItems[0].path || primaryPath;
       }
+    } else if (explicitPath) {
+      targetItems = [
+        {
+          id: content_item_id,
+          name: explicitPath.split("/").pop() || "Document",
+          type: explicitPath.startsWith("http") ? "URL" : "File",
+          path: explicitPath,
+        },
+      ];
     }
 
-    // If we already have inline text
-    if (inlineText) {
-      return jsonResponse({
-        success: true,
-        name: documentName,
-        type: documentType,
-        path: targetPath || "inline",
-        text: inlineText,
-        char_count: inlineText.length,
-      });
-    }
-
-    if (!targetPath) {
-      return jsonResponse({ error: "Could not resolve storage path for target document" }, 400);
-    }
-
-    // 4. Download file from Supabase Storage
-    const { data: fileBlob, error: downloadError } = await adminSupabase.storage
-      .from(targetBucket)
-      .download(targetPath);
-
-    if (downloadError || !fileBlob) {
+    if (targetItems.length === 0) {
       return jsonResponse(
-        { error: `Failed to download file from bucket '${targetBucket}': ${downloadError?.message || "File not found"}` },
-        404,
+        { error: "Could not resolve any extractable content items for target document" },
+        400,
       );
     }
 
-    // 5. Decode text representation
-    const rawBuffer = await fileBlob.arrayBuffer();
-    const decoder = new TextDecoder("utf-8", { fatal: false });
-    let decodedText = decoder.decode(rawBuffer);
+    // Direct explicit storage_path calls from non-service users must abide by Storage RLS
+    const storageClient =
+      explicitPath && !authCtx.isServiceRole ? authClient : adminSupabase;
 
-    // Clean up null bytes or binary control characters if present
-    decodedText = decodedText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ");
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY") || "";
+    const openRouterModel =
+      Deno.env.get("OPENROUTER_VISION_MODEL") ||
+      Deno.env.get("OPENROUTER_MODEL") ||
+      "google/gemini-2.5-flash";
+
+    const extraction = await extractContentItems({
+      items: targetItems,
+      storageClient,
+      defaultBucket: targetBucket,
+      options: {
+        enableOcr: Boolean(enable_ocr),
+        describeVisualAssets: Boolean(describe_assets),
+        assetStoragePolicy: effectivePolicy,
+        openRouterApiKey,
+        openRouterModel,
+      },
+    });
+
+    let persistedAssets: PersistedAssetRecord[] = [];
+    const warnings = [...extraction.warnings];
+
+    if (persist_assets && extraction.assets.length > 0 && (material_id || submission_id)) {
+      let existingInsightId: string | undefined;
+      let existingTreeId: string | undefined;
+      let existingEvaluationId: string | undefined;
+
+      if (material_id) {
+        const [{ data: insightRow }, { data: treeRow }] = await Promise.all([
+          adminSupabase
+            .schema("ai")
+            .from("material_insights")
+            .select("material_id")
+            .eq("material_id", material_id)
+            .maybeSingle(),
+          adminSupabase
+            .schema("ai")
+            .from("material_trees")
+            .select("id")
+            .eq("material_id", material_id)
+            .maybeSingle(),
+        ]);
+        if (insightRow?.material_id) existingInsightId = insightRow.material_id;
+        if (treeRow?.id) existingTreeId = treeRow.id;
+      }
+
+      if (submission_id) {
+        const { data: evalRow } = await adminSupabase
+          .schema("ai")
+          .from("submission_evaluations")
+          .select("id")
+          .eq("submission_id", submission_id)
+          .maybeSingle();
+        if (evalRow?.id) existingEvaluationId = evalRow.id;
+      }
+
+      const saved = await persistExtractedAssets(extraction.assets, {
+        materialId: material_id,
+        submissionId: submission_id,
+        materialTreeId: existingTreeId,
+        materialInsightId: existingInsightId,
+        submissionEvaluationId: existingEvaluationId,
+        contentItemId: content_item_id,
+        assetStoragePolicy: effectivePolicy,
+      });
+      persistedAssets = saved.persisted;
+      warnings.push(...saved.warnings);
+    }
+
+    const enrichedText = appendVisualAssetsMarkdown(extraction.text, persistedAssets);
 
     return jsonResponse({
       success: true,
       name: documentName,
       type: documentType,
-      path: targetPath,
+      path: primaryPath || "inline",
       bucket: targetBucket,
-      text: decodedText,
-      char_count: decodedText.length,
+      format: extraction.items[0]?.format || "text",
+      text: enrichedText,
+      char_count: enrichedText.length,
+      page_count: extraction.pageCount,
+      ocr_used: extraction.ocrUsed,
+      items: extraction.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        format: item.format,
+        char_count: item.charCount,
+        page_count: item.pageCount,
+        ocr_used: item.ocrUsed,
+        asset_count: item.assets.length,
+      })),
+      assets: persistedAssets.map((asset) => ({
+        id: asset.id,
+        filename: asset.filename,
+        title: asset.title,
+        asset_type: asset.assetType,
+        mime_type: asset.mimeType,
+        byte_size: asset.byteSize,
+        width: asset.width ?? null,
+        height: asset.height ?? null,
+        page_number: asset.pageNumber ?? null,
+        content_item_id: asset.contentItemId ?? null,
+        representation_mode: asset.representationMode,
+        retain_image_data: asset.retainImageData,
+        retention_reason: asset.retentionReason,
+        description: asset.description ?? null,
+        markdown_text: asset.markdownText ?? null,
+        ocr_text: asset.ocrText ?? null,
+        has_inline_data: asset.hasInlineData,
+        checksum_sha256: asset.checksumSha256,
+      })),
+      warnings,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Extract Material Text Error:", error);
-    return jsonResponse({ error: error.message || "Internal Server Error" }, 500);
+    const msg = error instanceof Error ? error.message : "Internal Server Error";
+    return jsonResponse({ error: msg }, 500);
   }
 });

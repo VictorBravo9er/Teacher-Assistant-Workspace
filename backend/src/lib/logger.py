@@ -241,6 +241,7 @@ http_logger = logging.getLogger("teach-learn.http")
 chat_logger = logging.getLogger("teach-learn.chat")
 eval_logger = logging.getLogger("teach-learn.eval")
 llm_logger = logging.getLogger("teach-learn.llm")
+db_logger = logging.getLogger("teach-learn.db")
 
 T = TypeVar("T")
 

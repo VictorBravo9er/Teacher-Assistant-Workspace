@@ -8,9 +8,9 @@ This directory contains the database reset and teardown routines for the Didacti
 
 - [`schema-reset.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-reset.sql): Database teardown script that cleanly drops and recreates `public`, `ai`, and `langgraph` schemas, resets Supabase CLI migration history (`supabase_migrations.schema_migrations`), and restores default API privileges for reproducible local database resets.
 - [`schema.public.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.public.sql): Local DDL schema structure dumped via Supabase CLI for the `public` application schema.
-- [`schema.ai.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.ai.sql): Local DDL schema structure dumped via Supabase CLI for the `ai` embeddings, ontology, and evaluation schema.
+- [`schema.ai.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.ai.sql): Local DDL schema structure dumped via Supabase CLI for the `ai` ontology, tree index, evaluation, and consolidation schema.
 - [`schema.langgraph.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.langgraph.sql): Local DDL schema structure dumped via Supabase CLI for the `langgraph` checkpoint and store schema.
-- [`../migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/migrations): Canonical single source of truth for all database DDL, executed sequentially via Supabase CLI (`supabase db push` / `scripts/migrate.py`). Includes modular baseline migrations (`20260915100000`–`130100` structured by schemas, types, tables, functions, RLS, and descriptions) and incremental migrations (`20260915214140`–`20260924201206`).
+- [`../migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/migrations): Canonical single source of truth for all database DDL, executed sequentially via Supabase CLI (`supabase db push` / `scripts/migrate.py`, automated on `main` via `.github/workflows/cd.yml`). Includes modular baseline migrations (`20260915100000`–`130100` structured by schemas, types, tables, functions, RLS, and descriptions) and incremental migrations (`20260915214140`–`20261111160000`, with `20261111160000` queued for CD release on `main`).
 - [`../AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/AGENTS.md): Subsystem-specific rules for DDL design, mandatory RLS policies, indexing requirements, and naming conventions.
 
 ---
@@ -74,8 +74,8 @@ flowchart TD
     Client["Client PostgREST Query"] --> AuthEngine{"Evaluate auth.uid()"}
     
     AuthEngine --> ClassesPolicy{"classes RLS"}
-    ClassesPolicy -- "auth.uid() = teacher_id" --> PermitOwner["Allow SELECT / INSERT / UPDATE / DELETE"]
-    ClassesPolicy -- "auth.uid() != teacher_id" --> CheckStudent{"Enrolled in class_students?"}
+    ClassesPolicy -- "auth.uid() = user_id" --> PermitOwner["Allow SELECT / INSERT / UPDATE / DELETE"]
+    ClassesPolicy -- "auth.uid() != user_id" --> CheckStudent{"Enrolled in class_students?"}
     CheckStudent -- Yes --> PermitReadOnly["Allow SELECT (Read Only)"]
     CheckStudent -- No --> Deny["Deny Access (Empty Result / 403)"]
 
@@ -89,10 +89,10 @@ flowchart TD
 ### 2. DDL Design Patterns & Indexing Invariants
 
 1. **Foreign Key Indexing Requirement**:
-   As mandated in [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/AGENTS.md), **every foreign key column contains an explicit B-tree index** (e.g. `idx_classes_teacher_id`, `idx_class_materials_class_id`, `idx_student_submissions_student_id`) to prevent table-scan locks during cascade operations and join queries.
+   As mandated in [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/AGENTS.md), **indexed foreign keys contain explicit B-tree indexes** (e.g. `idx_classes_user_id`, `idx_class_materials_material_id`, `idx_student_submissions_student_id`) to prevent table-scan locks during cascade operations and join queries.
 2. **UUID Primary Keys & Timestamps**:
    - Primary keys utilize `UUID PRIMARY KEY DEFAULT gen_random_uuid()`.
-   - Audit columns (`created_at`, `updated_at`) are attached to all domain tables with automatic `moddatetime` update triggers.
+   - Audit columns (`created_at`, `updated_at`) are attached to domain tables with automatic `public.set_updated_at()` update triggers.
 3. **JSONB Content Architecture**:
    - `materials.content` and `student_submissions.content` use structured JSONB arrays supporting mixed media types (`File`, `URL`, `Text`) with UUID identifiers for file path resolution.
    - The `validate_content_array` check function requires `id` and valid `type` across all entries, and mandates a non-empty `path` strictly for `File` and `URL` types while allowing `Text` items to omit storage paths.
@@ -117,14 +117,18 @@ flowchart TD
    - Fuzzy Directory Search RPCs: `search_institutes`, `search_districts`, `search_cities`, `search_states`, and `search_countries` using `pg_trgm.word_similarity` for auto-complete.
 7. **LangGraph Checkpoint Isolation**:
    - LangGraph checkpoint tables are stored in the dedicated `langgraph` schema, preventing agent execution metadata from interfering with domain queries in `public`.
-8. **Hybrid Vector & Ontological Knowledge Architecture (`ai` Schema)**:
-   - Vector store tables (`material_embeddings`, `submission_embeddings`) use `pgvector` with HNSW cosine similarity indexing for fast RAG retrieval.
-   - Ontological graph tables (`ontology_concepts`, `ontology_relationships`, `ontology_misconceptions`) maintain directed prerequisite hierarchies and learning standards.
-   - `material_concept_mappings` connects material chunks and vector embeddings directly to pedagogical concepts.
-   - `student_concept_mastery` maintains dynamic student-level mastery scores and detected learning gaps.
-   - All `ai` tables are shielded from public PostgREST API exposure and accessed securely via `public` RPC gateway functions (`get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, `get_class_concept_matrix`). Automatic event triggers (`trg_material_ai_analysis`, `trg_submission_ai_eval`) are decoupled from uploads and can be manually reconnected or triggered on demand.
+8. **Lean Dual-Engine Knowledge Architecture (`ai` Schema)**:
+   - **Hierarchical Document Trees (`ai.material_trees`)**: Stores PageIndex-inspired hierarchical section outline and summary JSONB trees (`root_node`, `total_nodes`, `max_depth`) indexed by `material_id` (`idx_ai_mat_trees_material_id`) for documents $\ge 20$ pages ($\ge 15,000$ characters).
+   - **Ontological Graph with OKF v0.2 Envelopes (`ai.ontology_concepts`, `ai.ontology_relationships`)**: Manages learning standard concepts with metadata fields (`okf_type`, `status`, `verified_by`, `stale_after`, `tags`) and directed relationships governed by a strict closed vocabulary constraint `chk_relationship_type` (`prerequisite_of`, `subconcept_of`, `reinforces`, `remediates_misconception`, `assesses`, `supersedes`, `related_to`).
+   - **Tree Leaf Bindings (`ai.material_concept_mappings`)**: Bridges curriculum materials and tree leaf nodes (`tree_node_id`, `page_number`, `confidence`, `verified_by`) directly to pedagogical concepts.
+   - **Pedagogical Misconceptions & Gradebook Integration (`ai.ontology_misconceptions`)**: Catalogs pedagogical error patterns with `status` (`proposed`, `confirmed`, `dismissed`) and review metadata (`teacher_reviewed_at`, `teacher_reviewer_id`), with backend endpoints ready for Teacher Gradebook Matrix UI integration.
+   - **Dynamic Student Concept Mastery (`ai.student_concept_mastery`)**: Tracks concept-level proficiency scores and detected learning gaps per student per class.
+   - **Consolidation Telemetry & Linting (`ai.consolidation_runs`, `ai.knowledge_lint_reports`, `ai.staging_scratchpad`)**: Maintains audit logs for nightly anti-drift verification, orphan/cycle repairs, and temporary hypothesis staging.
+   - **Visual Knowledge Graph Assets (`ai.document_assets`, `ai.asset_concept_mappings`)** *(migration `20261111160000`, queued for CD release on `main`)*: Self-contained `ai`-schema storage for extracted illustrations, diagrams, charts, equations, and scans with AI retention discernment (`retain_image_data`, `retention_reason`, `representation_mode`), descriptive fields (`description`, `alt_text`, `ocr_text`), and optional inline `image_base64` / `image_bytes` (zero external Storage buckets), using strictly intra-`ai` FKs (`ai.material_trees`, `ai.material_insights`, `ai.submission_evaluations`, `ai.ontology_concepts`) and `source_material_id`/`source_submission_id` provenance UUIDs.
+   - **Pre-Query Soft-Warning Gate (`ai.check_answerable`)**: Security-definer stored procedure in the `ai` schema evaluating curriculum coverage against query terms, providing cooperative caveat warnings.
+   - **Public Gateway RPCs**: `get_submission_ai_diagnostic`, `get_material_ai_insights`, `get_student_concept_gaps`, `get_class_concept_matrix`, and `get_document_assets` *(queued in `20261111160000` for CD release on `main`)*. All direct `ai` tables are shielded from public PostgREST exposure. *(AI webhook triggers `trg_material_ai_analysis` and `trg_submission_ai_eval` are currently commented out in baseline migrations pending activation.)*
 9. **Infrastructure PostgreSQL Extensions**:
-   - `vector` (`pgvector`): Semantic vector embeddings (1536 dims) and HNSW cosine distance indexing in `ai` schema.
    - `pg_trgm`: Trigram string similarity functions powering fuzzy autocomplete RPCs (`search_*`).
    - `pgcrypto`: Cryptographic UUID generation (`gen_random_uuid()`) for primary keys and tokens.
    - `pg_net`: Asynchronous HTTP networking extension in `net` schema for background webhooks and Edge Function triggers.
+   - `vector` (`pgvector`): Provisioned in baseline setup; dense embedding tables (`ai.material_embeddings`, `ai.submission_embeddings`) were subsequently dropped by `20261107100000` in favor of the Lean Dual-Engine.

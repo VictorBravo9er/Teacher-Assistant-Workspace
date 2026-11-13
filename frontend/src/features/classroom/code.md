@@ -53,14 +53,14 @@ flowchart TD
    - Maintains an array of `RubricCriterion` objects (`{ id, name, description, maxScore, weight }`).
    - Dynamically computes `totalMaxScore = sum(criteria.map(c => c.maxScore))` and displays scoring weights in real-time.
 2. **Gradebook Matrix Virtualization & Filtering (`GradebookMatrix.tsx`)**:
-   - Derives composite student grades by aggregating all `student_submissions` for the active class.
-   - Computes weighted overall percentage and maps students to performance tiers (`High: >=85%`, `Average: 65-84%`, `At Risk: <65%`).
-   - Offers client-side CSV generation with UTF-8 BOM encoding for direct spreadsheet import.
+   - Derives composite student grades by aggregating all `student_submissions` for the active class via `calculateAverageScore`.
+   - Maps students via `getPerformanceTier()` to performance tiers (`High: >=90%`, `Average: 65-89%`, `At Risk: <65%`, or `Unassessed` when no scores exist; note DB trigger `trg_sync_student_scores` uses `>=88%` for High).
+   - Offers client-side CSV generation with UTF-8 BOM encoding for direct spreadsheet import. *(Surfacing proposed AI misconceptions from `/api/misconceptions/proposed` inside `GradebookMatrix` is planned.)*
 3. **Secure File Streaming (`MaterialPreviewModal.tsx`)**:
-   - For private bucket files, calls the `get-material-url` Edge Function with `{ class_id, material_id, content_item_id }` to retrieve a short-lived signed URL, avoiding public asset exposure.
+   - For private bucket files, calls the `get-material-url` Edge Function with `{ class_id, material_id, content_item_id }` to retrieve a short-lived signed URL, avoiding public asset exposure. *(Rendering `get_material_ai_insights()` AI summaries inside this modal is planned.)*
 4. **0ms Optimistic Announcements & Resend Broadcasts (`ClassDetails.tsx`)**:
-   - Posting an announcement immediately prepends a `temp-ann-*` card (`isPending: true`, rendering an animated `"Publishing..."` badge) to the feed and clears the composer in `0ms`.
-   - `announcementService.createAnnouncement()` and `notificationService.notifyAnnouncement()` execute in the background; if insertion fails, `temp-ann-*` is evicted and the teacher's draft title/content are restored to the composer.
+   - Posting an announcement immediately prepends an optimistic card (`id: crypto.randomUUID()`, `isPending: true`, rendering an animated `"Publishing..."` badge) to the feed and clears the composer in `0ms`.
+   - `announcementService.createAnnouncement()` and `notificationService.notifyAnnouncement()` execute in the background; if insertion fails, the temporary entry (`tempId`) is evicted and the teacher's draft title/content are restored to the composer.
    - Deleting an announcement filters it out of the feed in `0ms` and restores the snapshot if `announcementService.deleteAnnouncement()` fails.
 5. **Profile Tab Edit/Save/Cancel Controls & Always-Visible Materials/Guidelines CRUD (`ClassDetails.tsx`)**:
    - `isEditMode` in `ClassDetails.tsx` governs **only** the **Class Profile** tab (`class-details-tab-profile`).

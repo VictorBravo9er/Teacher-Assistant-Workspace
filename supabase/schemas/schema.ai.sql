@@ -25,9 +25,109 @@ ALTER SCHEMA "ai" OWNER TO "postgres";
 COMMENT ON SCHEMA "ai" IS 'Internal, non-exposed schema for vector embeddings, ontological knowledge graphs, and AI evaluation caches.';
 
 
+
+CREATE OR REPLACE FUNCTION "ai"."check_answerable"("p_class_id" "uuid", "p_query_terms" "text"[]) RETURNS TABLE("is_answerable" boolean, "status_flag" "text", "coverage_score" double precision, "matched_concept_count" integer, "missing_terms" "text"[], "requires_confirmation" boolean, "caveat_message" "text")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'ai', 'public'
+    AS $$
+DECLARE
+    v_total_terms INTEGER := array_length(p_query_terms, 1);
+    v_matched INTEGER := 0;
+    v_score FLOAT := 0.0;
+    v_status TEXT := 'VERIFIED';
+    v_req_confirm BOOLEAN := FALSE;
+    v_caveat TEXT := NULL;
+    v_missing TEXT[] := ARRAY[]::TEXT[];
+BEGIN
+    IF v_total_terms IS NULL OR v_total_terms = 0 THEN
+        RETURN QUERY SELECT TRUE, 'VERIFIED', 1.0::FLOAT, 0, ARRAY[]::TEXT[], FALSE, NULL::TEXT;
+        RETURN;
+    END IF;
+
+    -- Count matched concepts in this class's subject
+    SELECT COUNT(DISTINCT c.id)
+    INTO v_matched
+    FROM ai.ontology_concepts c
+    JOIN public.classes cl ON cl.id = p_class_id
+    WHERE c.subject = cl.subject
+      AND c.name ILIKE ANY (SELECT '%' || t || '%' FROM unnest(p_query_terms) t);
+
+    -- Find unmapped terms
+    SELECT ARRAY(
+        SELECT t FROM unnest(p_query_terms) t
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ai.ontology_concepts c
+            JOIN public.classes cl ON cl.id = p_class_id
+            WHERE c.subject = cl.subject AND c.name ILIKE '%' || t || '%'
+        )
+    ) INTO v_missing;
+
+    v_score := (v_matched::FLOAT / v_total_terms::FLOAT);
+    IF v_score > 1.0 THEN v_score := 1.0; END IF;
+
+    -- Determine soft-warning threshold (0.4)
+    IF v_score < 0.4 THEN
+        v_status := 'INCOMPLETE_WARNING';
+        v_req_confirm := TRUE;
+        v_caveat := 'Processing and consolidation of course materials for this topic is incomplete. Insights might not be comprehensive. Do you still want to continue?';
+    END IF;
+
+    RETURN QUERY 
+    SELECT 
+        TRUE, -- Never hard-fail; always return soft caveat
+        v_status,
+        v_score,
+        v_matched,
+        v_missing,
+        v_req_confirm,
+        v_caveat;
+END;
+$$;
+
+
+ALTER FUNCTION "ai"."check_answerable"("p_class_id" "uuid", "p_query_terms" "text"[]) OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
+
+
+CREATE TABLE IF NOT EXISTS "ai"."consolidation_runs" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "started_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "completed_at" timestamp with time zone,
+    "status" "text" DEFAULT 'running'::"text" NOT NULL,
+    "frequency_tier" "text" DEFAULT 'f3_nightly'::"text" NOT NULL,
+    "drift_detected" boolean DEFAULT false,
+    "broken_linkages_repaired" integer DEFAULT 0,
+    "missing_links_added" integer DEFAULT 0,
+    "concepts_audited" integer DEFAULT 0,
+    "hypotheses_generated" integer DEFAULT 0,
+    "lint_issues_detected" integer DEFAULT 0,
+    "metrics" "jsonb" DEFAULT '{}'::"jsonb",
+    CONSTRAINT "consolidation_runs_frequency_tier_check" CHECK (("frequency_tier" = ANY (ARRAY['f2_batch'::"text", 'f3_nightly'::"text"]))),
+    CONSTRAINT "consolidation_runs_status_check" CHECK (("status" = ANY (ARRAY['running'::"text", 'completed'::"text", 'failed'::"text"])))
+);
+
+
+ALTER TABLE "ai"."consolidation_runs" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "ai"."knowledge_lint_reports" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "run_id" "uuid",
+    "issue_type" "text" NOT NULL,
+    "severity" "text" NOT NULL,
+    "target_concept_id" "uuid",
+    "details" "jsonb" NOT NULL,
+    "resolved" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    CONSTRAINT "knowledge_lint_reports_issue_type_check" CHECK (("issue_type" = ANY (ARRAY['orphan_concept'::"text", 'contradiction'::"text", 'prerequisite_cycle'::"text", 'stale_standard'::"text"]))),
+    CONSTRAINT "knowledge_lint_reports_severity_check" CHECK (("severity" = ANY (ARRAY['info'::"text", 'warning'::"text", 'critical'::"text"])))
+);
+
+
+ALTER TABLE "ai"."knowledge_lint_reports" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "ai"."material_concept_mappings" (
@@ -38,7 +138,11 @@ CREATE TABLE IF NOT EXISTS "ai"."material_concept_mappings" (
     "relationship" "text" DEFAULT 'teaches'::"text" NOT NULL,
     "relevance_score" numeric DEFAULT 1.0,
     "evidence_excerpt" "text",
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "tree_node_id" "text",
+    "page_number" integer,
+    "confidence" double precision DEFAULT 1.0,
+    "verified_by" "text" DEFAULT 'machine-confirmed'::"text"
 );
 
 
@@ -90,6 +194,20 @@ COMMENT ON TABLE "ai"."material_insights" IS 'Cached syllabus alignment, prerequ
 
 
 
+CREATE TABLE IF NOT EXISTS "ai"."material_trees" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "material_id" "uuid" NOT NULL,
+    "root_node" "jsonb" NOT NULL,
+    "total_nodes" integer DEFAULT 1 NOT NULL,
+    "max_depth" integer DEFAULT 1 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+);
+
+
+ALTER TABLE "ai"."material_trees" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "ai"."ontology_concepts" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "subject" "text" NOT NULL,
@@ -100,7 +218,13 @@ CREATE TABLE IF NOT EXISTS "ai"."ontology_concepts" (
     "parent_concept_id" "uuid",
     "embedding" "extensions"."vector"(1536),
     "metadata" "jsonb" DEFAULT '{}'::"jsonb",
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "okf_type" "text" DEFAULT 'Concept'::"text",
+    "status" "text" DEFAULT 'draft'::"text",
+    "verified_by" "text" DEFAULT 'unverified'::"text",
+    "stale_after" timestamp with time zone,
+    "tags" "text"[] DEFAULT '{}'::"text"[],
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"())
 );
 
 
@@ -117,7 +241,18 @@ CREATE TABLE IF NOT EXISTS "ai"."ontology_misconceptions" (
     "error_pattern" "text" NOT NULL,
     "remediation_strategy" "text" NOT NULL,
     "severity" "text" DEFAULT 'Moderate'::"text",
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "class_id" "uuid",
+    "prerequisite_concept_id" "uuid",
+    "name" "text" DEFAULT 'Pedagogical Misconception'::"text",
+    "status" "text" DEFAULT 'proposed'::"text" NOT NULL,
+    "confidence" double precision DEFAULT 1.0,
+    "evidence_submission_ids" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "surfaced_in_gradebook" boolean DEFAULT true NOT NULL,
+    "teacher_reviewed_at" timestamp with time zone,
+    "teacher_reviewer_id" "uuid",
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()),
+    CONSTRAINT "chk_misconception_status" CHECK (("status" = ANY (ARRAY['proposed'::"text", 'confirmed'::"text", 'dismissed'::"text"])))
 );
 
 
@@ -136,7 +271,8 @@ CREATE TABLE IF NOT EXISTS "ai"."ontology_relationships" (
     "weight" numeric DEFAULT 1.0,
     "metadata" "jsonb" DEFAULT '{}'::"jsonb",
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    CONSTRAINT "check_no_self_loops" CHECK (("source_concept_id" <> "target_concept_id"))
+    CONSTRAINT "check_no_self_loops" CHECK (("source_concept_id" <> "target_concept_id")),
+    CONSTRAINT "chk_relationship_type" CHECK (("relationship_type" = ANY (ARRAY['prerequisite_of'::"text", 'subconcept_of'::"text", 'reinforces'::"text", 'remediates_misconception'::"text", 'assesses'::"text", 'supersedes'::"text", 'related_to'::"text"])))
 );
 
 
@@ -145,6 +281,21 @@ ALTER TABLE "ai"."ontology_relationships" OWNER TO "postgres";
 
 COMMENT ON TABLE "ai"."ontology_relationships" IS 'Directed graph edges linking prerequisite, subconcept, and reinforcement dependencies.';
 
+
+
+CREATE TABLE IF NOT EXISTS "ai"."staging_scratchpad" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "session_id" "text" NOT NULL,
+    "teacher_id" "uuid" NOT NULL,
+    "class_id" "uuid" NOT NULL,
+    "raw_note" "text" NOT NULL,
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb",
+    "processed" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+);
+
+
+ALTER TABLE "ai"."staging_scratchpad" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "ai"."student_concept_mastery" (
@@ -212,6 +363,16 @@ COMMENT ON TABLE "ai"."submission_evaluations" IS 'Pre-computed AI rubric evalua
 
 
 
+ALTER TABLE ONLY "ai"."consolidation_runs"
+    ADD CONSTRAINT "consolidation_runs_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "ai"."knowledge_lint_reports"
+    ADD CONSTRAINT "knowledge_lint_reports_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "ai"."material_concept_mappings"
     ADD CONSTRAINT "material_concept_mappings_pkey" PRIMARY KEY ("id");
 
@@ -227,6 +388,11 @@ ALTER TABLE ONLY "ai"."material_insights"
 
 
 
+ALTER TABLE ONLY "ai"."material_trees"
+    ADD CONSTRAINT "material_trees_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "ai"."ontology_concepts"
     ADD CONSTRAINT "ontology_concepts_pkey" PRIMARY KEY ("id");
 
@@ -239,6 +405,11 @@ ALTER TABLE ONLY "ai"."ontology_misconceptions"
 
 ALTER TABLE ONLY "ai"."ontology_relationships"
     ADD CONSTRAINT "ontology_relationships_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "ai"."staging_scratchpad"
+    ADD CONSTRAINT "staging_scratchpad_pkey" PRIMARY KEY ("id");
 
 
 
@@ -269,6 +440,11 @@ ALTER TABLE ONLY "ai"."ontology_relationships"
 
 ALTER TABLE ONLY "ai"."material_concept_mappings"
     ADD CONSTRAINT "unique_mat_concept_chunk" UNIQUE ("material_id", "concept_id", "chunk_id", "relationship");
+
+
+
+ALTER TABLE ONLY "ai"."material_trees"
+    ADD CONSTRAINT "unique_material_tree" UNIQUE ("material_id");
 
 
 
@@ -329,6 +505,10 @@ CREATE INDEX "idx_ai_mat_map_material" ON "ai"."material_concept_mappings" USING
 
 
 
+CREATE INDEX "idx_ai_mat_trees_material_id" ON "ai"."material_trees" USING "btree" ("material_id");
+
+
+
 CREATE INDEX "idx_ai_miscon_concept" ON "ai"."ontology_misconceptions" USING "btree" ("concept_id");
 
 
@@ -361,6 +541,40 @@ CREATE INDEX "idx_ai_sub_evals_submission_id" ON "ai"."submission_evaluations" U
 
 
 
+CREATE INDEX "idx_knowledge_lint_run_id" ON "ai"."knowledge_lint_reports" USING "btree" ("run_id");
+
+
+
+CREATE INDEX "idx_misconceptions_class_id" ON "ai"."ontology_misconceptions" USING "btree" ("class_id");
+
+
+
+CREATE INDEX "idx_misconceptions_concept" ON "ai"."ontology_misconceptions" USING "btree" ("concept_id");
+
+
+
+CREATE INDEX "idx_misconceptions_gradebook" ON "ai"."ontology_misconceptions" USING "btree" ("class_id", "status") WHERE ("surfaced_in_gradebook" = true);
+
+
+
+CREATE INDEX "idx_staging_scratchpad_teacher" ON "ai"."staging_scratchpad" USING "btree" ("teacher_id");
+
+
+
+CREATE INDEX "idx_staging_scratchpad_unprocessed" ON "ai"."staging_scratchpad" USING "btree" ("class_id") WHERE ("processed" = false);
+
+
+
+ALTER TABLE ONLY "ai"."knowledge_lint_reports"
+    ADD CONSTRAINT "knowledge_lint_reports_run_id_fkey" FOREIGN KEY ("run_id") REFERENCES "ai"."consolidation_runs"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "ai"."knowledge_lint_reports"
+    ADD CONSTRAINT "knowledge_lint_reports_target_concept_id_fkey" FOREIGN KEY ("target_concept_id") REFERENCES "ai"."ontology_concepts"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "ai"."material_concept_mappings"
     ADD CONSTRAINT "material_concept_mappings_chunk_id_fkey" FOREIGN KEY ("chunk_id") REFERENCES "ai"."material_embeddings"("id") ON DELETE SET NULL;
 
@@ -386,13 +600,33 @@ ALTER TABLE ONLY "ai"."material_insights"
 
 
 
+ALTER TABLE ONLY "ai"."material_trees"
+    ADD CONSTRAINT "material_trees_material_id_fkey" FOREIGN KEY ("material_id") REFERENCES "public"."materials"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "ai"."ontology_concepts"
     ADD CONSTRAINT "ontology_concepts_parent_concept_id_fkey" FOREIGN KEY ("parent_concept_id") REFERENCES "ai"."ontology_concepts"("id") ON DELETE SET NULL;
 
 
 
 ALTER TABLE ONLY "ai"."ontology_misconceptions"
+    ADD CONSTRAINT "ontology_misconceptions_class_id_fkey" FOREIGN KEY ("class_id") REFERENCES "public"."classes"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "ai"."ontology_misconceptions"
     ADD CONSTRAINT "ontology_misconceptions_concept_id_fkey" FOREIGN KEY ("concept_id") REFERENCES "ai"."ontology_concepts"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "ai"."ontology_misconceptions"
+    ADD CONSTRAINT "ontology_misconceptions_prerequisite_concept_id_fkey" FOREIGN KEY ("prerequisite_concept_id") REFERENCES "ai"."ontology_concepts"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "ai"."ontology_misconceptions"
+    ADD CONSTRAINT "ontology_misconceptions_teacher_reviewer_id_fkey" FOREIGN KEY ("teacher_reviewer_id") REFERENCES "auth"."users"("id");
 
 
 
@@ -403,6 +637,16 @@ ALTER TABLE ONLY "ai"."ontology_relationships"
 
 ALTER TABLE ONLY "ai"."ontology_relationships"
     ADD CONSTRAINT "ontology_relationships_target_concept_id_fkey" FOREIGN KEY ("target_concept_id") REFERENCES "ai"."ontology_concepts"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "ai"."staging_scratchpad"
+    ADD CONSTRAINT "staging_scratchpad_class_id_fkey" FOREIGN KEY ("class_id") REFERENCES "public"."classes"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "ai"."staging_scratchpad"
+    ADD CONSTRAINT "staging_scratchpad_teacher_id_fkey" FOREIGN KEY ("teacher_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -431,6 +675,14 @@ ALTER TABLE ONLY "ai"."submission_evaluations"
 
 
 
+CREATE POLICY "Authenticated users can access consolidation runs" ON "ai"."consolidation_runs" TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "Authenticated users can access knowledge lint reports" ON "ai"."knowledge_lint_reports" TO "authenticated" USING (true);
+
+
+
 CREATE POLICY "Authenticated users can view ontology concepts" ON "ai"."ontology_concepts" FOR SELECT TO "authenticated" USING (true);
 
 
@@ -443,9 +695,38 @@ CREATE POLICY "Authenticated users can view ontology relationships" ON "ai"."ont
 
 
 
+CREATE POLICY "Student can view material trees in enrolled classes" ON "ai"."material_trees" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."class_materials" "cm"
+     JOIN "public"."class_students" "cs" ON (("cs"."class_id" = "cm"."class_id")))
+  WHERE (("cm"."material_id" = "material_trees"."material_id") AND ("cs"."student_id" = ( SELECT "auth"."uid"() AS "uid"))))));
+
+
+
 CREATE POLICY "Teacher can manage material insights" ON "ai"."material_insights" TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."materials" "m"
   WHERE (("m"."id" = "material_insights"."material_id") AND ("m"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
+
+
+
+CREATE POLICY "Teacher can manage material trees" ON "ai"."material_trees" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."materials" "m"
+  WHERE (("m"."id" = "material_trees"."material_id") AND ("m"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))));
+
+
+
+CREATE POLICY "Teacher can manage ontology concepts" ON "ai"."ontology_concepts" TO "authenticated" USING (true) WITH CHECK (true);
+
+
+
+CREATE POLICY "Teacher can manage ontology misconceptions" ON "ai"."ontology_misconceptions" TO "authenticated" USING (true) WITH CHECK (true);
+
+
+
+CREATE POLICY "Teacher can manage ontology relationships" ON "ai"."ontology_relationships" TO "authenticated" USING (true) WITH CHECK (true);
+
+
+
+CREATE POLICY "Teacher can manage staging scratchpad" ON "ai"."staging_scratchpad" TO "authenticated" USING (("teacher_id" = ( SELECT "auth"."uid"() AS "uid"))) WITH CHECK (("teacher_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
@@ -481,6 +762,12 @@ CREATE POLICY "Users can access student concept mastery" ON "ai"."student_concep
 
 
 
+ALTER TABLE "ai"."consolidation_runs" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "ai"."knowledge_lint_reports" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "ai"."material_concept_mappings" ENABLE ROW LEVEL SECURITY;
 
 
@@ -490,6 +777,9 @@ ALTER TABLE "ai"."material_embeddings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "ai"."material_insights" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "ai"."material_trees" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "ai"."ontology_concepts" ENABLE ROW LEVEL SECURITY;
 
 
@@ -497,6 +787,9 @@ ALTER TABLE "ai"."ontology_misconceptions" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "ai"."ontology_relationships" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "ai"."staging_scratchpad" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "ai"."student_concept_mastery" ENABLE ROW LEVEL SECURITY;

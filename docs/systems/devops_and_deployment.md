@@ -12,35 +12,33 @@ The workspace utilizes **Docker Compose** to coordinate decoupled frontend and b
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 flowchart TD
     subgraph DockerHost["Docker Host Network"]
-        subgraph FrontendService["Frontend Container (Port 80)"]
-            Nginx["Nginx Unprivileged (USER 1000:1000)"]
+        subgraph FrontendService["Frontend Container (Host :80 -> Container :8080)"]
+            Nginx["Nginx Reverse Proxy & SPA (nginx:stable-alpine)"]
             HTML["Vite React Bundle (/usr/share/nginx/html)"]
             Nginx --> HTML
         end
 
-        subgraph BackendService["Backend Container (Port 8090)"]
-            Uvicorn["Uvicorn / FastAPI (USER 1000:1000)"]
+        subgraph BackendService["Backend Container (Internal Expose :8090)"]
+            Uvicorn["Uvicorn / FastAPI (USER b-usr 1000:1000)"]
             PyApp["Python 3.13 / LangChain Service (/app)"]
             Uvicorn --> PyApp
         end
     end
 
-    Client["Browser Client"] -->|HTTP / SPA Navigation (Port 80)| Nginx
-    Client -->|REST API / CORS (Port 8090)| Uvicorn
-    Nginx -.->|Reverse Proxy / Direct| Uvicorn
+    Client["Browser Client"] -->|HTTP / SPA Navigation (Host Port 80)| Nginx
+    Nginx -->|/api/* Reverse Proxy (dev.conf / default.conf)| Uvicorn
 ```
 
 ### 1.1 Compose Configurations:
 1. **`docker-compose.yml` (Base Production Deployment)**:
-   - Configures non-root user execution (`user: "1000:1000"`).
+   - Runs backend as unprivileged user `b-usr` (`UID/GID ${UID:-1000}:${GID:-1000}` built in `backend/Dockerfile`) and serves static Vite output behind `nginx:stable-alpine` in `frontend/Dockerfile` (`prod` stage).
    - Injects healthcheck directives for both containers.
-   - Restricts port bindings to `80:80` (Frontend) and `8090:8090` (Backend).
-   - Enforces production environment variables via `.env`.
+   - Maps host `${HOST_PORT:-80}` to frontend `${FRONTEND_PORT:-8080}` while exposing backend `${BACKEND_PORT:-8090}` internally on the Docker network (`expose: ["${BACKEND_PORT:-8090}"]`), routing `/api` traffic through Nginx (`BACKEND_HOST=backend`).
+   - Enforces build/runtime environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`).
 2. **`docker-compose.dev.yml` (Local Development Layer)**:
    - Manages the local Supabase server lifecycle via the `supabase` service (`ta-supabase-dev`), mounting `/var/run/docker.sock` to start local Supabase containers (`npx --yes supabase start`) on compose startup and gracefully stop them (`npx --yes supabase stop`) via signal traps across its lifetime.
-   - Overlays bind mounts from host directories (`./frontend:/app`, `./backend:/app`) to enable live hot-reloading for Vite and Uvicorn (`--reload`).
-   - Automatically directs `frontend` and `backend` to local Supabase endpoints (`http://localhost:54321` and `http://host.docker.internal:54321` / `postgresql://postgres:postgres@host.docker.internal:54322/postgres`) with healthcheck dependency gates (`condition: service_healthy`).
-   - Mounts anonymous volumes for container-internal `node_modules` and Python `.venv` to prevent host OS binary conflicts.
+   - Overlays selective read-only source bind mounts (`./backend/src:/app/src:ro`, `./frontend/src:/app/src:ro`, `./frontend/public:/app/public:ro`, `./frontend/index.html`, `./frontend/tsconfig.json`, `./frontend/vite.config.ts`) plus writable `./logs:/app/logs` to enable live hot-reloading for Vite (`prep`/`dev` stage running as `node` UID 1000) and Uvicorn (`--reload`) without clobbering container-internal `node_modules` or `.venv`.
+   - Exposes backend port `${BACKEND_PORT:-8090}` to the host for direct API/Swagger inspection and directs `frontend` and `backend` to local Supabase endpoints (`http://localhost:54321` / `http://host.docker.internal:54321` and `postgresql://postgres:postgres@host.docker.internal:54322/postgres`) with `condition: service_healthy` dependency gates.
 
 ---
 
@@ -48,17 +46,16 @@ flowchart TD
 
 The Didactiq workspace implements strict container hardening standards:
 
-1. **Rootless Container Execution**:
-   - Both the frontend Nginx image (`nginxinc/nginx-unprivileged:alpine`) and the backend Python image execute as unprivileged UID/GID `1000:1000`.
-   - Prevents container escape privilege escalation vulnerabilities.
+1. **Non-Root Execution**:
+   - The backend `dev`/`prod` stages execute as unprivileged `b-usr` (`UID=1000:GID=1000`), and the frontend `prep`/`dev` stages execute as non-root `node` (`UID 1000`). The production Nginx stage copies static bundle files with `--chmod=0555 --chown=nginx:nginx` and `default.conf.template` with `--chmod=0444 --chown=nginx:nginx`.
 2. **Immutable Production File Permissions**:
-   - Production Dockerfile layers enforce read-only permissions across source assets:
-     - Directories mapped to `0555` (read + execute).
-     - Source files mapped to `0444` (read-only).
-   - Prevents runtime tampering or unauthorized file modification inside containers.
+   - Production Dockerfile layers enforce read-only / non-writable source permissions across build artifacts:
+     - Backend copies `/app/entrypoint.sh` and `./src` with `--chmod=0555`.
+     - Frontend copies `/usr/share/nginx/html` with `--chmod=0555` and `default.conf.template` with `--chmod=0444`.
+   - Prevents runtime tampering or unauthorized source modification inside containers.
 3. **Multi-Stage Builds**:
-   - Frontend: Node.js build stage compiles static assets, discarding build tooling in the final minimal Nginx runtime image.
-   - Backend: uv build stage installs Python dependencies, discarding compilation toolchains in the final runtime container.
+   - Frontend: Node.js (`node:24-slim`) build stage compiles static assets with `pnpm`, discarding build tooling in the final minimal `nginx:stable-alpine` runtime image.
+   - Backend: `uv` export/install stage installs Python dependencies into `/usr/local`, discarding `uv` cache/build layers in the final slim `python:3.13.15-slim-trixie` runtime container.
 
 ---
 
@@ -110,7 +107,7 @@ flowchart TD
      - **Phase 2 (Serial Gate 2)**: Database migrations — applies incremental SQL migrations via `migrate.py` (`supabase db push`).
      - **Phase 3 (Top-Level Concurrent Pipeline)**: Concurrently runs 6 workers via a `ThreadPoolExecutor`:
        - Worker 1: Edge Functions deployment audit & sync (`deploy_edge_functions.py`).
-       - Worker 2: TypeScript contract generation & enum tooltip verification (`_generate_types.py`).
+       - Worker 2: TypeScript contract generation & enum tooltip verification (`_generate_types.py` + `_verify_enum_tooltips.py`).
        - Worker 3: Python contract generation (`_generate_types.py`).
        - Workers 4–6: Concurrent DDL schema dumps for `public`, `ai`, and `langgraph` (`db_dump.py`).
      - Renders a clean, thread-safe timed summary box. Available via `make db-setup` and `make db-reset`.
@@ -123,7 +120,7 @@ flowchart TD
 3. **`_generate_types.py`**:
    - Generates database contract types via Supabase CLI:
      - Exposes decoupled functions `generate_typescript_types` and `generate_python_types` targeting `frontend/src/types/db.ts` and `backend/src/types/db.py`.
-     - `main()` coordinates both generators concurrently using a `ThreadPoolExecutor` and triggers pedagogical enum tooltip validation upon completion. Available via `make types`.
+     - `main()` coordinates both generators concurrently using a `ThreadPoolExecutor` and invokes enum tooltip validation via `_verify_enum_tooltips.py` upon completion. Available via `make types`.
 4. **`db_dump.py`**:
    - Local DDL schema and fixture generation tool:
      - Dumps per-schema DDL (`schema.<name>.sql` for `public`, `ai`, and `langgraph` in `supabase/schemas/`) concurrently via `dump_schemas(parallel=True)`.
@@ -207,7 +204,7 @@ The Didactiq workspace implements automated Continuous Deployment on merges to `
 flowchart LR
     PushMain([Merge to main]) --> CD[CD Pipeline]
     subgraph CD[".github/workflows/cd.yml"]
-        MigrateDB["1. Database Migration<br/>(migrate.py --yes)"]
+        MigrateDB["1. Database Migration<br/>(migrate.py --yes --no-types)"]
         DeployEdge["2. Edge Functions Deployment<br/>(deploy_edge_functions.py)"]
         CommitManifest["3. Manifest Synchronization<br/>(git commit deployed.json)"]
         MigrateDB --> DeployEdge --> CommitManifest
@@ -216,11 +213,12 @@ flowchart LR
 ```
 
 1. **Database Migrations Stage**:
-   - Executes `uv run scripts/migrate.py --yes` against the Supabase database configured via the `POSTGRES_URI` repository secret.
+   - Installs `python-dotenv` (`pip install python-dotenv`) and executes `python scripts/migrate.py --yes --no-types` authenticated with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`.
    - Pushes pending timestamped migrations from `supabase/migrations/` using the Supabase CLI (`db push --include-all`).
 2. **Edge Functions Deployment Stage**:
-   - Executes `uv run scripts/deploy_edge_functions.py` authenticated with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`.
-   - Utilizes `supabase/functions/deployed.json` composite hashes to deploy only changed or unregistered functions with remote-drift verification.
-   - If `supabase/functions/deployed.json` was updated by newly deployed functions, commits and pushes the updated manifest back to the repository with `[skip ci]`.
-3. **Application Hosting Stage**:
+   - Executes `python scripts/deploy_edge_functions.py --yes --strict` authenticated with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`.
+   - Utilizes `supabase/functions/deployed.json` composite hashes to deploy only changed or unregistered functions non-interactively (failing the job under `--strict` on any error), then commits and pushes updated `deployed.json` with `permissions: contents: write` and `[skip ci]`. Also supports manual triggers from GitHub Actions via `workflow_dispatch`.
+3. **CI Validation Gate (`.github/workflows/ci.yml`)**:
+   - Validates docs (`verify_doc_coverage.py`), backend (`poe lint`), frontend (`pnpm run lint` + Vite build), and Supabase migration ordering + Edge Function TypeScript syntax (`scripts/verify_supabase.mjs`).
+4. **Application Hosting Stage**:
    - Managed automatically by Vercel's Git integration using [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh) as the Ignored Build Step.
