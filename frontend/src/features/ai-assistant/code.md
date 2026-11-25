@@ -6,9 +6,9 @@ This directory provides the AI pedagogical chat experience, interactive rubric d
 
 ## 📁 Directory Files
 
-- [`RAGClass.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/RAGClass.tsx): Full-featured pedagogical AI chat interface. Features multi-session conversation history, active diagnostic scope indicators, prompt chip shortcuts, synchronous `/api/chat` JSON response rendering (`isGeneratingAI` loading state), structured message formatting, message copy, and session export to Markdown.
-- [`AIDiagnosticDiffModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/AIDiagnosticDiffModal.tsx): Interactive modal comparing human grades against AI diagnostic recommendations for student submissions. Allows teachers to selectively accept, adjust with sliders, or reject AI-generated criteria scores, strengths, and gap diagnoses before saving.
-- [`Visualizer.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/Visualizer.tsx): Dynamic data visualization renderer that transforms AI-generated structured payloads into responsive chart cards (Ranking leaderboards, Progress timelines, Topic mastery heatmaps, and Statistic badge metrics).
+- [`RAGClass.tsx`](./RAGClass.tsx): Full-featured pedagogical AI chat interface. Features multi-session conversation history, active diagnostic scope indicators, prompt chip shortcuts, synchronous `/api/chat` JSON response rendering (`isGeneratingAI` loading state), structured message formatting, message copy, and session export to Markdown.
+- [`AIDiagnosticDiffModal.tsx`](./AIDiagnosticDiffModal.tsx): Interactive modal comparing human grades against AI diagnostic recommendations for student submissions. Allows teachers to selectively accept, adjust with sliders, or reject AI-generated criteria scores, strengths, and gap diagnoses before saving.
+- [`Visualizer.tsx`](./Visualizer.tsx): Dynamic data visualization renderer that transforms AI-generated structured payloads into responsive chart cards (Ranking leaderboards, Progress timelines, Topic mastery heatmaps, and Statistic badge metrics).
 
 ---
 

@@ -6,7 +6,7 @@ This directory provides modal dialogs and settings forms for managing educator a
 
 ## 📁 Directory Files
 
-- [`AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx): Implements four modal views via `activeModal: 'profile' | 'preferences' | 'settings' | 'subscription' | null`:
+- [`AccountModals.tsx`](./AccountModals.tsx): Implements four modal views via `activeModal: 'profile' | 'preferences' | 'settings' | 'subscription' | null`:
   - **Profile Modal (`ProfileModalContent`)**: Updates educator `full_name`, `title`, `affiliation`, and `phone` via `AuthContext.updateUserMetadata()` (email is disabled/read-only), with an expandable `"Change Login Password"` section invoking `supabase.auth.updateUser({ password, data: { has_password: true } })`.
   - **Preferences Modal (`PreferencesModalContent`)**: Configures `remedialThreshold`, `socraticVerbosity`, `feedbackTone`, and `lateAttendanceWeight`, persisted to `auth.users.user_metadata.preferences` via `updateUserMetadata()`.
   - **Settings Modal (`settings`)**: Displays read-only local persistence (`Autosaved`) and backend connection status summaries.

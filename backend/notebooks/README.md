@@ -4,12 +4,12 @@ Interactive `.ipynb` notebooks and a runnable `# %%` / CLI demo illustrating the
 
 ## Contents
 
-- [`00_knowledge_base_in_action.ipynb`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/00_knowledge_base_in_action.ipynb) — Guided 7-act **AP Chemistry 101** classroom story showing the Knowledge Base learn, grade, self-heal, and advise (`DEMO_MODE = "in_memory" | "in_memory_real_llm" | "live"`).
-- [`01_langchain_and_langgraph_in_memory.ipynb`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/01_langchain_and_langgraph_in_memory.ipynb) — Context formatters, `ChatPromptTemplate | LLM`, JSON parser, and LangGraph `StateGraph` with `MemorySaver` + `InMemoryStore`.
-- [`02_knowledge_workflows_in_memory.ipynb`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/02_knowledge_workflows_in_memory.ipynb) — In-memory object flows across `TreeIndexerService`, `EvaluatorService`, `OntologyService`, `ConsolidationService`, and `ChatService` with ASCII tree, prerequisite chain, mastery matrix, and visualization renderers.
-- [`03_fastapi_endpoints_in_memory.ipynb`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/03_fastapi_endpoints_in_memory.ipynb) — In-process ASGI calls to all 8 FastAPI endpoints backed by [`InMemoryWorkspace`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/_common.py#L280-L344).
-- [`knowledge_base_demo.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/knowledge_base_demo.py) — Runnable CLI / `# %%` script executing the same 7-act demo from [`KnowledgeBaseDemo`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/_common.py#L567-L850).
-- [`_common.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/_common.py) — Shared helpers, ASCII renderers, [`InMemoryWorkspace`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/_common.py#L280-L344), [`DemoSession`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/_common.py#L423-L564), and [`KnowledgeBaseDemo`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/notebooks/_common.py#L567-L850).
+- [`00_knowledge_base_in_action.ipynb`](./00_knowledge_base_in_action.ipynb) — Guided 7-act **AP Chemistry 101** classroom story showing the Knowledge Base learn, grade, self-heal, and advise (`DEMO_MODE = "in_memory" | "in_memory_real_llm" | "live"`).
+- [`01_langchain_and_langgraph_in_memory.ipynb`](./01_langchain_and_langgraph_in_memory.ipynb) — Context formatters, `ChatPromptTemplate | LLM`, JSON parser, and LangGraph `StateGraph` with `MemorySaver` + `InMemoryStore`.
+- [`02_knowledge_workflows_in_memory.ipynb`](./02_knowledge_workflows_in_memory.ipynb) — In-memory object flows across `TreeIndexerService`, `EvaluatorService`, `OntologyService`, `ConsolidationService`, and `ChatService` with ASCII tree, prerequisite chain, mastery matrix, and visualization renderers.
+- [`03_fastapi_endpoints_in_memory.ipynb`](./03_fastapi_endpoints_in_memory.ipynb) — In-process ASGI calls to all 8 FastAPI endpoints backed by [`InMemoryWorkspace`](./_common.py#L280-L344).
+- [`knowledge_base_demo.py`](./knowledge_base_demo.py) — Runnable CLI / `# %%` script executing the same 7-act demo from [`KnowledgeBaseDemo`](./_common.py#L567-L850).
+- [`_common.py`](./_common.py) — Shared helpers, ASCII renderers, [`InMemoryWorkspace`](./_common.py#L280-L344), [`DemoSession`](./_common.py#L423-L564), and [`KnowledgeBaseDemo`](./_common.py#L567-L850).
 
 ## Usage
 

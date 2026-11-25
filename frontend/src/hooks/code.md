@@ -6,10 +6,10 @@ This directory encapsulates stateful workflows, asynchronous data fetching, them
 
 ## 📁 Directory Files
 
-- [`useClassOperations.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useClassOperations.ts): Master state orchestrator for classroom mutations. Provides functions to update class profiles, upload/delete materials, save instruction rubrics, enroll/update students, save submission grades, and batch log attendance records.
-- [`useAIChat.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useAIChat.ts): Compiles classroom/student/session context, dispatches synchronous JSON `POST /api/chat` requests via `fetch('/api/chat')`, and appends structured `{ text, visualization }` replies into React state. (`class_id`, soft-warning retry loops, SSE streaming, and per-turn `chatService.updateSession` sync are pending integration.)
-- [`useWorkspaceData.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useWorkspaceData.ts): Coordinates initial workspace bootstrapping, fetching active classes, templates, and institutes from Supabase services upon user authentication.
-- [`useTheme.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useTheme.ts): Manages light/dark/system theme state, persists user preference to `localStorage` (`'didactiq_theme'`, with legacy fallbacks), and updates the `.dark` class on the root document element.
+- [`useClassOperations.ts`](./useClassOperations.ts): Master state orchestrator for classroom mutations. Provides functions to update class profiles, upload/delete materials, save instruction rubrics, enroll/update students, save submission grades, and batch log attendance records.
+- [`useAIChat.ts`](./useAIChat.ts): Compiles classroom/student/session context, dispatches synchronous JSON `POST /api/chat` requests via `fetch('/api/chat')`, and appends structured `{ text, visualization }` replies into React state. (`class_id`, soft-warning retry loops, SSE streaming, and per-turn `chatService.updateSession` sync are pending integration.)
+- [`useWorkspaceData.ts`](./useWorkspaceData.ts): Coordinates initial workspace bootstrapping, fetching active classes, templates, and institutes from Supabase services upon user authentication.
+- [`useTheme.ts`](./useTheme.ts): Manages light/dark/system theme state, persists user preference to `localStorage` (`'didactiq_theme'`, with legacy fallbacks), and updates the `.dark` class on the root document element.
 
 ---
 

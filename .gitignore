@@ -7,6 +7,8 @@
 ehthumbs.db
 Thumbs.db
 
+.scratch
+
 # IDEs and Editors
 .vscode/
 !.vscode/extensions.json

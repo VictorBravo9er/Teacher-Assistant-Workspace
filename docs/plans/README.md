@@ -2,7 +2,7 @@
 
 Welcome to the modular implementation planning and execution directory for **Didactiq LMS**. 
 
-Following the historical LMS-only decoupling milestone (tag `ui/lms-only-development`), this directory divides all LMS remediation bugs, schema discrepancies, unpersisted forms, and architectural gaps into discrete, reviewable engineering plans and tracks their live implementation progress. *(For subsequent Lean Dual-Engine Knowledge Store architecture and backend AI reactivation on `ai/enable-backend-ai-services`, see [`../knowledge_store/README.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docs/knowledge_store/README.md).)*
+Following the historical LMS-only decoupling milestone (tag `ui/lms-only-development`), this directory divides all LMS remediation bugs, schema discrepancies, unpersisted forms, and architectural gaps into discrete, reviewable engineering plans and tracks their live implementation progress. *(For subsequent Lean Dual-Engine Knowledge Store architecture and backend AI reactivation on `ai/enable-backend-ai-services`, see [`../knowledge_store/README.md`](../knowledge_store/README.md).)*
 
 ---
 

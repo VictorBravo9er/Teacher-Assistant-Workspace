@@ -41,11 +41,11 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **Optimistic User Initiation (`0ms`)**:
-   - In [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx), the teacher fills out the student form and clicks **"Add Student"**.
+   - In [`StudentRegister.tsx`](../../../frontend/src/features/students/StudentRegister.tsx), the teacher fills out the student form and clicks **"Add Student"**.
    - A temporary `Student` object (`id: crypto.randomUUID()`, `isPending: true`) is immediately inserted into the roster via `classItemRef`, displaying an animated `"Inviting..."` overlay pill on the card.
    - The Add Student modal closes immediately (`0ms`) without interrupting the teacher by opening `StudentDetailModal`.
 2. **Background Edge Function & Database Provisioning**:
-   - [`studentService.addStudentToClass()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) invokes the `invite-student` Edge Function in the background.
+   - [`studentService.addStudentToClass()`](../../../frontend/src/services/studentService.ts) invokes the `invite-student` Edge Function in the background.
    - The student master record is created or updated in `public.students` and linked in `public.class_students`.
 3. **Reconciliation or Rollback**:
    - On success, `tempId` is swapped in-place with the real database UUID and `isPending` is cleared.
@@ -85,10 +85,10 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **Roll-Call Interface & 0ms Optimistic Application**:
-   - The teacher opens [`AttendanceManagerModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/AttendanceManagerModal.tsx) and marks `Present`, `Absent`, `Late`, or `Excused`.
+   - The teacher opens [`AttendanceManagerModal.tsx`](../../../frontend/src/features/students/AttendanceManagerModal.tsx) and marks `Present`, `Absent`, `Late`, or `Excused`.
    - Clicking **"Save Attendance"** captures a `previousStudents` snapshot, calculates the new attendance histories and percentages (`Math.round(((present + excused + lateWeight * late) / totalDays) * 100)`, using the educator's `lateAttendanceWeight`, default `0.5`) in memory, immediately updates the parent roster (`onUpdateStudents(updatedStudents)`), and closes the modal in `0ms`.
 2. **Background Database Persistence & Snapshot Rollback**:
-   - [`studentService.bulkLogAttendance()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) executes batch upserts into `public.attendance_records` in the background.
+   - [`studentService.bulkLogAttendance()`](../../../frontend/src/services/studentService.ts) executes batch upserts into `public.attendance_records` in the background.
    - If the database write fails, `onUpdateStudents(previousStudents)` automatically restores the pre-save attendance state and alerts the teacher.
 
 ---
@@ -113,9 +113,9 @@ flowchart TD
 ```
 
 ### Buffered Contact & Guardian Dossier Persistence:
-- In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx), the **Contact Dossier** (`phone`, `address`) and **Family & Guardians** (`parentName`, `parentContact`, `parentNotes`) fields are read-only by default and guarded by a section-scoped `Edit3` (`student-detail-edit-dossier-button`) / `Save` (`student-detail-save-dossier-button`) / `X` (`student-detail-cancel-dossier-button`) toggle bar styled identically to `top-nav-controls`.
+- In [`StudentDetailModal.tsx`](../../../frontend/src/features/students/StudentDetailModal.tsx), the **Contact Dossier** (`phone`, `address`) and **Family & Guardians** (`parentName`, `parentContact`, `parentNotes`) fields are read-only by default and guarded by a section-scoped `Edit3` (`student-detail-edit-dossier-button`) / `Save` (`student-detail-save-dossier-button`) / `X` (`student-detail-cancel-dossier-button`) toggle bar styled identically to `top-nav-controls`.
 - Student `email` is displayed as `readOnly` (linked to the student's Supabase Auth identity).
-- Clicking **Save** (`student-detail-save-dossier-button`) dispatches a single diff payload through `handleUpdateStudentDetails` $\rightarrow$ [`studentService.updateStudentClassData()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts) (which persists identity-level `phone`, `address`, `parent_name`, `parent_contact` to `public.students` and class-scoped `parent_notes` to `public.class_students`), while local roster state synchronization via `onUpdateClass({ students })` updates React state without triggering `classService.updateClass`.
+- Clicking **Save** (`student-detail-save-dossier-button`) dispatches a single diff payload through `handleUpdateStudentDetails` $\rightarrow$ [`studentService.updateStudentClassData()`](../../../frontend/src/services/studentService.ts) (which persists identity-level `phone`, `address`, `parent_name`, `parent_contact` to `public.students` and class-scoped `parent_notes` to `public.class_students`), while local roster state synchronization via `onUpdateClass({ students })` updates React state without triggering `classService.updateClass`.
 
 ---
 

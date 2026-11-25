@@ -9,17 +9,17 @@ In Didactiq, several React UI components contain hardcoded strings and option ar
 
 | UI Component | Field | UI Hardcoded Values | PostgreSQL `ENUM` in `schema-db.sql` | Runtime Impact |
 | :--- | :--- | :--- | :--- | :--- |
-| [`ClassDetails.tsx:L692`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx#L692) | Guideline Type (`instruction_type`) | `'criteria'`, `'marking'`, `'preference'`, `'global'` | `'System Persona'`, `'Grading Rubric'`, `'Lesson Plan Guideline'`, `'Material Generation Rule'`, `'Student Interaction Rule'`, `'Assessment Creation Rule'`, `'Content Filtering Rule'`, `'General Policy'` | **FATAL CRASH**: PostgreSQL rejects `INSERT INTO instructions` with constraint violation `invalid input value for enum public.instruction_type: "criteria"`. |
-| [`ClassDetails.tsx:L327`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx#L327) | Instructor Style (`teaching_style[]`) | `['Socratic', 'Lecture', 'Project-Based', 'Flipped Classroom', 'Discussion', 'Montessori', 'Direct Instruction']` | `'Lecture'`, `'Socratic Method'`, `'Interactive'`, `'Project-Based'`, `'Flipped Classroom'`, `'Discussion-Based'`, `'Hands-On'` | **FATAL CRASH**: Selecting `'Montessori'`, `'Direct Instruction'`, or `'Discussion'` throws `invalid input value for enum public.teaching_style: "Montessori"` on class update. |
-| [`ClassDetails.tsx:L362`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx#L362) | Assessment Preferences (`assessment_preference[]`) | `['Formative', 'Summative', 'Peer Review', 'Self Assessment', 'Portfolio', 'Criteria-based', 'Multiple Choice']` | `'Multiple Choice'`, `'Short Answer'`, `'Essays'`, `'Presentations'`, `'Single Project'`, `'Group Projects'`, `'Oral Exams'`, `'Peer Review'` | **FATAL CRASH**: Selecting `'Formative'`, `'Summative'`, or `'Portfolio'` throws `invalid input value for enum public.assessment_preference: "Formative"`. |
-| [`ClassDetails.tsx:L474`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx#L474) | Resource Category (`content_category`) | Hardcoded `<option>` strings (`'Study Material'`, `'Note'`, `'Assigned Book'`, etc.) | Matches today, but is brittle: any future addition/removal in PostgreSQL breaks the form. | **DRIFT RISK**: Hardcoded literals bypass schema evolution. |
-| [`SubmissionGradingModal.tsx:L444`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/SubmissionGradingModal.tsx#L444) | Submission Status (`submission_status`) | Hardcoded `<option>` strings (`'Assigned'`, `'Submitted'`, `'Evaluated'`, `'Graded'`) | `'Assigned'`, `'Pending'`, `'Submitted'`, `'Evaluated'`, `'Graded'` | **OMISSION**: `'Pending'` status is missing from dropdown; `'Graded'` has hardcoded text label. |
-| [`StudentSubmissionUploadModal.tsx:L100`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx#L100) | Content Type (`content_type`) | `type: 'File' as any` with pseudo-path `text://${itemId}` | `'File'`, `'URL'` (Missing `'Text'`) | **OMISSION / CASCADE CRASH**: Omission of `'Text'` in PostgreSQL forced developers to coerce `type: 'File' as any` with fake `text://` URIs, which crashes Supabase Storage downloads in `MaterialPreviewModal.tsx`. Fixed by adding `'Text'` in Plan 01 and regenerating `db.ts`. |
+| [`ClassDetails.tsx:L692`](../../frontend/src/features/classroom/ClassDetails.tsx#L692) | Guideline Type (`instruction_type`) | `'criteria'`, `'marking'`, `'preference'`, `'global'` | `'System Persona'`, `'Grading Rubric'`, `'Lesson Plan Guideline'`, `'Material Generation Rule'`, `'Student Interaction Rule'`, `'Assessment Creation Rule'`, `'Content Filtering Rule'`, `'General Policy'` | **FATAL CRASH**: PostgreSQL rejects `INSERT INTO instructions` with constraint violation `invalid input value for enum public.instruction_type: "criteria"`. |
+| [`ClassDetails.tsx:L327`](../../frontend/src/features/classroom/ClassDetails.tsx#L327) | Instructor Style (`teaching_style[]`) | `['Socratic', 'Lecture', 'Project-Based', 'Flipped Classroom', 'Discussion', 'Montessori', 'Direct Instruction']` | `'Lecture'`, `'Socratic Method'`, `'Interactive'`, `'Project-Based'`, `'Flipped Classroom'`, `'Discussion-Based'`, `'Hands-On'` | **FATAL CRASH**: Selecting `'Montessori'`, `'Direct Instruction'`, or `'Discussion'` throws `invalid input value for enum public.teaching_style: "Montessori"` on class update. |
+| [`ClassDetails.tsx:L362`](../../frontend/src/features/classroom/ClassDetails.tsx#L362) | Assessment Preferences (`assessment_preference[]`) | `['Formative', 'Summative', 'Peer Review', 'Self Assessment', 'Portfolio', 'Criteria-based', 'Multiple Choice']` | `'Multiple Choice'`, `'Short Answer'`, `'Essays'`, `'Presentations'`, `'Single Project'`, `'Group Projects'`, `'Oral Exams'`, `'Peer Review'` | **FATAL CRASH**: Selecting `'Formative'`, `'Summative'`, or `'Portfolio'` throws `invalid input value for enum public.assessment_preference: "Formative"`. |
+| [`ClassDetails.tsx:L474`](../../frontend/src/features/classroom/ClassDetails.tsx#L474) | Resource Category (`content_category`) | Hardcoded `<option>` strings (`'Study Material'`, `'Note'`, `'Assigned Book'`, etc.) | Matches today, but is brittle: any future addition/removal in PostgreSQL breaks the form. | **DRIFT RISK**: Hardcoded literals bypass schema evolution. |
+| [`SubmissionGradingModal.tsx:L444`](../../frontend/src/features/students/SubmissionGradingModal.tsx#L444) | Submission Status (`submission_status`) | Hardcoded `<option>` strings (`'Assigned'`, `'Submitted'`, `'Evaluated'`, `'Graded'`) | `'Assigned'`, `'Pending'`, `'Submitted'`, `'Evaluated'`, `'Graded'` | **OMISSION**: `'Pending'` status is missing from dropdown; `'Graded'` has hardcoded text label. |
+| [`StudentSubmissionUploadModal.tsx:L100`](../../frontend/src/features/students/StudentSubmissionUploadModal.tsx#L100) | Content Type (`content_type`) | `type: 'File' as any` with pseudo-path `text://${itemId}` | `'File'`, `'URL'` (Missing `'Text'`) | **OMISSION / CASCADE CRASH**: Omission of `'Text'` in PostgreSQL forced developers to coerce `type: 'File' as any` with fake `text://` URIs, which crashes Supabase Storage downloads in `MaterialPreviewModal.tsx`. Fixed by adding `'Text'` in Plan 01 and regenerating `db.ts`. |
 
 ---
 
 ## 2. Canonical Architectural Pattern: Auto-Generated Enums
-The repository **already possesses the ideal design pattern** demonstrated in [`CreateClassModal.tsx:L346-L350`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/CreateClassModal.tsx#L346-L350) for `institute_type`:
+The repository **already possesses the ideal design pattern** demonstrated in [`CreateClassModal.tsx:L346-L350`](../../frontend/src/features/classroom/CreateClassModal.tsx#L346-L350) for `institute_type`:
 
 ```tsx
 // Canonical Pattern from CreateClassModal.tsx
@@ -53,7 +53,7 @@ frontend/src/types/db.ts
 
 ## 3. Implementation Steps
 
-### Step 3.1: Strict Typing in [`frontend/src/types/main.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/types/main.ts)
+### Step 3.1: Strict Typing in [`frontend/src/types/main.ts`](../../frontend/src/types/main.ts)
 Replace loose `string` or `string[]` types with strict generated enum types:
 ```typescript
 import type { Database } from './db';
@@ -100,7 +100,7 @@ export function formatEnumLabel(enumValue: string): string {
 }
 ```
 
-### Step 3.3: Refactor [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx)
+### Step 3.3: Refactor [`ClassDetails.tsx`](../../frontend/src/features/classroom/ClassDetails.tsx)
 1. **Import `Constants`**:
    ```typescript
    import { Constants } from '@/types/db';
@@ -161,7 +161,7 @@ export function formatEnumLabel(enumValue: string): string {
 6. **Fix Experience Scale Dropdown in Edit Mode (L347)**:
    When `isEditMode` is active, render an editable `<select>` mapping over `Constants.public.Enums.experience_level`.
 
-### Step 3.4: Refactor [`SubmissionGradingModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/SubmissionGradingModal.tsx)
+### Step 3.4: Refactor [`SubmissionGradingModal.tsx`](../../frontend/src/features/students/SubmissionGradingModal.tsx)
 Replace hardcoded status options (L444):
 ```tsx
 <select
@@ -177,7 +177,7 @@ Replace hardcoded status options (L444):
 </select>
 ```
 
-### Step 3.5: Graceful Pedagogical Tooltips Dictionary ([`frontend/src/utils/enumTooltips.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/utils/enumTooltips.ts))
+### Step 3.5: Graceful Pedagogical Tooltips Dictionary ([`frontend/src/utils/enumTooltips.ts`](../../frontend/src/utils/enumTooltips.ts))
 Create a type-safe tooltip utility using a key-value dictionary with graceful fallback:
 ```typescript
 /**
@@ -222,7 +222,7 @@ export function getEnumTooltip(enumValue?: string): string {
 }
 ```
 
-UI Integration in [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx):
+UI Integration in [`ClassDetails.tsx`](../../frontend/src/features/classroom/ClassDetails.tsx):
 1. **Teaching Style & Assessment Badges**:
    ```tsx
    {classItem.teachingStyle.map(ts => (

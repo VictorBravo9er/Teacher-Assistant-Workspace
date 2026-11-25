@@ -239,7 +239,7 @@ The `_shared/` directory provides common reusable utilities across all edge endp
 
 ## 5. Deployment Lifecycle & Manifest Tracking (`deployed.json`)
 
-Edge Function deployments are automated incrementally through [`scripts/deploy_edge_functions.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/deploy_edge_functions.py) and integrated into `make deploy-functions` and `make db-setup`:
+Edge Function deployments are automated incrementally through [`scripts/deploy_edge_functions.py`](../../scripts/deploy_edge_functions.py) and integrated into `make deploy-functions` and `make db-setup`:
 
 1. **State Manifest (`supabase/functions/deployed.json`)**:
    - Version-controlled JSON manifest mapping each function to:

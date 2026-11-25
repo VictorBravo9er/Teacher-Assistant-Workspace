@@ -1,17 +1,17 @@
 # Database Schemas & Reset Tooling — `supabase/schemas/`
 
-This directory contains the database reset and teardown routines for the Didactiq platform. All canonical application Data Definition Language (DDL), storage buckets, and RLS policies reside in the unified migration sequence under [`../migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/migrations).
+This directory contains the database reset and teardown routines for the Didactiq platform. All canonical application Data Definition Language (DDL), storage buckets, and RLS policies reside in the unified migration sequence under [`../migrations/`](../migrations).
 
 ---
 
 ## 📁 Directory Files
 
-- [`schema-reset.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-reset.sql): Database teardown script that cleanly drops and recreates `public`, `ai`, and `langgraph` schemas, resets Supabase CLI migration history (`supabase_migrations.schema_migrations`), and restores default API privileges for reproducible local database resets.
-- [`schema.public.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.public.sql): Local DDL schema structure dumped via Supabase CLI for the `public` application schema.
-- [`schema.ai.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.ai.sql): Local DDL schema structure dumped via Supabase CLI for the `ai` ontology, tree index, evaluation, and consolidation schema.
-- [`schema.langgraph.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema.langgraph.sql): Local DDL schema structure dumped via Supabase CLI for the `langgraph` checkpoint and store schema.
-- [`../migrations/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/migrations): Canonical single source of truth for all database DDL, executed sequentially via Supabase CLI (`supabase db push` / `scripts/migrate.py`, automated on `main` via `.github/workflows/cd.yml`). Includes modular baseline migrations (`20260915100000`–`130100` structured by schemas, types, tables, functions, RLS, and descriptions) and incremental migrations (`20260915214140`–`20261111160000`, with `20261111160000` queued for CD release on `main`).
-- [`../AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/AGENTS.md): Subsystem-specific rules for DDL design, mandatory RLS policies, indexing requirements, and naming conventions.
+- [`schema-reset.sql`](./schema-reset.sql): Database teardown script that cleanly drops and recreates `public`, `ai`, and `langgraph` schemas, resets Supabase CLI migration history (`supabase_migrations.schema_migrations`), and restores default API privileges for reproducible local database resets.
+- [`schema.public.sql`](./schema.public.sql): Local DDL schema structure dumped via Supabase CLI for the `public` application schema.
+- [`schema.ai.sql`](./schema.ai.sql): Local DDL schema structure dumped via Supabase CLI for the `ai` ontology, tree index, evaluation, and consolidation schema.
+- [`schema.langgraph.sql`](./schema.langgraph.sql): Local DDL schema structure dumped via Supabase CLI for the `langgraph` checkpoint and store schema.
+- [`../migrations/`](../migrations): Canonical single source of truth for all database DDL, executed sequentially via Supabase CLI (`supabase db push` / `scripts/migrate.py`, automated on `main` via `.github/workflows/cd.yml`). Includes modular baseline migrations (`20260915100000`–`130100` structured by schemas, types, tables, functions, RLS, and descriptions) and incremental migrations (`20260915214140`–`20261111160000`, with `20261111160000` queued for CD release on `main`).
+- [`../AGENTS.md`](../AGENTS.md): Subsystem-specific rules for DDL design, mandatory RLS policies, indexing requirements, and naming conventions.
 
 ---
 
@@ -89,7 +89,7 @@ flowchart TD
 ### 2. DDL Design Patterns & Indexing Invariants
 
 1. **Foreign Key Indexing Requirement**:
-   As mandated in [`AGENTS.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/AGENTS.md), **indexed foreign keys contain explicit B-tree indexes** (e.g. `idx_classes_user_id`, `idx_class_materials_material_id`, `idx_student_submissions_student_id`) to prevent table-scan locks during cascade operations and join queries.
+   As mandated in [`AGENTS.md`](../AGENTS.md), **indexed foreign keys contain explicit B-tree indexes** (e.g. `idx_classes_user_id`, `idx_class_materials_material_id`, `idx_student_submissions_student_id`) to prevent table-scan locks during cascade operations and join queries.
 2. **UUID Primary Keys & Timestamps**:
    - Primary keys utilize `UUID PRIMARY KEY DEFAULT gen_random_uuid()`.
    - Audit columns (`created_at`, `updated_at`) are attached to domain tables with automatic `public.set_updated_at()` update triggers.

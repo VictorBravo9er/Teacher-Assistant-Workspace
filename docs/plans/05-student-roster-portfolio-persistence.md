@@ -3,7 +3,7 @@
 > **Status**: ✅ **COMPLETED** (Full portfolio CRUD wired in `studentService.ts`, conditional gate removed in `StudentRegister.tsx`, verified with `npm run build`, `npm run lint`, and `uv run poe lint`)
 
 ## 1. Problem Statement & Root Cause
-In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx#L280-L365), teachers can view and edit student profiles, including:
+In [`StudentDetailModal.tsx`](../../frontend/src/features/students/StudentDetailModal.tsx#L280-L365), teachers can view and edit student profiles, including:
 - Phone number and home address
 - Parent / Guardian name, contact details, and private notes
 - Roll number
@@ -11,7 +11,7 @@ In [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-
 
 However, none of this data is ever saved to the database due to a two-tier failure:
 
-### Failure Tier 1: Logic Guard in [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx#L114-L130)
+### Failure Tier 1: Logic Guard in [`StudentRegister.tsx`](../../frontend/src/features/students/StudentRegister.tsx#L114-L130)
 ```typescript
 const handleUpdateStudentDetails = async (
   studentId: string,
@@ -31,7 +31,7 @@ const handleUpdateStudentDetails = async (
 ```
 When a teacher modifies a phone number, address, parent note, or accommodation, `updatedFields.performanceIndicator` is `undefined`. Consequently, `studentService.updateStudentClassData` **is never invoked**.
 
-### Failure Tier 2: Omission in [`studentService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts)
+### Failure Tier 2: Omission in [`studentService.ts`](../../frontend/src/services/studentService.ts)
 Even if called:
 1. `fetchStudentsForClass` does not query `phone`, `address`, `parent_name`, `parent_contact`, `parent_notes`, `custom_fields`, or `roll_number`.
 2. `updateStudentClassData` does not include these attributes in its `.update({...})` payload.
@@ -50,7 +50,7 @@ Following the schema migration in [Plan 01](./01-database-schema-alignment.md):
 
 ## 3. Implementation Steps
 
-### Step 3.1: Verify Domain Model ([`frontend/src/types/main.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/types/main.ts))
+### Step 3.1: Verify Domain Model ([`frontend/src/types/main.ts`](../../frontend/src/types/main.ts))
 Ensure `Student` contains all portfolio fields:
 ```typescript
 export interface Student {
@@ -69,7 +69,7 @@ export interface Student {
 }
 ```
 
-### Step 3.2: Update Query & Updater in [`frontend/src/services/studentService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentService.ts)
+### Step 3.2: Update Query & Updater in [`frontend/src/services/studentService.ts`](../../frontend/src/services/studentService.ts)
 1. In `fetchStudentsForClass(classId: string)`:
    Update the query and row mapper to read portfolio columns:
    ```typescript
@@ -120,7 +120,7 @@ export interface Student {
    if (error) throw error;
    ```
 
-### Step 3.3: Remove Conditional Gate in [`frontend/src/features/students/StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx)
+### Step 3.3: Remove Conditional Gate in [`frontend/src/features/students/StudentRegister.tsx`](../../frontend/src/features/students/StudentRegister.tsx)
 Remove the restrictive `if (updatedFields.performanceIndicator || ...)` check so that any change (contact info, address, custom accommodations, or notes) triggers persistence:
 ```typescript
 const handleUpdateStudentDetails = async (
@@ -153,7 +153,7 @@ const handleUpdateStudentDetails = async (
 
 ### Manual Verification:
 1. Open a class and navigate to the **Students** roster.
-2. Select a student (e.g. "Liam Chen") to open [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx).
+2. Select a student (e.g. "Liam Chen") to open [`StudentDetailModal.tsx`](../../frontend/src/features/students/StudentDetailModal.tsx).
 3. Fill in:
    - Roll Number: `CS-101-04`
    - Phone: `(555) 234-5678`

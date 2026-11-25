@@ -4,10 +4,10 @@ Interactive `# %%` Python test suites covering LangChain/LangGraph primitives, D
 
 ## Files
 
-- [`_harness.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/tests/_harness.py): Shared stateful in-memory PostgreSQL emulator (`MockDBState`), deterministic LangChain `FakeOpenRouterLLM`, `LiveDBSandbox` (ephemeral live-DB provisioning + cleanup), ASGI/HTTP client factory, and `# %%` cell runner.
-- [`test_langchain_and_langgraph.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/tests/test_langchain_and_langgraph.py): Prompt formatters, OpenRouter `ChatOpenAI` config, resilient JSON parser, `ChatPromptTemplate` LCEL chains, and `StateGraph` checkpointing (`MemorySaver` offline + `AsyncPostgresSaver`/`AsyncPostgresStore` live).
-- [`test_knowledge_workflows.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/tests/test_knowledge_workflows.py): `TreeIndexerService`, `OntologyService` (OKF v0.2, recursive CTEs, `ai.check_answerable`), `EvaluatorService`, `ConsolidationService` (orphan/cycle audit + Misconception Dreaming), and `ChatService` dual-engine RAG.
-- [`test_fastapi_endpoints.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/tests/test_fastapi_endpoints.py): End-to-end checks for `/api/health`, `/api/chat`, `/api/grade`, `/api/materials/analyze`, `/api/materials/tree`, `/api/consolidation/run`, `/api/misconceptions/proposed`, and `/api/misconceptions/{id}/review`.
+- [`_harness.py`](./_harness.py): Shared stateful in-memory PostgreSQL emulator (`MockDBState`), deterministic LangChain `FakeOpenRouterLLM`, `LiveDBSandbox` (ephemeral live-DB provisioning + cleanup), ASGI/HTTP client factory, and `# %%` cell runner.
+- [`test_langchain_and_langgraph.py`](./test_langchain_and_langgraph.py): Prompt formatters, OpenRouter `ChatOpenAI` config, resilient JSON parser, `ChatPromptTemplate` LCEL chains, and `StateGraph` checkpointing (`MemorySaver` offline + `AsyncPostgresSaver`/`AsyncPostgresStore` live).
+- [`test_knowledge_workflows.py`](./test_knowledge_workflows.py): `TreeIndexerService`, `OntologyService` (OKF v0.2, recursive CTEs, `ai.check_answerable`), `EvaluatorService`, `ConsolidationService` (orphan/cycle audit + Misconception Dreaming), and `ChatService` dual-engine RAG.
+- [`test_fastapi_endpoints.py`](./test_fastapi_endpoints.py): End-to-end checks for `/api/health`, `/api/chat`, `/api/grade`, `/api/materials/analyze`, `/api/materials/tree`, `/api/consolidation/run`, `/api/misconceptions/proposed`, and `/api/misconceptions/{id}/review`.
 
 ## Execution Modes
 

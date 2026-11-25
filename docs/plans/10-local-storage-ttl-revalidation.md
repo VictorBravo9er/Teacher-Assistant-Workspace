@@ -71,7 +71,7 @@ Instead of returning a single monolithic timestamp, the RPC accepts a JSON map o
   4. If `is_wiped: true`: client clears the cache completely and initializes a clean empty slate.
 
 ### 2.5 Observability Alignment (Rule 8)
-- Update [`StudentRegister.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentRegister.tsx) to replace bare `console.error` with `logger.error('STUDENT_SERVICE', ...)` and `logger.info('STUDENT_SERVICE', ...)`.
+- Update [`StudentRegister.tsx`](../../frontend/src/features/students/StudentRegister.tsx) to replace bare `console.error` with `logger.error('STUDENT_SERVICE', ...)` and `logger.info('STUDENT_SERVICE', ...)`.
 
 ---
 

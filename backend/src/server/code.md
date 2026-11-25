@@ -6,7 +6,7 @@ This directory defines the HTTP REST routing boundaries, endpoint definitions, a
 
 ## 📁 Directory Files
 
-- [`router.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/server/router.py): Defines the `/api` prefixed `APIRouter`, exposing:
+- [`router.py`](./router.py): Defines the `/api` prefixed `APIRouter`, exposing:
   - `GET /api/health`: Basic liveness check returning `{"status": "ok"}`.
   - `POST /api/chat`: Validates incoming `ChatPayload` requests and delegates execution to `ChatService.process_chat_message` with soft-warning pre-query verification and dual-engine retrieval.
   - `POST /api/grade`: Validates `GradeRequest` payloads and delegates autonomous rubric grading to `EvaluatorService.grade_submission`.

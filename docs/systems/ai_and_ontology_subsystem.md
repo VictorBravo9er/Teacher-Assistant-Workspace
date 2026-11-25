@@ -215,7 +215,7 @@ The assistant produces a structured JSON payload containing rich markdown text a
 }
 ```
 
-Visualization types rendered by [`Visualizer.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/Visualizer.tsx):
+Visualization types rendered by [`Visualizer.tsx`](../../frontend/src/features/ai-assistant/Visualizer.tsx):
 - `ranking`: Ranked student performance vs. class averages.
 - `timeline`: Longitudinal milestone scores over time.
 - `heatmap`: Topic mastery heatmap cards (`{ topic, mastery }`).

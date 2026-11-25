@@ -38,7 +38,7 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **Multi-Channel User Initiation (`0ms` Optimistic vs. Blocking Progress Bar)**:
-   - In [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx) or [`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx), students or teachers submit work via three channels:
+   - In [`StudentTurnInModal.tsx`](../../../frontend/src/features/student-portal/StudentTurnInModal.tsx) or [`StudentSubmissionUploadModal.tsx`](../../../frontend/src/features/students/StudentSubmissionUploadModal.tsx), students or teachers submit work via three channels:
      - **Binary File Attachment (`type: 'File'`)**: Uploaded to private storage bucket `student-submissions/{material_id}/{content_item_id}`. Modal locks dismissal and renders a blocking progress bar overlay (`15% → 92% → 100%`) with formatted file size (`MB`/`KB`) and wait warning until upload finishes.
      - **Web Resource URL (`type: 'URL'`)**: External URL (e.g. Google Docs, GitHub, Figma) recorded directly in `path: url`. Closes modal in `0ms` and persists in background.
      - **Native Written Response (`type: 'Text'`)**: Inline text submitted with `path: ''` and response body in `value`. Closes modal in `0ms` and persists in background.
@@ -47,7 +47,7 @@ sequenceDiagram
    - Instead of re-running the 4-query `loadClassData()` waterfall, `StudentApp.tsx` immediately merges `newSub` into local `submissions` state upon `onSubmitted(newSub)`.
 3. **Database State Transition & Review Support**:
    - The submission is recorded in `public.student_submissions` with `status = 'Submitted'`, triggering `trg_sync_student_scores`.
-   - In [`SubmissionGradingModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/SubmissionGradingModal.tsx), educators can review files (via signed URL download), web URLs (opening external link directly), and text submissions (displaying formatted text content) without errors or pseudo-scheme anomalies.
+   - In [`SubmissionGradingModal.tsx`](../../../frontend/src/features/students/SubmissionGradingModal.tsx), educators can review files (via signed URL download), web URLs (opening external link directly), and text submissions (displaying formatted text content) without errors or pseudo-scheme anomalies.
 
 ---
 
@@ -79,12 +79,12 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **Webhook Event Dispatch *(Currently Commented Out in SQL)***:
-   - `20260915120100_ai_functions_and_triggers.sql` defines `trg_submission_ai_eval` (currently commented out) to invoke [`trigger-submission-evaluation`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-submission-evaluation) via `net.http_post`.
+   - `20260915120100_ai_functions_and_triggers.sql` defines `trg_submission_ai_eval` (currently commented out) to invoke [`trigger-submission-evaluation`](../../../supabase/functions/trigger-submission-evaluation) via `net.http_post`.
 2. **Text Extraction & State Recording**:
    - When invoked, the Edge Function retrieves `"File"` blobs from `student-submissions` (UTF-8 `TextDecoder`) or legacy `"text://"` paths (native `"Text"` `item.value` extraction is not yet implemented here), and records `status = 'processing'` in `ai.submission_evaluations`.
 3. **Backend Evaluator Invocation**:
    - The Edge Function invokes Backend `POST /api/grade`.
-   - The Backend's [`EvaluatorService`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/service/evaluator.py) constructs a rubric-aligned prompt for OpenRouter (e.g. Gemini 2.5 Flash).
+   - The Backend's [`EvaluatorService`](../../../backend/src/service/evaluator.py) constructs a rubric-aligned prompt for OpenRouter (e.g. Gemini 2.5 Flash).
 4. **Evaluation Ingestion**:
    - The LLM produces criterion-level scores, student feedback, private teacher notes, and detected misconceptions.
    - `EvaluatorService` persists the completed record into `ai.submission_evaluations` (`status = 'completed'`); `public.student_submissions` awaits teacher review/publishing rather than being overwritten automatically.
@@ -128,9 +128,9 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **Gradebook & Submission Review**:
-   - In [`GradebookMatrix.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/GradebookMatrix.tsx) and [`SubmissionGradingModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/SubmissionGradingModal.tsx), teachers open a student submission cell to review work and click **"Diagnose with AI"**. *(Wiring **"Diagnose with AI"** / Gradebook chips to `get_submission_ai_diagnostic()` or live `POST /api/grade` is pending; it currently synthesizes a local heuristic preview.)*
+   - In [`GradebookMatrix.tsx`](../../../frontend/src/features/classroom/GradebookMatrix.tsx) and [`SubmissionGradingModal.tsx`](../../../frontend/src/features/students/SubmissionGradingModal.tsx), teachers open a student submission cell to review work and click **"Diagnose with AI"**. *(Wiring **"Diagnose with AI"** / Gradebook chips to `get_submission_ai_diagnostic()` or live `POST /api/grade` is pending; it currently synthesizes a local heuristic preview.)*
 2. **Side-by-Side Diagnostic Diff**:
-   - Opening [`AIDiagnosticDiffModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/AIDiagnosticDiffModal.tsx) presents the teacher with:
+   - Opening [`AIDiagnosticDiffModal.tsx`](../../../frontend/src/features/ai-assistant/AIDiagnosticDiffModal.tsx) presents the teacher with:
      - Per-criterion point allocations suggested vs. current scores with +/- delta sliders.
      - Editable constructive feedback and private diagnostic notes.
 3. **Teacher Adjustments & Saving**:
@@ -147,7 +147,7 @@ sequenceDiagram
 
 ## 4. Workflow: Dynamic Concept Mastery Tracking & Proposed Misconception Review
 
-In addition to letter grades, student comprehension is tracked per concept in PostgreSQL, and proposed misconceptions are exposed via FastAPI endpoints (with [`GradebookMatrix.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/GradebookMatrix.tsx) UI badge wiring currently pending):
+In addition to letter grades, student comprehension is tracked per concept in PostgreSQL, and proposed misconceptions are exposed via FastAPI endpoints (with [`GradebookMatrix.tsx`](../../../frontend/src/features/classroom/GradebookMatrix.tsx) UI badge wiring currently pending):
 
 ```mermaid
 sequenceDiagram

@@ -124,7 +124,7 @@ Rather than fuzzy reciprocal ranking across random chunks, `ChatService._retriev
 
 ## 4. Interactive Visualization Generator
 
-The RAG Assistant generates structured interactive UI widgets alongside markdown text, rendered by [`Visualizer.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/Visualizer.tsx):
+The RAG Assistant generates structured interactive UI widgets alongside markdown text, rendered by [`Visualizer.tsx`](../../frontend/src/features/ai-assistant/Visualizer.tsx):
 
 ```json
 {

@@ -21,9 +21,9 @@ As Didactiq scales its LMS capabilities, developers, testers, and AI agents face
    - LLM calls (`llm.invoke`) and JSON parsing (`parse_llm_response`) lack timing telemetry and diagnostic dumps on malformed model outputs.
 4. **Mock Data Pollution & Silent Failures**:
    - `frontend/src/lib/mockChat.ts` (historical) contained hardcoded dummy AI responses ("Sofia Patel", "Classroom Score Distribution", etc.).
-   - [`frontend/src/hooks/useAIChat.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useAIChat.ts#L102-L117) catches backend network failures and silently masks them by returning synthetic responses from `mockChat.ts`.
+   - [`frontend/src/hooks/useAIChat.ts`](../../frontend/src/hooks/useAIChat.ts#L102-L117) catches backend network failures and silently masks them by returning synthetic responses from `mockChat.ts`.
    - This masks real API connection failures, hides 500 errors from developers, and prevents the newly introduced logging engine from capturing real error states.
-   - [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx#L145) contains fake mock toast messages ("Mock Upgrade Successful: Welcome to Pro!").
+   - [`frontend/src/features/account/AccountModals.tsx`](../../frontend/src/features/account/AccountModals.tsx#L145) contains fake mock toast messages ("Mock Upgrade Successful: Welcome to Pro!").
 
 ---
 
@@ -58,7 +58,7 @@ _verify_enum_tooltips   logger.ts               logger.py               - Remove
 
 ## 3. Part A: Python Tooling & Enum Verification
 
-### Step 3.1: Create [`scripts/_verify_enum_tooltips.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_verify_enum_tooltips.py)
+### Step 3.1: Create [`scripts/_verify_enum_tooltips.py`](../../scripts/_verify_enum_tooltips.py)
 Automates the audit between `frontend/src/types/db.ts` and `frontend/src/utils/enumTooltips.ts`:
 ```python
 #!/usr/bin/env python3
@@ -132,14 +132,14 @@ if __name__ == "__main__":
     audit_enum_tooltips()
 ```
 
-### Step 3.2: Hook into [`scripts/_generate_types.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_generate_types.py) and [`scripts/db_setup.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/db_setup.py)
+### Step 3.2: Hook into [`scripts/_generate_types.py`](../../scripts/_generate_types.py) and [`scripts/db_setup.py`](../../scripts/db_setup.py)
 Trigger `audit_enum_tooltips()` immediately after TypeScript generation completes.
 
 ---
 
 ## 4. Part B: Exhaustive Frontend Logging Engine
 
-### Step 4.1: Create Core Logger Utility ([`frontend/src/lib/logger.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/logger.ts))
+### Step 4.1: Create Core Logger Utility ([`frontend/src/lib/logger.ts`](../../frontend/src/lib/logger.ts))
 Create a structured, level-aware, namespaced logger with execution timers and circular buffer memory:
 
 ```typescript
@@ -301,7 +301,7 @@ if (typeof window !== 'undefined') {
 
 ---
 
-### Step 4.2: Terminal Streaming & Timestamped Disk Log Maintenance ([`frontend/vite.config.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vite.config.ts))
+### Step 4.2: Terminal Streaming & Timestamped Disk Log Maintenance ([`frontend/vite.config.ts`](../../frontend/vite.config.ts))
 Because browser sandboxes cannot write directly to local disk, the Vite dev server (running in Node.js) receives the `client:log` WebSocket event and performs two essential tasks:
 1. **Streams live formatted logs to terminal stdout** alongside backend logs.
 2. **Appends structured logs directly to `./logs/`** using timestamped cohort names (`frontend-YYYY-MM-DD-HH-mm-ss.log`, `frontend-error-YYYY-MM-DD-HH-mm-ss.log`, `frontend-YYYY-MM-DD-HH-mm-ss.jsonl`).
@@ -387,7 +387,7 @@ import path from 'path';
 
 ## 5. Part C: Exhaustive Backend Logging Engine
 
-### Step 5.1: Core Backend Logger with Timestamped Cohorts & Coordinated Entry-Count Rotation ([`backend/src/lib/logger.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/logger.py))
+### Step 5.1: Core Backend Logger with Timestamped Cohorts & Coordinated Entry-Count Rotation ([`backend/src/lib/logger.py`](../../backend/src/lib/logger.py))
 
 ```python
 """
@@ -597,7 +597,7 @@ async def measure_async(target_logger: logging.Logger, operation_name: str, coro
 
 ---
 
-### Step 5.2: Request Correlation Middleware ([`backend/src/main.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/main.py))
+### Step 5.2: Request Correlation Middleware ([`backend/src/main.py`](../../backend/src/main.py))
 Enhance the HTTP middleware to populate `request_id_ctx`, log query parameters, client IP, and track exact endpoint duration:
 
 ```python
@@ -654,7 +654,7 @@ async def log_requests(
 
 ---
 
-### Step 5.3: Exhaustive LLM Invocation & Parsing Diagnostics ([`backend/src/lib/llm.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/llm.py))
+### Step 5.3: Exhaustive LLM Invocation & Parsing Diagnostics ([`backend/src/lib/llm.py`](../../backend/src/lib/llm.py))
 Log LLM network durations, model targets, prompt character lengths, and provide detailed diagnostic error dumps on malformed JSON:
 
 ```python
@@ -713,7 +713,7 @@ def parse_llm_response(raw_content: str | list[str | dict[str, object]]) -> dict
 
 ---
 
-### Step 5.4: Service Layer Instrumentation ([`backend/src/service/`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/service/))
+### Step 5.4: Service Layer Instrumentation ([`backend/src/service/`](../../backend/src/service/))
 Instrument `ChatService` and `EvaluatorService` to log domain-specific telemetry:
 - **`ChatService`** (`src/service/chat.py`):
   - Log incoming message history count, student portfolio count, and config flags.
@@ -729,7 +729,7 @@ Instrument `ChatService` and `EvaluatorService` to log domain-specific telemetry
 
 ## 6. Part D: Unified `./logs/` Directory Management & Git Hygiene
 
-1. In [`.gitignore`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/.gitignore), ensure `logs/`, `*.log`, and `*.jsonl` are ignored:
+1. In [`.gitignore`](../../.gitignore), ensure `logs/`, `*.log`, and `*.jsonl` are ignored:
    ```text
    # Logs
    *.log
@@ -765,7 +765,7 @@ To guarantee that the application only runs against real PostgreSQL data, real S
 - Delete the 116-line mock response file entirely.
 - Ensure no lingering imports remain in the codebase.
 
-### Step 7.2: Eliminate Synthetic Fallbacks in [`frontend/src/hooks/useAIChat.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useAIChat.ts)
+### Step 7.2: Eliminate Synthetic Fallbacks in [`frontend/src/hooks/useAIChat.ts`](../../frontend/src/hooks/useAIChat.ts)
 Currently, `useAIChat.ts` catches backend network failures and falls back to `getMockChatResponse`.
 - **Remove**:
   ```typescript
@@ -781,13 +781,13 @@ Currently, `useAIChat.ts` catches backend network failures and falls back to `ge
   }
   ```
 
-### Step 7.3: Clean Up Fake UI Handlers in [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx)
+### Step 7.3: Clean Up Fake UI Handlers in [`frontend/src/features/account/AccountModals.tsx`](../../frontend/src/features/account/AccountModals.tsx)
 - Line 145 contains `onTriggerToast('Mock Upgrade Successful: Welcome to Pro!')`.
 - Replace with real plan state or explicit disabled state ("Subscription management coming soon in enterprise edition"), ensuring no "Mock" branding or false confirmations appear to users.
 
 ### Step 7.4: Update Directory Documentation
-- Update [`frontend/src/lib/code.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/code.md): Remove references to `mockChat.ts` and "fallback mock generators".
-- Update [`frontend/src/services/code.md`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/code.md): Remove descriptions stating services fall back to local mock responses.
+- Update [`frontend/src/lib/code.md`](../../frontend/src/lib/code.md): Remove references to `mockChat.ts` and "fallback mock generators".
+- Update [`frontend/src/services/code.md`](../../frontend/src/services/code.md): Remove descriptions stating services fall back to local mock responses.
 
 ---
 

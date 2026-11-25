@@ -63,9 +63,9 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **User Interaction**:
-   - In [`RAGClass.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/RAGClass.tsx), the teacher opens the assistant sliding drawer and enters a prompt.
+   - In [`RAGClass.tsx`](../../../frontend/src/features/ai-assistant/RAGClass.tsx), the teacher opens the assistant sliding drawer and enters a prompt.
 2. **Context Compilation & Dispatch**:
-   - [`useAIChat`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useAIChat.ts) currently dispatches `POST /api/chat` directly via `fetch('/api/chat')` with:
+   - [`useAIChat`](../../../frontend/src/hooks/useAIChat.ts) currently dispatches `POST /api/chat` directly via `fetch('/api/chat')` with:
      - **Classroom Metadata**: Subject, grade level, active instructional guidelines, teaching style.
      - **Student Rosters**: Enrolled students, performance tiers, running GPAs, submission histories, attendance averages.
      - **Active Directives**: Session type, scope, and teacher preferences configured in analysis settings.
@@ -78,12 +78,12 @@ sequenceDiagram
    - **Engine 2 (Relational Ontological Graph)**: Queries top 5 matching `ai.ontology_concepts`, executes a PostgreSQL recursive `WITH RECURSIVE` prerequisite CTE over `ai.ontology_relationships` (`LIMIT 6`), and pulls top 5 student mastery gap records (`ai.student_concept_mastery`).
    - **Context Ceiling**: Bounded deterministically via SQL/slice limits and last-10-turn history slicing toward a ~4,300-token prompt target (without a runtime tokenizer loop).
 5. **Backend Service Processing**:
-   - [`ChatService.process_chat_message()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/service/chat.py) formats the prompt using [`formatter.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/formatter.py) and executes the call via OpenRouter.
+   - [`ChatService.process_chat_message()`](../../../backend/src/service/chat.py) formats the prompt using [`formatter.py`](../../../backend/src/lib/formatter.py) and executes the call via OpenRouter.
 6. **Structured Visualization Rendering**:
-   - When the LLM includes a `"visualization"` object, [`Visualizer.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/Visualizer.tsx) mounts the matching widget:
+   - When the LLM includes a `"visualization"` object, [`Visualizer.tsx`](../../../frontend/src/features/ai-assistant/Visualizer.tsx) mounts the matching widget:
      - `heatmap`: Subject topic mastery bars (`{ topic, mastery }`).
      - `ranking`: Ordered student performance leaderboard.
      - `timeline`: Longitudinal trend cards across milestones.
      - `stats`: Key metric counters and aggregate indicators (`charts` and `radar` fall back to `stats` cards in the current implementation).
 7. **Session History Persistence**:
-   - [`RAGClass.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/ai-assistant/RAGClass.tsx) persists session creation, duplication, and deletion to `public.chat_sessions` via [`chatService`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/chatService.ts) (`createSession`, `deleteSession`, `fetchSessions`). Per-turn `updateSession()` calls from `useAIChat` are not yet wired.
+   - [`RAGClass.tsx`](../../../frontend/src/features/ai-assistant/RAGClass.tsx) persists session creation, duplication, and deletion to `public.chat_sessions` via [`chatService`](../../../frontend/src/services/chatService.ts) (`createSession`, `deleteSession`, `fetchSessions`). Per-turn `updateSession()` calls from `useAIChat` are not yet wired.

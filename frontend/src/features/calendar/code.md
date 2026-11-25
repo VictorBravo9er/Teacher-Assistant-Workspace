@@ -6,7 +6,7 @@ This directory provides the interactive Academic Calendar module for aggregating
 
 ## 📁 Directory Files
 
-- [`CalendarView.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/calendar/CalendarView.tsx): Interactive monthly calendar grid aggregating `materials.due_at` assignment deadlines, `attendance_records` class dates, and course announcements with day inspection drawers.
+- [`CalendarView.tsx`](./CalendarView.tsx): Interactive monthly calendar grid aggregating `materials.due_at` assignment deadlines, `attendance_records` class dates, and course announcements with day inspection drawers.
 
 ---
 

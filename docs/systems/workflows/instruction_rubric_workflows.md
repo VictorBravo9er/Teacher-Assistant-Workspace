@@ -75,7 +75,7 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **User Initiation**:
-   - The teacher opens [`RubricBuilderModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/RubricBuilderModal.tsx) from a material card.
+   - The teacher opens [`RubricBuilderModal.tsx`](../../../frontend/src/features/classroom/RubricBuilderModal.tsx) from a material card.
 2. **Criteria Composition**:
    - The teacher adds structured criteria rows (or selects presets like Mathematics, Analytical Writing, Science Lab Reports, or Oral Presentation):
      - `name`: Human-readable criterion title (e.g., *"Argumentation & Evidence"*).
@@ -84,7 +84,7 @@ sequenceDiagram
      - `isPrivate`: Flags class-only criteria saved to `class_materials.custom_rubric_criteria`.
    - Dynamically computes `totalMaxScore = sum(criteria.map(c => c.maxScore))`.
 3. **Storage & Reuse**:
-   - Persists public criteria and total `max_score` directly to `public.materials.rubric_criteria`, and optional class-private criteria to `public.class_materials.custom_rubric_criteria` via [`materialService.updateMaterialRubric()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts).
+   - Persists public criteria and total `max_score` directly to `public.materials.rubric_criteria`, and optional class-private criteria to `public.class_materials.custom_rubric_criteria` via [`materialService.updateMaterialRubric()`](../../../frontend/src/services/materialService.ts).
 
 ---
 

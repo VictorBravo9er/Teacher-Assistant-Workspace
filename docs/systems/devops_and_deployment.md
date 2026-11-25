@@ -113,7 +113,7 @@ flowchart TD
      - Renders a clean, thread-safe timed summary box. Available via `make db-setup` and `make db-reset`.
 2. **`deploy_edge_functions.py`**:
    - Guarded incremental Supabase Edge Functions deployer:
-     - Tracks deployment state in version-controlled [`supabase/functions/deployed.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/deployed.json) with composite SHA-256 digests (`hash`), remote sequential versions (`version`), and ISO 8601 UTC timestamps (`updated_at`).
+     - Tracks deployment state in version-controlled [`supabase/functions/deployed.json`](../../supabase/functions/deployed.json) with composite SHA-256 digests (`hash`), remote sequential versions (`version`), and ISO 8601 UTC timestamps (`updated_at`).
      - Detects out-of-band remote drift via Supabase CLI (`functions list -o json`) and prevents accidental overwrites without explicit user confirmation.
      - Implements Tier-2 bounded internal concurrency (`--concurrency 4`, default) deploying multiple modified functions concurrently via `ThreadPoolExecutor`.
      - Provides an enhanced `--status` inspection table. Available via `make deploy-functions` and `make deploy-functions-status`.
@@ -185,7 +185,7 @@ This configuration ensures:
 
 ### 4.1 Ignored Build Step Filtering (`bash-decide.sh`)
 
-To prevent unnecessary serverless builds and save Vercel build minutes, [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh) is configured as the Vercel **Ignored Build Step** command:
+To prevent unnecessary serverless builds and save Vercel build minutes, [`bash-decide.sh`](../../bash-decide.sh) is configured as the Vercel **Ignored Build Step** command:
 
 1. **Branch Filter**: Builds only run on `preview`, `main`, and `master` branches. Other branches exit with code `0` (skipping deployment).
 2. **First-Time Deployment**: If `$VERCEL_GIT_PREVIOUS_SHA` is unset, it proceeds with build (exit code `1`).
@@ -221,4 +221,4 @@ flowchart LR
 3. **CI Validation Gate (`.github/workflows/ci.yml`)**:
    - Validates docs (`verify_doc_coverage.py`), backend (`poe lint`), frontend (`pnpm run lint` + Vite build), and Supabase migration ordering + Edge Function TypeScript syntax (`scripts/verify_supabase.mjs`).
 4. **Application Hosting Stage**:
-   - Managed automatically by Vercel's Git integration using [`bash-decide.sh`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/bash-decide.sh) as the Ignored Build Step.
+   - Managed automatically by Vercel's Git integration using [`bash-decide.sh`](../../bash-decide.sh) as the Ignored Build Step.

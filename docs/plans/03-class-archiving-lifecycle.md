@@ -57,10 +57,10 @@ In accordance with **Rule 2 (Single Source of Truth / DRY)** and **Rule 3 (Elimi
 
 ## 3. Implementation Steps
 
-### Step 3.1: Clean Domain Interface ([`frontend/src/types/main.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/types/main.ts))
+### Step 3.1: Clean Domain Interface ([`frontend/src/types/main.ts`](../../frontend/src/types/main.ts))
 Deprecate the redundant `archived?: boolean;` property on `ClassModel`, keeping `isArchived?: boolean;` as the single canonical property.
 
-### Step 3.2: Fix Hook Dispatch ([`frontend/src/hooks/useClassOperations.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/hooks/useClassOperations.ts))
+### Step 3.2: Fix Hook Dispatch ([`frontend/src/hooks/useClassOperations.ts`](../../frontend/src/hooks/useClassOperations.ts))
 Update `handleArchiveClass` to use `isArchived`:
 ```typescript
 const handleArchiveClass = async (id: string) => {
@@ -78,7 +78,7 @@ const handleArchiveClass = async (id: string) => {
 };
 ```
 
-### Step 3.3: Defensive Mapping in [`frontend/src/services/classService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/classService.ts)
+### Step 3.3: Defensive Mapping in [`frontend/src/services/classService.ts`](../../frontend/src/services/classService.ts)
 Update `updateClass` to handle both canonical and legacy property calls defensively:
 ```typescript
 const targetArchived = updates.isArchived !== undefined 
@@ -94,7 +94,7 @@ And ensure `fetchClasses` returns:
 isArchived: Boolean(row.is_archived),
 ```
 
-### Step 3.4: Fix Filtering in [`frontend/src/components/layout/Sidebar.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/components/layout/Sidebar.tsx)
+### Step 3.4: Fix Filtering in [`frontend/src/components/layout/Sidebar.tsx`](../../frontend/src/components/layout/Sidebar.tsx)
 Update class tab partitioning:
 ```typescript
 const activeClasses = classes.filter((c) => !(c.isArchived ?? (c as any).archived));

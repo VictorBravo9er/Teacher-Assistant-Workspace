@@ -46,8 +46,8 @@ CREATE POLICY "Enrolled students read class announcements"
 ```
 
 ### 2.2 UI Components
-- **Teacher View**: "Post Announcement" form in [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx) with markdown editor and "Pin to Top" toggle.
-- **Student View**: Announcement notification cards in [`StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx) with unread badges, pin indicators, and timestamp formatting.
+- **Teacher View**: "Post Announcement" form in [`ClassDetails.tsx`](../../frontend/src/features/classroom/ClassDetails.tsx) with markdown editor and "Pin to Top" toggle.
+- **Student View**: Announcement notification cards in [`StudentApp.tsx`](../../frontend/src/views/StudentApp.tsx) with unread badges, pin indicators, and timestamp formatting.
 
 ---
 

@@ -50,21 +50,21 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **User Form Submission**:
-   - In [`ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx) (Materials tab), the teacher selects from the 3-mode resource creator:
+   - In [`ClassDetails.tsx`](../../../frontend/src/features/classroom/ClassDetails.tsx) (Materials tab), the teacher selects from the 3-mode resource creator:
      - **File Upload (`type: 'File'`)**: Local PDF, DOCX, PPTX, or text file attached via dropzone. Uploads to Supabase Storage `class-materials` bucket at `/{teacher_user_id}/{material_id}/{content_item_id}`.
      - **Web URL (`type: 'URL'`)**: External URL reference (Google Doc, YouTube, online reader). Saved directly with `path = url` without physical storage allocation.
      - **Notes & Text (`type: 'Text'`)**: Rich markdown/plaintext notes or syllabus definitions. Saved with `path = ''` and body in `value` property, conforming to `valid_content_shape`.
      - **Metadata**: Title, Category (`Study Material`, `Note`, `Assigned Book`, `Link`, `Practical`, `Assignment`, `Test`, `Exam`), Description, and Tags.
      - **Assessment Parameters**: Graded Assessment toggle (`toBeScored`). When enabled, enforces non-null `due_at` and `max_score` per database check constraint `to_be_scored = false OR (due_at IS NOT NULL AND max_score IS NOT NULL)`.
 2. **Binary Storage vs Virtual Content Ingestion**:
-   - **For Files**: [`materialService.uploadMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) uploads the binary to `class-materials/{teacher_user_id}/{material_id}/{content_item_id}` and captures `size_bytes` and `mime_type`.
-   - **For Links**: [`materialService.createLinkMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) structures `content` with `type: 'URL'`, `path: url`.
-   - **For Text Notes**: [`materialService.createTextMaterial()`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/materialService.ts) structures `content` with `type: 'Text'`, `path: ''`, and content in `value`.
+   - **For Files**: [`materialService.uploadMaterial()`](../../../frontend/src/services/materialService.ts) uploads the binary to `class-materials/{teacher_user_id}/{material_id}/{content_item_id}` and captures `size_bytes` and `mime_type`.
+   - **For Links**: [`materialService.createLinkMaterial()`](../../../frontend/src/services/materialService.ts) structures `content` with `type: 'URL'`, `path: url`.
+   - **For Text Notes**: [`materialService.createTextMaterial()`](../../../frontend/src/services/materialService.ts) structures `content` with `type: 'Text'`, `path: ''`, and content in `value`.
 3. **Database Relational Linking**:
    - The material is inserted into `public.materials` with its `content` JSONB array conforming to `valid_content_shape` (`validate_content_array`).
    - A junction entry is inserted into `public.class_materials` linking the material to the active `class_id`.
 4. **Asynchronous AI Curriculum Analysis *(Decoupled / Trigger Commented Out)***:
-   - `20260915120100_ai_functions_and_triggers.sql` defines `trg_material_ai_analysis` / `trg_class_material_ai_analysis` (currently commented out) to dispatch `pg_net` webhooks to [`trigger-material-analysis`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/trigger-material-analysis).
+   - `20260915120100_ai_functions_and_triggers.sql` defines `trg_material_ai_analysis` / `trg_class_material_ai_analysis` (currently commented out) to dispatch `pg_net` webhooks to [`trigger-material-analysis`](../../../supabase/functions/trigger-material-analysis).
    - When invoked, the Edge Function extracts UTF-8 text from `"File"` blobs or `"URL"` links (native `"Text"` `item.value` extraction is not yet implemented in the Edge Function), writes `status = 'processing'` to `ai.material_insights`, and invokes Backend `POST /api/materials/analyze` (`EvaluatorService` persists `ai.material_insights`, ontology mappings, and optional `ai.material_trees`).
 
 ---
@@ -100,9 +100,9 @@ sequenceDiagram
 ### Step-by-Step Execution Details:
 
 1. **User Interaction**:
-   - The user opens [`MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx).
+   - The user opens [`MaterialPreviewModal.tsx`](../../../frontend/src/features/classroom/MaterialPreviewModal.tsx).
 2. **Access Control & Signed URL Generation**:
-   - The client invokes the [`get-material-url`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/get-material-url) Edge Function.
+   - The client invokes the [`get-material-url`](../../../supabase/functions/get-material-url) Edge Function.
    - The function verifies that the requester owns the class or is enrolled in a class that references this material.
    - Generates a 60-minute signed URL from Supabase Storage.
 3. **AI Insights Panel *(Pending UI Wiring)***:

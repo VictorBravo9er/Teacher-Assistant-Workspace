@@ -4,7 +4,7 @@
 > **Status**: ✅ **COMPLETED** (Bound Profile and Preferences modals to Supabase `user_metadata` via `AuthContext.updateUserMetadata`, wired configurable `lateAttendanceWeight`, and verified with `npm run build`, `npm run lint`, and `uv run poe lint`)
 
 ## 1. Problem Statement & Root Cause
-In [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx), the account profile and teaching preferences dialogs are completely detached from authentication state:
+In [`frontend/src/features/account/AccountModals.tsx`](../../frontend/src/features/account/AccountModals.tsx), the account profile and teaching preferences dialogs are completely detached from authentication state:
 - **Hardcoded Profile Data**: Name is hardcoded to `"Elena Rostova"`, email to `"Vikramjitborah@gmail.com"`, role to `"AI Studio District Senior Educator"`, and affiliation to `"High School STEM faculty"`.
 - **Mock Preferences Handler**: The "Teaching Preferences" modal (Remedial Trigger Threshold, Socratic Dialogue Verbosity, Feedback Tone) has internal state, but clicking "Save Preferences" simply shows a brief transient toast:
   ```typescript
@@ -12,7 +12,7 @@ In [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antig
   setShowToast(true);
   setTimeout(() => onClose(), 800);
   ```
-- **Disconnected from Supabase**: The components do not read from or dispatch updates to the active Supabase session managed by [`AuthContext.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/contexts/AuthContext.tsx).
+- **Disconnected from Supabase**: The components do not read from or dispatch updates to the active Supabase session managed by [`AuthContext.tsx`](../../frontend/src/contexts/AuthContext.tsx).
 
 ---
 
@@ -43,7 +43,7 @@ In earlier iterations, creating an explicit `user_profiles` or `teachers` table 
 
 ## 3. Implementation Steps
 
-### Step 3.1: Expose Update Method in [`frontend/src/contexts/AuthContext.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/contexts/AuthContext.tsx)
+### Step 3.1: Expose Update Method in [`frontend/src/contexts/AuthContext.tsx`](../../frontend/src/contexts/AuthContext.tsx)
 Add an `updateUserMetadata` helper to `AuthContext`:
 ```typescript
 interface AuthContextType {
@@ -66,7 +66,7 @@ const updateUserMetadata = async (data: Record<string, any>) => {
 };
 ```
 
-### Step 3.2: Wire Profile Data in [`frontend/src/features/account/AccountModals.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/account/AccountModals.tsx)
+### Step 3.2: Wire Profile Data in [`frontend/src/features/account/AccountModals.tsx`](../../frontend/src/features/account/AccountModals.tsx)
 1. In `AccountProfileModal`:
    - Initialize fields from `user?.user_metadata`:
      - `fullName`: `user?.user_metadata?.full_name || user?.email?.split('@')[0] || ''`
