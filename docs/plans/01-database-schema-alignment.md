@@ -3,7 +3,7 @@
 > **Status**: ✅ **COMPLETED** (Verified via migration 001 execution on Postgres, `scripts/_generate_types.py`, `npm run build`, and `uv run poe lint`)
 
 ## 1. Problem Statement & Context
-In the teacher-facing LMS, [`StudentDetailModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentDetailModal.tsx) presents a rich student profile editor featuring:
+In the teacher-facing LMS, [`StudentDetailModal.tsx`](../../frontend/src/features/students/StudentDetailModal.tsx) presents a rich student profile editor featuring:
 - **Phone Number**
 - **Home Address**
 - **Parent / Guardian Name**
@@ -12,7 +12,7 @@ In the teacher-facing LMS, [`StudentDetailModal.tsx`](file:///home/victor/antigr
 - **Roll Number**
 - **Custom IEP / Accommodation Fields** (`CustomField[]`)
 
-However, inspecting [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql) reveals that neither `public.students` nor `public.class_students` contains these columns:
+However, inspecting [`supabase/schemas/schema.public.sql`](../../supabase/schemas/schema.public.sql) reveals that neither `public.students` nor `public.class_students` contains these columns:
 - `public.students` only contains: `id`, `name`, `email`, `avatar_url`, `is_archived`.
 - `public.class_students` only contains: `learning_style`, `strengths`, `weaknesses`, `current_score`, `current_grade`, `general_feedback`, `performance_tier`, `behavioral_notes`.
 
@@ -22,10 +22,10 @@ Because these columns are absent from PostgreSQL:
 3. PostgREST rejects any updates containing these attributes.
 
 ### 1.2 Missing `'Text'` in `public.content_type` Enum
-Additionally, [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql#L18) defines `public.content_type AS ENUM ('File', 'URL')`.
+Additionally, [`supabase/schemas/schema.public.sql`](../../supabase/schemas/schema.public.sql) defines `public.content_type AS ENUM ('File', 'URL')`.
 - Documentation (`supabase/schemas/code.md` and `docs/systems/database_and_storage.md`) intended `content_type` to include `'Text'`.
 - The omission of `'Text'` causes `validate_content_array(arr jsonb)` to reject any submission or material item with `type: 'Text'`.
-- This forced the frontend ([`StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx#L100)) to hack text submissions with `type: 'File' as any` and pseudo-paths (`text://${itemId}`), directly causing preview modal crashes in [`MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx).
+- This forced the frontend ([`StudentSubmissionUploadModal.tsx`](../../frontend/src/features/students/StudentSubmissionUploadModal.tsx#L100)) to hack text submissions with `type: 'File' as any` and pseudo-paths (`text://${itemId}`), directly causing preview modal crashes in [`MaterialPreviewModal.tsx`](../../frontend/src/features/classroom/MaterialPreviewModal.tsx).
 
 ---
 
@@ -43,7 +43,7 @@ We evaluated whether student contact details belong in `auth.users.user_metadata
 
 ## 3. Implementation Steps
 
-### Step 3.1: Update Canonical Schema ([`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql))
+### Step 3.1: Update Canonical Schema ([`supabase/schemas/schema.public.sql`](../../supabase/schemas/schema.public.sql))
 1. Add missing portfolio columns to `public.class_students`:
 ```sql
 ALTER TABLE public.class_students

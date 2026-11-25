@@ -75,6 +75,9 @@ jobs:
       - name: Run TypeScript Strict Linter
         run: pnpm run lint
 
+      - name: Verify Supabase Migrations & Edge Functions
+        run: node ../scripts/verify_supabase.mjs
+
       - name: Build Vite Production Bundle
         env:
           VITE_SUPABASE_URL: "https://example.supabase.co"

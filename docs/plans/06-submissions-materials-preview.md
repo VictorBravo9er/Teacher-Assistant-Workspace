@@ -6,25 +6,25 @@
 
 ### 1.1 Missing `'Text'` Enum Value & Pseudo-URI Crashes in Preview Modal
 - **Affected Files**: 
-  - [`frontend/src/features/classroom/MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx)
-  - [`frontend/src/features/students/StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx)
+  - [`frontend/src/features/classroom/MaterialPreviewModal.tsx`](../../frontend/src/features/classroom/MaterialPreviewModal.tsx)
+  - [`frontend/src/features/students/StudentSubmissionUploadModal.tsx`](../../frontend/src/features/students/StudentSubmissionUploadModal.tsx)
 - **Defect**: In Didactiq, student submissions can be uploaded files (PDF, DOCX) or direct text entries. Because `'Text'` was historically omitted from the database `public.content_type` enum (Plan 01/02), the upload modal coerced text entries to `type: 'File' as any` and stored pseudo-paths like `text://${itemId}` or `grade://${submissionId}`.
 - When a teacher clicks to preview the submission, `MaterialPreviewModal` sees `type: 'File'` and attempts to download the pseudo-URI from Supabase Storage via `supabase.storage.from('student-submissions').createSignedUrl(path, ...)`.
 - Supabase Storage rejects `text://...` with HTTP 400 Bad Request, resulting in a blank modal or infinite loading spinner.
 
 ### 1.2 Immutable Institute in Classroom Edit Mode
-- **Affected File**: [`frontend/src/features/classroom/ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx)
+- **Affected File**: [`frontend/src/features/classroom/ClassDetails.tsx`](../../frontend/src/features/classroom/ClassDetails.tsx)
 - **Defect**: When entering class edit mode (`isEditMode === true`), the class title, description, and subject are editable, but the Institute Name is rendered as a static, read-only tag. If a teacher made a typo or needs to re-assign the course to a different department or institution, they are blocked.
 
 ### 1.3 State Mutation in Report Card Modal
-- **Affected File**: [`frontend/src/features/students/ReportCardModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/ReportCardModal.tsx)
+- **Affected File**: [`frontend/src/features/students/ReportCardModal.tsx`](../../frontend/src/features/students/ReportCardModal.tsx)
 - **Defect**: Form inputs in the report card modal directly mutate properties on the passed `student` prop object instead of maintaining localized state or lifting immutably via `onUpdate` callbacks, violating React's unidirectional data flow.
 
 ### 1.4 Calculation Inversion & Desynchronized Late Attendance Weight
 - **Affected Files**:
-  - [`frontend/src/lib/studentCalculations.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/studentCalculations.ts)
-  - [`frontend/src/features/students/AttendanceManagerModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/AttendanceManagerModal.tsx)
-  - [`frontend/src/features/classroom/GradebookMatrix.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/GradebookMatrix.tsx)
+  - [`frontend/src/lib/studentCalculations.ts`](../../frontend/src/lib/studentCalculations.ts)
+  - [`frontend/src/features/students/AttendanceManagerModal.tsx`](../../frontend/src/features/students/AttendanceManagerModal.tsx)
+  - [`frontend/src/features/classroom/GradebookMatrix.tsx`](../../frontend/src/features/classroom/GradebookMatrix.tsx)
 - **Defect**:
   1. `calculateAverageScore` returns `fallbackScore` immediately if provided, causing `currentScore` from PostgreSQL to hide real submission scores in `GradebookMatrix` and `ReportCardModal`.
   2. `calculateAttendanceRate` gave `0%` credit to `'Late'` attendance, whereas `AttendanceManagerModal` used hardcoded inline math (`lateCount * 0.5`). There was no unified function or ability for teachers to configure the late attendance weight credit (e.g., 50% default, with 0%, 25%, 75%, or 100% options).
@@ -57,7 +57,7 @@ Manage report card feedback and score adjustments using React `useState` and dis
 
 ## 3. Implementation Steps
 
-### Step 3.1: Enhance [`frontend/src/features/classroom/MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx)
+### Step 3.1: Enhance [`frontend/src/features/classroom/MaterialPreviewModal.tsx`](../../frontend/src/features/classroom/MaterialPreviewModal.tsx)
 1. Add defensive polymorphic detection for native text and legacy pseudo-URIs:
    ```typescript
    const firstItem = material?.content?.[0];
@@ -78,7 +78,7 @@ Manage report card feedback and score adjustments using React `useState` and dis
      - "Copy Content" button
 3. Guard storage download calls so they only execute when `isStorageFile` is true.
 
-### Step 3.2: Clean Native Text Submissions in [`frontend/src/features/students/StudentSubmissionUploadModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/StudentSubmissionUploadModal.tsx)
+### Step 3.2: Clean Native Text Submissions in [`frontend/src/features/students/StudentSubmissionUploadModal.tsx`](../../frontend/src/features/students/StudentSubmissionUploadModal.tsx)
 1. Update `handleSubmit` for text mode:
    - Remove `type: 'File' as any`.
    - Set native `type: 'Text'`.
@@ -96,7 +96,7 @@ Manage report card feedback and score adjustments using React `useState` and dis
    ];
    ```
 
-### Step 3.3: Enable Institute Editing in [`frontend/src/features/classroom/ClassDetails.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/ClassDetails.tsx)
+### Step 3.3: Enable Institute Editing in [`frontend/src/features/classroom/ClassDetails.tsx`](../../frontend/src/features/classroom/ClassDetails.tsx)
 1. Add state for `editInstitute`:
    ```typescript
    const [editInstitute, setEditInstitute] = useState(classItem.instituteName || '');
@@ -117,12 +117,12 @@ Manage report card feedback and score adjustments using React `useState` and dis
    ```
 3. In `handleSaveClassDetails`, include `instituteName: editInstitute`.
 
-### Step 3.4: Refactor [`frontend/src/features/students/ReportCardModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/ReportCardModal.tsx)
+### Step 3.4: Refactor [`frontend/src/features/students/ReportCardModal.tsx`](../../frontend/src/features/students/ReportCardModal.tsx)
 1. Add `onUpdateStudent?: (studentId: string, updates: Partial<Student>) => void` to `ReportCardModalProps`.
 2. Replace direct object mutations (`student.behavioralNotes = ...`) with functional state setters and call `onUpdateStudent(student.id, { behavioralNotes: customParentNote, parentNotes: customParentNote })`.
-3. In [`frontend/src/views/ClassApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/ClassApp.tsx), pass an updater to `ReportCardModal` that immutably updates `activeClass.students`.
+3. In [`frontend/src/views/ClassApp.tsx`](../../frontend/src/views/ClassApp.tsx), pass an updater to `ReportCardModal` that immutably updates `activeClass.students`.
 
-### Step 3.5: Correct Calculations in [`frontend/src/lib/studentCalculations.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/lib/studentCalculations.ts)
+### Step 3.5: Correct Calculations in [`frontend/src/lib/studentCalculations.ts`](../../frontend/src/lib/studentCalculations.ts)
 1. In `calculateAverageScore`, evaluate actual submissions first before returning fallback:
    ```typescript
    export function calculateAverageScore(
@@ -161,7 +161,7 @@ Manage report card feedback and score adjustments using React `useState` and dis
    }
    ```
 
-### Step 3.6: Wire Configurable Late Weight in [`frontend/src/features/students/AttendanceManagerModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/students/AttendanceManagerModal.tsx)
+### Step 3.6: Wire Configurable Late Weight in [`frontend/src/features/students/AttendanceManagerModal.tsx`](../../frontend/src/features/students/AttendanceManagerModal.tsx)
 1. Read `lateWeight` from user preferences in `AuthContext` (e.g. `user?.user_metadata?.preferences?.lateAttendanceWeight ?? 0.5`).
 2. Replace ad-hoc inline math with `calculateAttendanceRate(records, lateWeight)`.
 3. Provide a quick weight indicator / selector in the modal toolbar (e.g. `Late Credit: 50%` with options `0%`, `25%`, `50%`, `75%`, `100%`) so educators can override the weight dynamically per class.

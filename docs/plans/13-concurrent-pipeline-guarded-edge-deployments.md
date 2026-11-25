@@ -68,28 +68,28 @@ flowchart TD
 ## 3. Implemented Components
 
 ### 3.1 State Manifest Migration (`deployed.json`)
-- Relocated deployment state from uncommitted `.edge_functions_state.json` to version-controlled [`supabase/functions/deployed.json`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/functions/deployed.json).
+- Relocated deployment state from uncommitted `.edge_functions_state.json` to version-controlled [`supabase/functions/deployed.json`](../../supabase/functions/deployed.json).
 - Structured schema per function:
   - `hash`: Composite SHA-256 digest of source files and `_shared/`.
   - `version`: Sequential integer version from Supabase Management API.
   - `updated_at`: ISO 8601 UTC timestamp from the Supabase server.
-- Removed legacy dotfile from [`scripts/.gitignore`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/.gitignore).
+- Removed legacy dotfile from [`scripts/.gitignore`](../../scripts/.gitignore).
 
-### 3.2 Guarded & Parallel Edge Functions Deployer ([`scripts/deploy_edge_functions.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/deploy_edge_functions.py))
+### 3.2 Guarded & Parallel Edge Functions Deployer ([`scripts/deploy_edge_functions.py`](../../scripts/deploy_edge_functions.py))
 - `fetch_remote_functions(root_dir, project_ref)` queries remote functions via `supabase functions list -o json`.
 - Compares remote versions against `deployed.json`; detects out-of-band drift and requires explicit confirmation in interactive mode before overwriting.
 - Internal bounded concurrency (`ThreadPoolExecutor(max_workers=concurrency)`, default 4) parallelizes CLI deployment calls.
 - Atomic state updates using a mutex lock and atomic temp file swaps (`.json.tmp` -> `.json`).
 - Enhanced `--status` view displaying local/remote versions, update timestamps, status badges, and short hashes.
 
-### 3.3 Decoupled Type Generators ([`scripts/_generate_types.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/_generate_types.py))
+### 3.3 Decoupled Type Generators ([`scripts/_generate_types.py`](../../scripts/_generate_types.py))
 - Exported standalone functions `generate_typescript_types` and `generate_python_types`.
 - Concurrent execution inside `main()` with automatic pedagogical tooltip auditing for domain enums.
 
-### 3.4 Parallel DDL Schema Dumps ([`scripts/db_dump.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/db_dump.py))
+### 3.4 Parallel DDL Schema Dumps ([`scripts/db_dump.py`](../../scripts/db_dump.py))
 - `dump_schemas(..., parallel=True)` dispatches individual schema dumps (`public`, `ai`, `langgraph`) concurrently via `ThreadPoolExecutor(max_workers=len(schemas))`.
 
-### 3.5 Top-Level Two-Tier Orchestrator ([`scripts/db_setup.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/scripts/db_setup.py))
+### 3.5 Top-Level Two-Tier Orchestrator ([`scripts/db_setup.py`](../../scripts/db_setup.py))
 - Phase 1 & 2 remain serial gates ensuring a consistent database baseline and applied migrations.
 - Phase 3 executes 6 concurrent worker tasks in a `ThreadPoolExecutor(max_workers=6)`:
   - Worker 1: Edge Functions sync & drift audit

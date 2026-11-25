@@ -4,8 +4,8 @@
 
 ## 1. Problem Statement & Architecture Gap
 In the current application:
-- **Sign-Up Allows Role Selection**: [`frontend/src/views/AuthPage.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/AuthPage.tsx#L28) provides a toggle allowing users to register as either **Educator** or **Student**.
-- **Missing Student Destination**: Regardless of role, [`frontend/src/App.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/App.tsx) unconditionally renders [`ClassApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/ClassApp.tsx) (the Educator Cockpit).
+- **Sign-Up Allows Role Selection**: [`frontend/src/views/AuthPage.tsx`](../../frontend/src/views/AuthPage.tsx#L28) provides a toggle allowing users to register as either **Educator** or **Student**.
+- **Missing Student Destination**: Regardless of role, [`frontend/src/App.tsx`](../../frontend/src/App.tsx) unconditionally renders [`ClassApp.tsx`](../../frontend/src/views/ClassApp.tsx) (the Educator Cockpit).
 - **Broken User Experience**:
   - `ClassApp` queries `classes` where `user_id = auth.uid()`.
   - Because students are enrolled via `public.class_students` and do not own classes, they see an empty dashboard with 0 classes and an erroneous prompt to "Create a Class".
@@ -47,10 +47,10 @@ const isStudent =
 
 ## 3. Implementation Steps
 
-### Step 3.0: Update PostgreSQL RLS Policies for Enrolled Students ([`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql))
-In [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql), existing RLS policies restrict `classes`, `materials`, and `instructions` strictly to `user_id = auth.uid()`. Because teachers own classes, enrolled students (`public.class_students`) are completely blocked from reading class metadata, syllabus materials, and assignment prompts.
+### Step 3.0: Update PostgreSQL RLS Policies for Enrolled Students ([`supabase/schemas/schema.public.sql`](../../supabase/schemas/schema.public.sql))
+In [`supabase/schemas/schema.public.sql`](../../supabase/schemas/schema.public.sql), existing RLS policies restrict `classes`, `materials`, and `instructions` strictly to `user_id = auth.uid()`. Because teachers own classes, enrolled students (`public.class_students`) are completely blocked from reading class metadata, syllabus materials, and assignment prompts.
 
-Update the RLS policies in `supabase/schemas/schema-db.sql` and staging migrations:
+Update the RLS policies in `supabase/schemas/schema.public.sql` and staging migrations:
 1. **`public.classes`**:
    ```sql
    DROP POLICY IF EXISTS "Users can only view their own classes" ON public.classes;
@@ -114,7 +114,7 @@ Update the RLS policies in `supabase/schemas/schema-db.sql` and staging migratio
    );
    ```
 
-### Step 3.1: Service Layer for Student Perspective ([`frontend/src/services/studentPortalService.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/services/studentPortalService.ts))
+### Step 3.1: Service Layer for Student Perspective ([`frontend/src/services/studentPortalService.ts`](../../frontend/src/services/studentPortalService.ts))
 Create a lightweight service dedicated to student-scoped data fetching:
 1. `fetchEnrolledClasses()`:
    ```typescript
@@ -178,7 +178,7 @@ Create a lightweight service dedicated to student-scoped data fetching:
 5. `fetchMyGrades(classId: string)`:
    Query `public.student_submissions` for the current `student_id = user.id` in `classId` to retrieve grades, rubric breakdowns, and teacher feedback.
 
-### Step 3.2: Root Routing in [`frontend/src/App.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/App.tsx)
+### Step 3.2: Root Routing in [`frontend/src/App.tsx`](../../frontend/src/App.tsx)
 Update `App.tsx` to conditionally render based on the authenticated role:
 ```tsx
 if (role === 'student') {
@@ -187,15 +187,15 @@ if (role === 'student') {
 return <ClassApp />;
 ```
 
-### Step 3.3: Build Student Portal Shell ([`frontend/src/StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/StudentApp.tsx))
+### Step 3.3: Build Student Portal Shell ([`frontend/src/views/StudentApp.tsx`](../../frontend/src/views/StudentApp.tsx))
 A clean, student-centric UI shell featuring:
 - Top bar with enrolled class dropdown / selector, notification bell, and student avatar.
 - 3 Primary Tabs:
-  1. **Coursework & Materials**: View teacher-uploaded handouts, syllabus, and study notes with one-click download/preview using [`MaterialPreviewModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/classroom/MaterialPreviewModal.tsx).
+  1. **Coursework & Materials**: View teacher-uploaded handouts, syllabus, and study notes with one-click download/preview using [`MaterialPreviewModal.tsx`](../../frontend/src/features/classroom/MaterialPreviewModal.tsx).
   2. **Assignments & Turn-In**: View pending tasks, due dates, and an interactive "Turn In Assignment" drawer/modal (drag-and-drop file upload or direct text entry).
   3. **My Grades & Feedback**: Personal report card showing rubric performance, teacher remarks, and grade trends.
 
-### Step 3.4: Student Assignment Submission Modal ([`frontend/src/features/student-portal/StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx))
+### Step 3.4: Student Assignment Submission Modal ([`frontend/src/features/student-portal/StudentTurnInModal.tsx`](../../frontend/src/features/student-portal/StudentTurnInModal.tsx))
 Create `StudentTurnInModal.tsx`:
 - Toggle between **File Upload** (PDF, DOCX, images) and **Written Response** (textarea with rich formatting).
 - Uploads files directly to Supabase Storage `student-submissions` bucket under student's authenticated folder.
@@ -205,7 +205,7 @@ Create `StudentTurnInModal.tsx`:
 ---
 
 ## 4. PostgreSQL RLS Security Verification
-Verify that Row Level Security policies in [`supabase/schemas/schema-db.sql`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/supabase/schemas/schema-db.sql) permit students to:
+Verify that Row Level Security policies in [`supabase/schemas/schema.public.sql`](../../supabase/schemas/schema.public.sql) permit students to:
 1. `SELECT` from `public.classes` where `user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.class_students cs WHERE cs.class_id = classes.id AND cs.student_id = auth.uid())`.
 2. `SELECT` from `public.class_materials` and `public.materials` for enrolled classes.
 3. `SELECT` from `public.class_instructions` and `public.instructions` for enrolled classes.

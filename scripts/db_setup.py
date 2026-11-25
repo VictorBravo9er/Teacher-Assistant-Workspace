@@ -262,7 +262,25 @@ def main() -> None:
     start_time = time.time()
     step_results: list[tuple[str, str, str]] = []
 
-    with psycopg.connect(db_url, autocommit=True) as conn:
+    target_flags, is_remote_target, _ = _env_helper.resolve_target_flags()
+
+    try:
+        conn = psycopg.connect(db_url, autocommit=True)
+    except Exception as exc:
+        safe_print(
+            f"\n❌ Could not connect to PostgreSQL database ({db_url.split('@')[-1] if '@' in db_url else db_url}):"
+        )
+        safe_print(f"   {exc}")
+        if is_remote_target and "POSTGRES_URI" not in os.environ:
+            safe_print(
+                "\n💡 Hint: Your workspace is linked to a remote Supabase project, but direct SQL execution\n"
+                "   (such as LangGraph table provisioning) requires a direct PostgreSQL connection string.\n"
+                "   Please define POSTGRES_URI in your .env file.\n"
+                "   Example: POSTGRES_URI=postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres\n"
+            )
+        sys.exit(1)
+
+    with conn:
         schema_reset = root_dir / "supabase" / "schemas" / "schema-reset.sql"
 
         # ------------------------------------------------------------------
@@ -384,14 +402,14 @@ def main() -> None:
         def _worker_ts_types() -> tuple[str, bool, str]:
             if args.no_types:
                 return "TypeScript Types", True, "Skipped (--no-types)"
-            _ = generate_typescript_types(db_url, quiet=True)
+            _ = generate_typescript_types(target_flags, quiet=True)
             _ = audit_enum_tooltips(quiet=True)
             return "TypeScript Types", True, "frontend/src/types/db.ts updated"
 
         def _worker_py_types() -> tuple[str, bool, str]:
             if args.no_types:
                 return "Python Types", True, "Skipped (--no-types)"
-            _ = generate_python_types(db_url, quiet=True)
+            _ = generate_python_types(target_flags, quiet=True)
             return "Python Types", True, "backend/src/types/db.py updated"
 
         def _worker_dump_schema(schema_name: str) -> tuple[str, bool, str]:
@@ -402,7 +420,6 @@ def main() -> None:
                     "Skipped (--no-dump)",
                 )
             rc = dump_schemas(
-                db_url=db_url,
                 schemas=schema_name,
                 quiet=True,
                 parallel=False,

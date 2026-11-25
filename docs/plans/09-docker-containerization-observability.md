@@ -11,14 +11,14 @@
 Following the implementation of [Plan 00](./00-enum-tooltip-audit-tooling.md) through [Plan 08.5](./08.5-classroom-notifications-resend.md), Didactiq features a full-stack coordinated logging engine and rich multi-event notifications. However, running the application inside Docker containers currently encounters startup crashes and telemetry black holes due to four architectural mismatches:
 
 ### 1.1 Backend Container Startup Crash (`PermissionError: [Errno 13]`)
-In [`backend/src/lib/logger.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/logger.py#L22-L26):
+In [`backend/src/lib/logger.py`](../../backend/src/lib/logger.py#L22-L26):
 ```python
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent
 LOGS_DIR = ROOT_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 ```
 - **On Host**: `logger.py` is at `<repo>/backend/src/lib/logger.py`. Four `.parent` traversals locate `<repo>`, resolving `LOGS_DIR` to `<repo>/logs`.
-- **Inside Container**: [`backend/Dockerfile`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/Dockerfile) defines `WORKDIR /app` and copies code directly to `/app/src`. Four `.parent` traversals from `/app/src/lib/logger.py` escape the working directory and reach `/` (the Linux container root).
+- **Inside Container**: [`backend/Dockerfile`](../../backend/Dockerfile) defines `WORKDIR /app` and copies code directly to `/app/src`. Four `.parent` traversals from `/app/src/lib/logger.py` escape the working directory and reach `/` (the Linux container root).
 - **Failure Mode**: `LOGS_DIR` resolves to `/logs`. Because the container runs under unprivileged `USER b-usr` (UID 1000) and `/` is owned by `root:root` with mode `0755`, `LOGS_DIR.mkdir()` raises:
   ```text
   PermissionError: [Errno 13] Permission denied: '/logs'
@@ -26,7 +26,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
   This executes unconditionally at module import time, immediately terminating Uvicorn in both `prod` and `dev` targets.
 
 ### 1.2 Frontend Dev Container Startup Crash (`EACCES: permission denied`)
-In [`frontend/vite.config.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vite.config.ts#L13-L17):
+In [`frontend/vite.config.ts`](../../frontend/vite.config.ts#L13-L17):
 ```typescript
 configureServer(server) {
   const rootLogsDir = path.resolve(__dirname, '../logs');
@@ -39,16 +39,16 @@ configureServer(server) {
   ```text
   Error: EACCES: permission denied, mkdir '/logs'
   ```
-  This crashes the Vite dev server on container boot in [`docker-compose.dev.yml`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docker-compose.dev.yml).
+  This crashes the Vite dev server on container boot in [`docker-compose.dev.yml`](../../docker-compose.dev.yml).
 
 ### 1.3 Prod vs Dev Observability Delineation & Missing Dev Mounts
 - **Production 12-Factor Logging**: Production containers should emit logs exclusively to `sys.stdout` / `sys.stderr` so the container runtime (Docker daemon / log driver) captures them. Disk file generation (`.log`, `.jsonl`) and log file rotation are developer & diagnostic concerns that belong strictly in development environments.
-- **Frontend Prod Stripping**: In [`frontend/vite.config.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vite.config.ts#L145), `drop_console: true` is configured in Terser minification. This strips all `console.*` statements from production bundles, and Vite's `configureServer` (the HMR file logger) never runs in production. Thus, production frontend writes zero logs to disk.
-- **No Volume in Prod, Volume in Dev**: Because production generates no log files on disk, [`docker-compose.yml`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docker-compose.yml) requires **no** `./logs` volume mount. Conversely, [`docker-compose.dev.yml`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docker-compose.dev.yml) **must** bind `./logs:/app/logs` so live dev logs are persisted to the host for Rule 8 agent diagnostics.
+- **Frontend Prod Stripping**: In [`frontend/vite.config.ts`](../../frontend/vite.config.ts#L145), `drop_console: true` is configured in Terser minification. This strips all `console.*` statements from production bundles, and Vite's `configureServer` (the HMR file logger) never runs in production. Thus, production frontend writes zero logs to disk.
+- **No Volume in Prod, Volume in Dev**: Because production generates no log files on disk, [`docker-compose.yml`](../../docker-compose.yml) requires **no** `./logs` volume mount. Conversely, [`docker-compose.dev.yml`](../../docker-compose.dev.yml) **must** bind `./logs:/app/logs` so live dev logs are persisted to the host for Rule 8 agent diagnostics.
 
 ### 1.4 Missing Environment Variables & Reverse Proxy Correlation
-- **Environment Configuration**: `LOG_MAX_ENTRIES`, `VITE_LOG_MAX_ENTRIES`, and `VITE_LOG_LEVEL` are not passed through Docker Compose or documented in [`.env.example`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/.env.example).
-- **Request Tracing**: [`frontend/default.conf.template`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/default.conf.template) proxies `/api` requests to `backend` but fails to forward or inject the `X-Request-ID` correlation header required by backend request-tracing middleware.
+- **Environment Configuration**: `LOG_MAX_ENTRIES`, `VITE_LOG_MAX_ENTRIES`, and `VITE_LOG_LEVEL` are not passed through Docker Compose or documented in [`.env.example`](../../.env.example).
+- **Request Tracing**: [`frontend/default.conf.template`](../../frontend/default.conf.template) proxies `/api` requests to `backend` but fails to forward or inject the `X-Request-ID` correlation header required by backend request-tracing middleware.
 - **Alternative Host Decommissioning**: Legacy `alternative-host/` unified container setup was decommissioned and removed in favor of standard multi-container and Vercel hosting models.
 
 ---
@@ -96,7 +96,7 @@ configureServer(server) {
 
 ## 3. Detailed Implementation Steps
 
-### Step 3.1: Environment-Variable-First Logger Path & Prod/Dev Split ([`backend/src/lib/logger.py`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/src/lib/logger.py))
+### Step 3.1: Environment-Variable-First Logger Path & Prod/Dev Split ([`backend/src/lib/logger.py`](../../backend/src/lib/logger.py))
 1. **Dynamic Path Resolution**: Prioritize `LOGS_DIR` environment variable. If absent/empty, fall back to programmatic relative path (`ROOT_DIR / "logs"`).
 2. **Conditional File Handlers**: In production (`ENVIRONMENT == "production"` or `ENABLE_FILE_LOGGING == "false"`), attach **only** `StreamHandler(sys.stdout)`. Completely skip directory creation (`LOGS_DIR.mkdir()`) and file handlers (`.log`, `-error.log`, `.jsonl`). In dev/local mode, initialize file handlers and rotation.
 
@@ -139,7 +139,7 @@ if ENABLE_FILE_LOGGING:
     logger_instance.addHandler(jsonl_handler)
 ```
 
-### Step 3.2: Backend Dockerfile Directory Pre-creation ([`backend/Dockerfile`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/backend/Dockerfile))
+### Step 3.2: Backend Dockerfile Directory Pre-creation ([`backend/Dockerfile`](../../backend/Dockerfile))
 In stage `dev`, pre-create `/app/logs` with `USER_ID:GROUP_ID` ownership and expose `LOGS_DIR=/app/logs`:
 
 ```dockerfile
@@ -156,7 +156,7 @@ ENV LOGS_DIR=/app/logs
 USER b-usr
 ```
 
-### Step 3.3: Environment-Variable-First Frontend Logger Path ([`frontend/vite.config.ts`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/vite.config.ts))
+### Step 3.3: Environment-Variable-First Frontend Logger Path ([`frontend/vite.config.ts`](../../frontend/vite.config.ts))
 In Vite `client-log-broadcaster` (which is already dev-only via `configureServer`):
 1. Check `process.env.VITE_LOGS_DIR` first.
 2. If absent/empty, fall back to `path.resolve(__dirname, '../logs')`.
@@ -173,7 +173,7 @@ configureServer(server) {
   }
 ```
 
-### Step 3.4: Frontend Dockerfile Directory Pre-creation ([`frontend/Dockerfile`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/Dockerfile))
+### Step 3.4: Frontend Dockerfile Directory Pre-creation ([`frontend/Dockerfile`](../../frontend/Dockerfile))
 In `prep` stage, pre-create `/app/logs` with `node:node` ownership:
 
 ```dockerfile
@@ -186,7 +186,7 @@ ENV VITE_LOGS_DIR=/app/logs
 ```
 
 ### Step 3.5: Docker Compose Configurations (Prod Clean vs Dev Mounted)
-- **[`docker-compose.yml`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docker-compose.yml) (Production)**:
+- **[`docker-compose.yml`](../../docker-compose.yml) (Production)**:
   - **No** `./logs` volume mount.
   - Passes production environment variables cleanly.
   ```yaml
@@ -231,7 +231,7 @@ ENV VITE_LOGS_DIR=/app/logs
       restart: unless-stopped
   ```
 
-- **[`docker-compose.dev.yml`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/docker-compose.dev.yml) (Development Override)**:
+- **[`docker-compose.dev.yml`](../../docker-compose.dev.yml) (Development Override)**:
   - Mounts `./logs:/app/logs` on both `backend` and `frontend`.
   - Sets runtime dev envs.
   ```yaml
@@ -270,10 +270,10 @@ ENV VITE_LOGS_DIR=/app/logs
         - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
   ```
 
-### Step 3.6: Inject Correlation Header in Nginx ([`frontend/default.conf.template`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/default.conf.template))
+### Step 3.6: Inject Correlation Header in Nginx ([`frontend/default.conf.template`](../../frontend/default.conf.template))
 Add `proxy_set_header X-Request-ID $request_id;` inside the `/api` reverse proxy block so every HTTP request entering Nginx carries a correlated trace ID down to FastAPI.
 
-### Step 3.7: Update Environment Documentation ([`.env.example`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/.env.example))
+### Step 3.7: Update Environment Documentation ([`.env.example`](../../.env.example))
 Document port mappings, Supabase credentials, OpenRouter configuration, and logging limits:
 
 ```dotenv

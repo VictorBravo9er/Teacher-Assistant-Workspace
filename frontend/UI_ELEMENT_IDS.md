@@ -56,13 +56,13 @@ This document organizes and lists all important element `id` attributes assigned
 | `class-details-container` | Main wrapper card for class details panel |
 | `class-details-tabs` | Sub-tab navigation header container |
 | `class-details-tab-profile` | Tab trigger for "Class Profile" |
-| `class-details-tab-materials` | Tab trigger for "Materials Repository" |
-| `class-details-tab-instructions` | Tab trigger for "AI Instructions & Guidelines" |
+| `class-details-tab-materials` | Tab trigger for "Materials" |
+| `class-details-tab-instructions` | Tab trigger for "Class Guidelines" |
 | `class-profile-edit-button` | Button to enter Edit Mode for current class/template profile (inside Profile tab header) |
 | `class-profile-save-button` | Green button to save changes and exit Profile Edit Mode (inside Profile tab header) |
 | `class-profile-cancel-button` | Button to cancel pending profile edits and restore previous values (inside Profile tab header) |
-| `class-profile-teaching-style-input` | Input field for instructor teaching style |
-| `class-profile-assessment-preferences-input` | Textarea for assessment preferences |
+| `class-profile-teaching-style-input` | MultiSelect selector for instructor teaching styles |
+| `class-profile-assessment-preferences-input` | MultiSelect selector for assessment preferences |
 | `class-profile-special-notes-input` | Textarea for class reminders and notes |
 | `materials-upload-file-button` | Always-visible button to open file upload / material creation form |
 | `instructions-new-guideline-button` | Always-visible button to open prompt / class guideline creation form |
@@ -93,7 +93,6 @@ This document organizes and lists all important element `id` attributes assigned
 | `student-register-container` | Main container for student roster section |
 | `student-register-add-button` | Button to open "Add Student" prompt |
 | `student-card-{id}` | Card container for an individual student in roster |
-| `student-detail-modal-overlay` | Modal backdrop for student portfolio details |
 | `student-detail-modal` | Card modal for inspecting/editing student details |
 | `student-detail-close-button` | Button to close student portfolio modal |
 | `student-detail-status-select` | Immediate dropdown to update student roster status indicator (`active`, `inactive`, `needs-attention`) |

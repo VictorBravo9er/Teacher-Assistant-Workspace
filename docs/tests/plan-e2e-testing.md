@@ -122,7 +122,7 @@ SELECT notification_type, recipient_type, recipient_email, status FROM public.no
 
 ## 4. Pending Tests & Technical Requirements
 
-The following tests require the backend AI service (`FastAPI`), vector search, or external API keys:
+The following tests require the live backend AI service (`FastAPI` + OpenRouter + `DATABASE_URL`), frontend AI wiring completion, or external Resend API keys:
 
 ```mermaid
 flowchart LR
@@ -134,11 +134,11 @@ flowchart LR
     end
 
     subgraph Tests["Pending Verification Suites"]
-        P1["1. PDF / Image OCR Ingestion"]
-        P2["2. Vector Embeddings & Concept Graph"]
-        P3["3. Automated LangGraph Rubric Eval"]
-        P4["4. Diagnostic Diff Modal & Citations"]
-        P5["5. Conversational RAG Copilot"]
+        P1["1. Binary / OCR Text Extraction"]
+        P2["2. PageIndex Trees & Concept Graph"]
+        P3["3. Automated Rubric Eval (/api/grade)"]
+        P4["4. Live Diagnostic Diff & Misconceptions"]
+        P5["5. Dual-Engine RAG Copilot (/api/chat)"]
         P6["6. Live Email Delivery & Webhook Sync"]
     end
 
@@ -156,43 +156,41 @@ flowchart LR
 
 ### Detailed Breakdown of Pending Tests
 
-#### 1. PDF / Document OCR & Text Extraction
-* **Description**: A user uploads a scanned PDF or handwriting image of an assignment or syllabus.
-* **Why Deferred**: Requires file ingestion to Supabase Storage bucket (`materials` or `student-submissions`) followed by triggering `extract-material-text` Edge Function to parse raw text.
+#### 1. Binary / Document OCR, Visual Assets & Text Extraction
+* **Description**: A user uploads a scanned PDF, Office document, or handwriting image of an assignment or syllabus.
+* **Why Deferred**: Shared Deno parsers (`_shared/documentExtractor.ts`, `_shared/assetPersistence.ts`) and migration `20261111160000` are validated in CI (`scripts/verify_supabase.mjs`) and awaiting automated CD deployment via `.github/workflows/cd.yml` on `main` plus live runtime verification.
 * **Requirements of Completion**:
-  1. Local Supabase S3 storage bucket policies confirmed for authenticated uploads.
-  2. OCR engine or Gemini Multimodal API wired into backend / Edge Functions.
+  1. Merge to `main` (or dispatch `.github/workflows/cd.yml`) so GitHub Actions automatically applies `20261111160000_document_assets_and_knowledge_links.sql` and deploys updated Edge Functions.
+  2. Configure `OPENROUTER_API_KEY` in Supabase Edge Functions secrets to test scanned PDF / image Vision OCR fallback and visual captioning.
 
-#### 2. Vector Embeddings & Concept Ontology Ingestion
-* **Description**: Generating high-dimensional vector embeddings for uploaded course notes, assignments, and guidelines, extracting pedagogical prerequisites and misconceptions.
-* **Why Deferred**: Populates `ai.material_embeddings`, `ai.ontology_concepts`, and `ai.material_concept_mappings`, which are written by the backend `EvaluatorService.analyze_material`.
+#### 2. Hierarchical Material Trees, Concept Ontology & Consolidation
+* **Description**: Indexing long materials into hierarchical PageIndex section trees, extracting OKF v0.2 pedagogical concepts/prerequisites, and running nightly integrity audits / Misconception Dreaming.
+* **Why Deferred**: Populates `ai.material_trees`, `ai.ontology_concepts`, `ai.ontology_relationships`, `ai.material_concept_mappings`, `ai.consolidation_runs`, and `ai.knowledge_lint_reports` via `EvaluatorService.analyze_material()`, `POST /api/materials/tree`, and `POST /api/consolidation/run`.
 * **Requirements of Completion**:
-  1. Backend running on port `8090` (`uv run poe run-dev`).
-  2. `OPENROUTER_API_KEY` configured in `backend/.env`.
-  3. `POST /api/materials/analyze` endpoint reachable via Vite proxy (`/api`).
+  1. Backend running (`cd backend && uv run poe run-dev`, or `uvicorn` on port `8090` to match Vite's default `/api` proxy).
+  2. `OPENROUTER_API_KEY` and `DATABASE_URL` configured in `backend/.env`.
+  3. `POST /api/materials/analyze`, `POST /api/materials/tree`, and `POST /api/consolidation/run` verified end-to-end (plus DB webhook trigger `trg_material_ai_analysis` re-enabled).
 
 #### 3. Automated AI Rubric Evaluation & Misconception Diagnosis
-* **Description**: When a student turns in an assignment, the LangGraph evaluation agent runs an automated rubric diff, scoring each criterion and diagnosing specific conceptual gaps before teacher review.
-* **Why Deferred**: Writes to `ai.submission_evaluations` and `ai.submission_embeddings`. Invoked through the `POST /api/grade` endpoint.
+* **Description**: When a student turns in an assignment, `EvaluatorService.grade_submission()` runs an automated rubric evaluation, scoring each criterion, diagnosing student misconceptions, and syncing `ai.student_concept_mastery` before teacher review.
+* **Why Deferred**: Writes to `ai.submission_evaluations`, `ai.student_concept_mastery`, and `ai.ontology_misconceptions` via `POST /api/grade` (DB webhook trigger `trg_submission_ai_eval` is also currently commented out).
 * **Requirements of Completion**:
-  1. Backend FastAPI running on port `8090`.
-  2. Active LLM configured (e.g. `google/gemini-2.5-flash` or OpenAI GPT-4o via OpenRouter).
-  3. Valid rubric criteria JSON attached to the target material.
+  1. Backend FastAPI running with `DATABASE_URL` and `OPENROUTER_API_KEY`.
+  2. Valid rubric criteria JSON attached to the target material (and DB webhook trigger `trg_submission_ai_eval` re-enabled or direct `POST /api/grade` invoked).
 
-#### 4. AI Diagnostic Diff Modal & Visualizer (`AIDiagnosticDiffModal.tsx`)
-* **Description**: Interactive teacher review UI displaying AI confidence scores, side-by-side rubric criteria diffs, highlighted text citations from student submissions, and one-click score adoption.
-* **Why Deferred**: Requires existing records in `ai.submission_evaluations` produced by the AI evaluation agent.
+#### 4. Live AI Diagnostic Diff Modal & Proposed Misconception Badges
+* **Description**: Interactive teacher review UI displaying live `ai.submission_evaluations` criteria diffs in `AIDiagnosticDiffModal.tsx` and proposed misconception Confirm/Dismiss badges in `GradebookMatrix.tsx`.
+* **Why Deferred**: Currently `SubmissionGradingModal.tsx` uses a local heuristic baseline stub for `"Diagnose with AI"`, and `GradebookMatrix.tsx` badge rendering awaits frontend wiring to `GET /api/misconceptions/proposed` & `POST /api/misconceptions/{id}/review`.
 * **Requirements of Completion**:
   1. Completion of Test #3 above.
-  2. AI evaluation record bound to the active `submission_id`.
+  2. Frontend wired to `POST /api/grade`, `get_submission_ai_diagnostic()`, and `/api/misconceptions/*`.
 
-#### 5. RAG Conversational AI Copilot (`RAGClass.tsx`)
-* **Description**: In-app conversational assistant where teachers or students query course materials, ask clarifying questions on lab assignments, and receive citations grounded in class notes.
-* **Why Deferred**: Interacts with `POST /api/chat` and uses vector search over `ai.material_embeddings` to build context for `ChatService`.
+#### 5. Dual-Engine RAG Conversational AI Copilot (`RAGClass.tsx`)
+* **Description**: In-app conversational assistant querying `ai.check_answerable()`, PageIndex trees (`ai.material_trees`), and recursive CTE prerequisite graphs (`ai.ontology_relationships`), returning prose + `Visualizer.tsx` widgets.
+* **Why Deferred**: Live verification against `POST /api/chat` requires an active `OPENROUTER_API_KEY`, `DATABASE_URL`, and interactive soft-warning confirmation / `class_id` passing in `useAIChat.ts`.
 * **Requirements of Completion**:
-  1. Backend running on port `8090`.
-  2. Embedded material chunks in `ai.material_embeddings`.
-  3. Working database connection between FastAPI and local PostgreSQL.
+  1. Backend running with working `psycopg_pool` connection to local PostgreSQL (`DATABASE_URL`).
+  2. Indexed `ai.material_trees` / `ai.ontology_concepts` rows in `ai` schema.
 
 #### 6. Live Email Delivery & MTA Webhooks (`notify-*` & `resend-webhook`)
 * **Description**: Dispatching real notification emails to students/parents on new announcements, materials, or grades, and updating delivery status from `queued` to `delivered` via webhook.
@@ -207,4 +205,4 @@ flowchart LR
 
 1. **Foundational Platform Health**: All core LMS features (Phase 0 through Phase 8) are **100% verified and operational**.
 2. **Persistence**: All test changes are persisted in the local Supabase PostgreSQL volume (`supabase/`).
-3. **Next Phase**: When ready to test the AI evaluation and copilot flows, configure `backend/.env` with `OPENROUTER_API_KEY` and start the backend service with `cd backend && uv run poe run-dev`.
+3. **Next Phase**: When ready to verify live AI evaluation and copilot flows, configure `backend/.env` with `OPENROUTER_API_KEY` and `DATABASE_URL` and start the backend service (`cd backend && uv run poe run-dev`, setting `BACKEND_PORT` in Vite if not running on `:8090`).

@@ -67,7 +67,7 @@ class _DBDumpArgs(argparse.Namespace):
     schema: str = DEFAULT_SCHEMAS
     dir: Path | None = None
     file: Path | None = None
-    db_url: str = _env_helper.POSTGRES_URI
+    db_url: str | None = None
     local: bool = False
     linked: bool = False
     use_copy: bool = False
@@ -95,16 +95,17 @@ def _run_supabase_dump(
 
     if local:
         cmd.append("--local")
+        target_label = "local container"
     elif linked:
-        cmd.append("--linked")
+        cmd.append("--remote")
+        target_label = "linked project"
     elif db_url:
-        cmd.extend(["--db-url", db_url])
+        cmd.append(f"--remote={db_url}")
+        target_label = "configured database"
     else:
-        _safe_dump_print(
-            "❌ Error: No database target specified. Missing POSTGRES_URI or --local/--linked flag.",
-            file=sys.stderr,
-        )
-        return 1
+        target_flags, _, desc = _env_helper.resolve_target_flags()
+        cmd.extend(target_flags)
+        target_label = desc
 
     cmd.extend(["--schema", schemas])
 
@@ -123,11 +124,6 @@ def _run_supabase_dump(
         cmd.extend(["-f", str(output_file)])
 
     kind_label = "table data" if mode == "data" else "DDL schema"
-    target_label = (
-        "local container"
-        if local
-        else ("linked project" if linked else "configured database")
-    )
     if not quiet:
         _safe_dump_print(
             f"\n▶️  Generating local SQL file for [{schemas}] ({kind_label}) from {target_label}..."
@@ -201,7 +197,7 @@ def dump_schemas(
             mode="schema",
             output_file=target_file,
             schemas=s,
-            db_url=db_url if db_url is not None else _env_helper.POSTGRES_URI,
+            db_url=db_url,
             local=local,
             linked=linked,
             keep_comments=keep_comments,
@@ -272,7 +268,7 @@ def dump_data(
         mode="data",
         output_file=target_file,
         schemas=schemas,
-        db_url=db_url if db_url is not None else _env_helper.POSTGRES_URI,
+        db_url=db_url,
         local=local,
         linked=linked,
         use_copy=use_copy,
@@ -334,8 +330,8 @@ def main() -> None:
     )
     _ = parser.add_argument(
         "--db-url",
-        default=_env_helper.POSTGRES_URI,
-        help="Direct Postgres connection URL. Defaults to POSTGRES_URI from environment.",
+        default=None,
+        help="Direct Postgres connection URL. Defaults to resolving target via env helper.",
     )
     _ = parser.add_argument(
         "--local",

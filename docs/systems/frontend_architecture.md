@@ -115,19 +115,19 @@ flowchart TD
 
 ### 3.1 Classroom Management (`features/classroom/`)
 - **`ClassDetails.tsx`**: Central hub displaying class metadata, syllabus materials, active AI instructions, class announcements, and quick action bars. Profile Edit/Save/Cancel controls (`class-profile-edit-button`, `class-profile-save-button`, `class-profile-cancel-button`) reside directly inside the **Class Profile** tab header (`class-details-tab-profile`), while CRUD buttons for **Materials** (`materials-upload-file-button`, remove `Trash2`) and **Class Guidelines** (`instructions-new-guideline-button`, delete `Trash2`) are always visible.
-- **`CreateClassModal.tsx`**: Multi-step modal for creating new classes from scratch or cloning reusable templates.
-- **`GradebookMatrix.tsx`**: Realtime spreadsheet-style matrix cross-referencing enrolled students against assigned materials, displaying current scores, submission badges (`Submitted`, `Evaluated`, `Graded`), and class averages.
-- **`MaterialPreviewModal.tsx`**: Interactive document viewer displaying extracted content, syllabus topic tags, prerequisite gap warnings, and sample questions from the AI analysis engine.
-- **`RubricBuilderModal.tsx`**: Visual rubric builder allowing teachers to construct multi-criterion rubrics with custom point weights and evaluation criteria.
+- **`CreateClassModal.tsx`**: Multi-step modal for creating new classes from scratch or cloning reusable templates (selecting Fork / Independent Copies vs Shared Reference for template materials).
+- **`GradebookMatrix.tsx`**: Realtime spreadsheet-style matrix cross-referencing enrolled students against assigned materials, displaying current scores, submission badges (`Submitted`, `Evaluated`, `Graded`), and class averages. *(Proposed misconception review badges from `/api/misconceptions/proposed` are backend-ready and pending frontend integration.)*
+- **`MaterialPreviewModal.tsx`**: Interactive polymorphic previewer displaying files (via signed URLs from `get-material-url`), external URLs, and native inline text content. *(AI syllabus insights panel via `get_material_ai_insights()` is pending UI wiring.)*
+- **`RubricBuilderModal.tsx`**: Visual rubric builder allowing teachers to construct multi-criterion rubrics with custom point weights and Public vs. Class-Private criterion scoping, persisting to `materials.rubric_criteria` and `class_materials.custom_rubric_criteria`.
 
 ---
 
 ### 3.2 Student Portfolios & Assessment (`features/students/`)
-- **`StudentRegister.tsx`**: Comprehensive student directory with search, performance tier filters (`Advanced`, `Proficient`, `Developing`, `Critical Support`), and batch enrollment actions with 0ms optimistic student invitation.
-- **`StudentDetailModal.tsx`**: 360-degree student portfolio showing cumulative GPA, assignment history, attendance trajectory, identified concept mastery gaps, and a section-scoped `Edit / Save / Cancel` toggle (`student-detail-edit-dossier-button`, `student-detail-save-dossier-button`, `student-detail-cancel-dossier-button`) governing **Contact Dossier** and **Family & Guardians**.
+- **`StudentRegister.tsx`**: Comprehensive student directory with performance tier badges (`High`, `Average`, `At Risk`, `Unassessed`) and 0ms optimistic student enrollment/invitation cards (`"Inviting..."`).
+- **`StudentDetailModal.tsx`**: 360-degree student portfolio showing cumulative score, assignment history, attendance rate, accommodation `customFields`, and a section-scoped `Edit / Save / Cancel` toggle (`student-detail-edit-dossier-button`, `student-detail-save-dossier-button`, `student-detail-cancel-dossier-button`) governing **Contact Dossier** and **Family & Guardians**. *(Concept gap integration via `get_student_concept_gaps()` is pending UI wiring.)*
 - **`AttendanceManagerModal.tsx`**: Fast daily roll-call modal supporting quick status marking (`Present`, `Absent`, `Late`, `Excused`) with aggregate attendance rate recalculation.
-- **`ReportCardModal.tsx`**: Printable and exportable student report card generator compiling grades, attendance records, teacher comments, and AI-assisted performance summaries.
-- **`SubmissionGradingModal.tsx`**: Side-by-side grading workbench allowing teachers to review student work, view AI-suggested criterion scores, adjust points, and author student feedback.
+- **`ReportCardModal.tsx`**: Printable and exportable student report card generator compiling grades, attendance records, teacher comments, and printable PDF layouts.
+- **`SubmissionGradingModal.tsx`**: Side-by-side grading workbench allowing teachers to review student work (File/URL/Text), adjust criterion scores, author student feedback, and trigger `"Diagnose with AI"` *(currently runs a local heuristic stub before opening `AIDiagnosticDiffModal.tsx`; live `/api/grade` and `get_submission_ai_diagnostic()` wiring is pending)*.
 - **`StudentSubmissionUploadModal.tsx`**: Teacher-assisted submission modal allowing educators to directly upload, link, or record student assignment submissions on behalf of students.
 
 ---
@@ -149,9 +149,9 @@ flowchart TD
 ---
 
 ### 3.5 AI Assistant & Visualizer (`features/ai-assistant/`)
-- **`RAGClass.tsx`**: Interactive AI Copilot sliding drawer providing conversational pedagogical assistance, lesson planning recommendations, and automated assignment drafting.
+- **`RAGClass.tsx`**: Interactive AI Copilot drawer (default workspace layout opens in `'details-only'` mode until toggling Split View / Chat Only in `ClassApp.tsx`) providing conversational pedagogical assistance, lesson planning recommendations, quick prompt chips, and Markdown session export.
 - **`AIDiagnosticDiffModal.tsx`**: Visual diff modal presenting side-by-side comparison between existing student grades and AI-recommended rubric evaluations before publishing to the gradebook.
-- **`Visualizer.tsx`**: Dynamic chart and data widget renderer supporting comparative bar charts, class mastery heatmaps, student rankings, timeline trajectories, and KPI stat counters.
+- **`Visualizer.tsx`**: Dynamic widget renderer supporting student rankings (`ranking`), longitudinal milestone timelines (`timeline`), topic mastery heatmaps (`heatmap` using `{ topic, mastery }`), and metric KPI cards (`stats`; `'charts'` and `'radar'` payloads currently fall back to the `'stats'` card layout).
 
 ---
 
@@ -187,7 +187,7 @@ flowchart LR
         SvcClass["classService"]
         SvcStudent["studentService"]
         SvcMat["materialService"]
-        SvcChat["chatService"]
+        SvcChat["chatService (Supabase chat_sessions)"]
         SvcPortal["studentPortalService"]
         SvcAnn["announcementService"]
         SvcNotif["notificationService"]
@@ -195,7 +195,7 @@ flowchart LR
 
     subgraph BackendTargets["Remote Backends"]
         SupaPostgres[("Supabase PostgreSQL (via PostgREST)")]
-        FastAPIBackend["FastAPI Backend (/api/chat, /api/grade)"]
+        FastAPIBackend["FastAPI Backend (/api/chat)"]
         EdgeFunctions["Supabase Edge Functions (Resend Email dispatches)"]
     end
 
@@ -205,14 +205,15 @@ flowchart LR
     HookClass --> SvcMat
     HookClass --> SvcAnn
     HookClass --> SvcNotif
-    HookChat --> SvcChat
+    HookChat -->|Direct fetch /api/chat| FastAPIBackend
+    HookChat -->|Session Persistence| SvcChat
 
     SvcClass --> SupaPostgres
     SvcStudent --> SupaPostgres
     SvcMat --> SupaPostgres
     SvcPortal --> SupaPostgres
     SvcAnn --> SupaPostgres
-    SvcChat --> FastAPIBackend
+    SvcChat --> SupaPostgres
     SvcNotif --> EdgeFunctions
 ```
 
@@ -224,7 +225,7 @@ flowchart LR
    - Manages granular data for the active class (students roster, linked materials, class instructions, running submissions, attendance records).
    - Exposes clean mutation handlers (`handleAddMaterialInClass`, `handleDeleteMaterialInClass`, `handleAddInstructionInClass`, `handleDeleteInstructionInClass`, `handleUpdateClass`) with optimistic UI updates, error rollbacks, and post-persistence `notificationService.notifyMaterial(newMat.id, wsId, 'published', false)` dispatch when `notifyStudents` is enabled.
 3. **`useAIChat`**:
-   - Manages active chat thread messages, streaming state, session history switching, and contextual prompt injection.
+   - Manages active chat thread messages, session history persistence via `chatService`, and contextual prompt submission (`POST /api/chat` via `fetch`, awaiting full JSON responses; SSE token streaming, `class_id` injection, and soft-warning confirmation retries are pending frontend wiring).
 4. **`useTheme`**:
    - Controls application light/dark/system theme toggles, synchronizing `.dark` class on root `<html>`, `localStorage` (`didactiq_theme` with legacy fallback to `teach_and_learn_theme` and `edu_rag_theme`), and OS `prefers-color-scheme`.
    - Binds to ergonomic design tokens in `index.css`: WCAG-compliant high-contrast slate borders (`#CBD5E1` in light, `#475569` in dark), softened non-glare dark canvas (`#0F172A` / `#1E293B`), and scaled typography (`text-sm` inputs/buttons, `text-xs` badges/labels) optimized for extended reading by educators across all demographics.
@@ -238,7 +239,7 @@ The frontend splits data mutations into two deterministic UX patterns based on p
 ### 5.1 Optimistic UI + Background Promise + Snapshot Rollback (0ms Perceived Latency)
 For deterministic metadata, roster, grading, attendance, and broadcast operations:
 - **Ref-Synchronized State (`classItemRef` & `classesRef`)**: Mutable React refs in `StudentRegister.tsx` and `useClassOperations.ts` track the latest state across concurrent background promises, preventing stale closure overwrites when multiple rapid actions fire simultaneously.
-- **Pending Visual Badges (`isPending?: boolean`)**: Temporary entries (`temp-invite-*`, `temp-ann-*`, `temp-inst-*`, `temp-mat-*`) render immediately with subtle status pills (`"Inviting..."`, `"Publishing..."`, `"Syncing..."`, `"Adding..."`) while the Edge Function or PostgREST call resolves in the background.
+- **Pending Visual Badges (`isPending?: boolean`)**: Temporary optimistic entries (`id: crypto.randomUUID()`, `isPending: true`) render immediately with subtle status pills (`"Inviting..."`, `"Publishing..."`, etc.) while the Edge Function or PostgREST call resolves in the background.
 - **Snapshot Rollback**: Every background promise captures a pre-mutation state snapshot (`previousState`) and restores it automatically alongside an error toast (`showToast(..., 'error')`) if the network request fails.
 - **Applied Flows**:
   1. Student Enrollment & Invitation (`StudentRegister.tsx`)

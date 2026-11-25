@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 concurrency:
   group: cd-production
@@ -32,8 +36,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install dotenv
-        run: pip install dotenv
+      - name: Install python-dotenv
+        run: pip install python-dotenv
 
       - name: Run Database Migrations
         run: |
@@ -41,7 +45,7 @@ jobs:
 
       - name: Deploy Modified Edge Functions
         run: |
-          python scripts/deploy_edge_functions.py
+          python scripts/deploy_edge_functions.py --yes --strict
 
       - name: Commit Updated Deployment Manifest
         run: |

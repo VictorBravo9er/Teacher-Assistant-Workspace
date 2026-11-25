@@ -82,10 +82,8 @@ export function useClassOperations({
       setActiveClassId(id);
       setViewMode('class');
       setIsEditMode(false);
-      // Decoupled LMS: Default to 'details-only' layout
-      // TODO: Uncomment 'split' when AI / RAG services are reintegrated
-      setLayoutMode('details-only');
-      setPreviousLayoutMode('details-only');
+      setLayoutMode('split');
+      setPreviousLayoutMode('split');
     },
     [setActiveClassId, setViewMode, setIsEditMode, setLayoutMode, setPreviousLayoutMode]
   );
@@ -147,10 +145,8 @@ export function useClassOperations({
         setActiveClassId(newClass.id);
         setViewMode('class');
         setIsEditMode(false);
-        // Decoupled LMS: Default to 'details-only' layout
-        // TODO: Uncomment 'split' when AI / RAG services are reintegrated
-        setLayoutMode('details-only');
-        setPreviousLayoutMode('details-only');
+        setLayoutMode('split');
+        setPreviousLayoutMode('split');
         triggerToast(`Created classroom: "${name}"`);
       } catch (err: any) {
         logger.error('CLASS_OPERATIONS', `Failed to create class "${name}"`, err);

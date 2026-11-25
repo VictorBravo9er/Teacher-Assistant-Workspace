@@ -6,7 +6,7 @@ This document details the end-to-end user journeys for students accessing the pl
 
 ## 1. Workflow: Student Course Navigation & Dashboard Overview
 
-When an authenticated user has `role === 'student'`, the top-level router (`App.tsx`) renders [`StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx) instead of the educator workspace.
+When an authenticated user has `role === 'student'`, the top-level router (`App.tsx`) renders [`StudentApp.tsx`](../../../frontend/src/views/StudentApp.tsx) instead of the educator workspace.
 
 ```mermaid
 sequenceDiagram
@@ -42,7 +42,7 @@ sequenceDiagram
 
 ## 2. Workflow: Student Assignment Turn-In (Files, URLs, Text)
 
-Students can submit their completed work directly from the `assignments` tab using [`StudentTurnInModal.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/features/student-portal/StudentTurnInModal.tsx).
+Students can submit their completed work directly from the `assignments` tab using [`StudentTurnInModal.tsx`](../../../frontend/src/features/student-portal/StudentTurnInModal.tsx).
 
 ```mermaid
 sequenceDiagram
@@ -61,7 +61,7 @@ sequenceDiagram
     Student->>UI: Selects mode: File Upload, Web URL, or Written Text
     alt File Upload
         Student->>UI: Chooses document / image (PDF, DOCX, PNG)
-        UI->>UI: Shows asymptotic upload progress bar (15% -> 92% -> 100%)
+        UI->>UI: Shows asymptotic upload progress bar (15% → 92% → 100%)
         UI->>Storage: Uploads to student-submissions/{material_id}/{content_id}
     else Web URL / Text
         Student->>UI: Pastes link or enters plaintext answer
@@ -113,7 +113,7 @@ sequenceDiagram
 
 ## 4. Workflow: Student Password & Security Setup
 
-When students are invited to a course via email or magic link, they configure and rotate their account credentials via [`StudentPasswordModal`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx).
+When students are invited to a course via email or magic link, they configure and rotate their account credentials via [`StudentPasswordModal`](../../../frontend/src/views/StudentApp.tsx).
 
 ```mermaid
 sequenceDiagram
@@ -124,7 +124,7 @@ sequenceDiagram
 
     Student->>UI: Clicks "Change Password" in student profile dropdown
     Student->>UI: Enters new password & confirmation
-    Student->>UI: Clicks "Update Password"
+    Student->>UI: Clicks "Save Password"
     UI->>UI: Shows indeterminate encryption progress bar & disables inputs
     UI->>Supa: supabase.auth.updateUser({ password: newPassword })
     alt Success
@@ -140,7 +140,7 @@ sequenceDiagram
 
 ## 5. Workflow: Student Grade & Performance Review
 
-Students inspect their academic standing, cumulative letter grade, assignment-specific scores, and qualitative instructor feedback via the `grades` sub-tab in [`StudentApp.tsx`](file:///home/victor/antigravity/Teacher-Assistant-Workspace/frontend/src/views/StudentApp.tsx).
+Students inspect their academic standing, cumulative letter grade, assignment-specific scores, and qualitative instructor feedback via the `grades` sub-tab in [`StudentApp.tsx`](../../../frontend/src/views/StudentApp.tsx).
 
 ```mermaid
 sequenceDiagram
@@ -154,7 +154,7 @@ sequenceDiagram
     Portal->>Portal: Reads activeClass state (currentScore, currentGrade, generalFeedback)
     Portal->>Portal: Reads submissions state (scores, rubric feedback, status)
     Portal-->>Student: Renders Cumulative Score metric card (e.g., "88%")
-    Portal-->>Student: Renders Letter Grade metric card (e.g., "B+") & attendance stat
+    Portal-->>Student: Renders Letter Grade metric card (e.g., "B+") & Performance Standing badge
     Portal-->>Student: Displays Instructor Remarks & Portfolio Feedback
     Portal-->>Student: Displays Graded Work scoreboard (itemized scores & rubric comments)
 ```

@@ -27,7 +27,7 @@ pie title Test Execution Status
 | **Coursework & Content** | ✅ 100% | Graded assignments, guidelines, announcements, calendar | `public.materials`, `public.instructions`, `public.announcements` |
 | **Grading & Turn-In** | ✅ 100% | Student written submission, rubric review drawer, attendance, CSV export | `public.student_submissions`, `public.attendance_records` |
 | **Notification Pipeline** | ✅ Verified | Asynchronous notification queueing for materials & notices | `public.notification_logs`, Supabase Edge Runtime |
-| **Backend AI & LangGraph** | ⏳ Pending | OCR, vector embeddings, concept ontology, automated grading, RAG copilot | FastAPI (`:8090`), LangChain, OpenRouter LLMs |
+| **Backend AI & Knowledge Store** | ⏳ Pending | Binary/OCR extraction, PageIndex trees & concept ontology, automated grading, Dual-Engine RAG copilot | FastAPI (`:8090`), LangChain, OpenRouter LLMs, `ai.*` schema |
 | **External Email Delivery** | ⏳ Pending | Live Resend dispatch and MTA bounce tracking webhooks | Resend API, `resend-webhook` Edge Function |
 
 ---
@@ -63,7 +63,7 @@ All tests executed against the local environment (`frontend: :8080`, `supabase: 
    - Saved active class as `AP Chemistry Core Template` in `public.templates`.
    - Verified archived class switcher and soft-delete toggle.
 
-*For complete step-by-step audit logs, screenshots, and SQL query verification, see [`plan-14-end-to-end-local-testing-review.md`](plan-14-end-to-end-local-testing-review.md).*
+*For complete step-by-step audit logs, screenshots, and SQL query verification, see [`plan-e2e-testing.md`](plan-e2e-testing.md).*
 
 ---
 
@@ -81,11 +81,11 @@ flowchart LR
     end
 
     subgraph Tests["Pending Tests"]
-        P1["1. PDF / Image OCR Ingestion"]
-        P2["2. Vector Embeddings & Concept Graph"]
-        P3["3. Automated LangGraph Rubric Eval"]
-        P4["4. Diagnostic Diff Modal & Citations"]
-        P5["5. Conversational RAG Copilot"]
+        P1["1. Binary / OCR Text Extraction"]
+        P2["2. PageIndex Trees & Concept Graph"]
+        P3["3. Automated Rubric Eval (/api/grade)"]
+        P4["4. Live Diagnostic Diff & Misconceptions"]
+        P5["5. Dual-Engine RAG Copilot (/api/chat)"]
         P6["6. Live Email Delivery & Webhooks"]
     end
 
@@ -102,7 +102,7 @@ flowchart LR
 ```
 
 ### Requirements Checklist for Pending Tests
-- [ ] **Backend Service Activation**: Start the FastAPI server (`cd backend && uv run poe run-dev` on port `8090`).
-- [ ] **LLM API Credentials**: Set `OPENROUTER_API_KEY` in `backend/.env` (supports `google/gemini-2.5-flash` or OpenAI models).
+- [ ] **Backend Service Activation**: Start the FastAPI server (`cd backend && uv run poe run-dev`, or `docker compose` / `BACKEND_PORT=8090` to match the default Vite `/api` proxy on `:8090`).
+- [ ] **LLM & DB Credentials**: Set `OPENROUTER_API_KEY` and `DATABASE_URL` in `backend/.env` (supports `google/gemini-2.5-flash` or OpenAI models via OpenRouter).
 - [ ] **Document Storage Ingestion**: Validate upload policies for private buckets `class-materials` and `student-submissions` via `supabase/storage`.
 - [ ] **Email Delivery Wireup**: Set `RESEND_API_KEY` in Supabase Edge Functions environment and configure an inbound webhook tunnel for `resend-webhook`.

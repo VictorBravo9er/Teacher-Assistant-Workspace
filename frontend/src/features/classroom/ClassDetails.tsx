@@ -720,15 +720,14 @@ export default function ClassDetails({
               </div>
             </div>
 
-            {/* TODO: Uncomment when AI / RAG services are reintegrated */}
-            {/* <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex gap-2.5">
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex gap-2.5">
               <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-primary/80 leading-normal">
                 Changes in this dossier automatically sync into the RAG
                 Assistant scope. Chat searches will retrieve this context
                 automatically.
               </p>
-            </div> */}
+            </div>
           </div>
 
         {/* Materials Repository Tab */}
